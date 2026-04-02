@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-triple-triad = "triple_triad.__main__:main"
+triple-triad = "triple_triad.game:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -24,4 +24,24 @@ packages = ["triple_triad"]
 dev = [
     "pytest>=9.0.2",
     "ruff>=0.15.8",
+    "pre-commit>=4.2.0",
 ]
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["triple_triad"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+docstring-code-format = false
+force-single-line = false
