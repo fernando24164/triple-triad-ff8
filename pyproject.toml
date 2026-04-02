@@ -1,6 +1,6 @@
 [project]
 name = "triple-triad-ff8"
-version = "0.1.1"
+version = "0.1.2"
 description = "A fan-made tribute to the Triple Triad card game from Final Fantasy VIII"
 readme = "README.md"
 license = "MIT"

@@ -55,11 +55,6 @@ Triple Triad is a 2-player card game played on a 3×3 grid. Each player has 5 ca
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/triple-triad.git
-cd triple-triad
-
-# Install dependencies
 uv sync --locked
 ```
 
@@ -69,27 +64,10 @@ uv sync --locked
 python -m triple_triad.game
 ```
 
----
+or
 
-## 📦 Project Structure
-
-```
-triple_triad/
-├── data/
-│   └── cards.py          # All 110 card definitions with stats & elements
-├── synth/
-│   ├── melodies/
-│   │   └── background_music.py   # Melody, chords, bass & percussion data
-│   ├── constants.py              # Note frequencies and sample rate
-│   ├── player.py                 # Threaded chiptune player (pygame)
-│   └── wave_generators.py        # Square, triangle & noise wave synthesis
-├── ai.py                 # CPU decision-making (random / greedy)
-├── board.py              # 3×3 grid state + ANSI terminal renderer
-├── cards.py              # Card class with immutable stats via CardStats
-├── deck.py               # Deck builders, presets & interactive picker
-├── game.py               # Main game loop and orchestration
-├── rules.py              # Capture logic (basic, Same, Plus)
-└── ui.py                 # Display helpers and rule selection menu
+```bash
+uv run triple-triad
 ```
 
 
@@ -125,13 +103,13 @@ uv sync --locked
 ### Run Tests
 
 ```bash
-pytest
+uv run pytest
 ```
 
 ### Lint
 
 ```bash
-ruff check .
+uv run ruff check .
 ```
 
 ---
@@ -163,10 +141,3 @@ twine upload dist/*
 ## 📄 License
 
 This project is for educational and personal use. Triple Triad is a minigame from *Final Fantasy VIII*, © Square Enix. All card names and game mechanics are the property of their respective owners.
-
----
-
-## 🙏 Acknowledgments
-
-- **Square Enix** — for creating Triple Triad in *Final Fantasy VIII*
-- The original card stats and element system are faithfully reproduced from the game
