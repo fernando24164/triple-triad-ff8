@@ -77,12 +77,12 @@ def _paginate_cards(
     )
     print(f"  {'─' * 52}")
 
-    for i, name in enumerate(page_names, start):
+    for i, name in enumerate(page_names):
         stats = CARDS[name]
         el = stats.element.value if stats.element else "—"
         taken = " ✓" if name in chosen_names else ""
         print(
-            f"  {i:>3}  {name:<20} {el:<8} {stats.level:>2}  "
+            f"  {start + i + 1:>3}  {name:<20} {el:<8} {stats.level:>2}  "
             f"{stats.top:>2} {stats.right:>2} {stats.bottom:>2} {stats.left:>2}{taken}"
         )
 
@@ -98,10 +98,10 @@ def _show_deck_preview(chosen: list[Card]) -> None:
 
     print(f"\n  ── Your Deck ({len(chosen)}/{DECK_SIZE}) ──")
     total_stats = {"top": 0, "right": 0, "bottom": 0, "left": 0}
-    for i, c in enumerate(chosen, 1):
+    for i, c in enumerate(chosen):
         el = f"[{c.element.value}]" if c.element else ""
         print(
-            f"    [{i}] {c.name:<18} {el:<10} Lv{c.level}  ▲{c.top} ▶{c.right} ▼{c.bottom} ◀{c.left}"
+            f"    [{i + 1}] {c.name:<18} {el:<10} Lv{c.level}  ▲{c.top} ▶{c.right} ▼{c.bottom} ◀{c.left}"
         )
         total_stats["top"] += c.top
         total_stats["right"] += c.right
@@ -118,7 +118,7 @@ def _show_deck_preview(chosen: list[Card]) -> None:
 def _show_help() -> None:
     """Display available commands during card selection."""
     print("\n  ── Commands ──")
-    print("  <number>   Pick the card with that number")
+    print("  <number>   Pick the card with that number (0-109)")
     print("  n / p      Next / Previous page")
     print("  u          Undo last pick")
     print("  sort <key> Sort by: level, name, top, right, bottom, left, element")
@@ -360,7 +360,7 @@ def choose_deck() -> list[Card]:
         try:
             idx = int(raw) - 1
             if not (0 <= idx < len(view_names)):
-                print(f"  ✗ Enter a number between 1 and {len(view_names)}.")
+                print(f"  ✗ Enter a number between 0 and {len(view_names) - 1}.")
                 continue
 
             name = view_names[idx]
