@@ -1,10 +1,11 @@
 import random
 
-from .board import Board
+from ..ai.base import cpu_choose
+from ..constants import BOARD_CELLS
+from ..models.board import Board
+from ..ui.display import display_hand
 from .rules import resolve_captures
-from .ai import cpu_choose
-from .ui import display_hand
-from .scoring import calculate_scores, calculate_final_scores
+from .scoring import calculate_final_scores, calculate_scores
 
 
 def run_game(player_hand, cpu_hand, rules, ai_mode):
@@ -16,7 +17,7 @@ def run_game(player_hand, cpu_hand, rules, ai_mode):
     turn = first
     turn_number = 1
 
-    while any(board.is_empty(i) for i in range(9)):
+    while any(board.is_empty(i) for i in range(BOARD_CELLS)):
         print("\n" + "═" * 62)
         print(f"  Turn {turn_number}  |  {'YOUR TURN' if turn == 'P' else 'CPU TURN'}")
         print("═" * 62)
@@ -41,10 +42,10 @@ def run_game(player_hand, cpu_hand, rules, ai_mode):
                     print("  ✗ Enter a number.")
 
             # Pick position
-            empty = [i for i in range(9) if board.is_empty(i)]
+            empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
             while True:
                 try:
-                    pos = int(input("  Choose position (1-9): ")) - 1
+                    pos = int(input(f"  Choose position (1-{BOARD_CELLS}): ")) - 1
                     if pos in empty:
                         break
                     print("  ✗ Position taken or invalid.")

@@ -1,6 +1,6 @@
 import threading
 import time
-from typing import Optional
+
 from .constants import SAMPLE_RATE
 from .wave_generators import generate_music_buffer
 
@@ -21,10 +21,10 @@ class ChiptunePlayer:
     """
 
     def __init__(self):
-        self._sound: Optional[pygame.mixer.Sound] = None
+        self._sound: pygame.mixer.Sound | None = None
         self._is_playing = False
         self._stop_event = threading.Event()
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
 
     def start(self):

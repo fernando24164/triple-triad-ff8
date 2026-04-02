@@ -1,5 +1,4 @@
-
-SAMPLE_RATE = 44100 # CD quality
+SAMPLE_RATE = 44100  # CD quality
 
 # Note frequencies (La = 440Hz) - European solfège system
 NOTE_FREQ = {

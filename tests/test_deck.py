@@ -1,16 +1,14 @@
-from triple_triad.deck import (
-    build_starter_deck,
+from triple_triad.data.cards import CARDS
+from triple_triad.deck.builder import (
+    DIFFICULTY_CONFIG,
     build_cpu_deck,
     build_random_deck,
-    build_preset_deck,
-    list_presets,
+    build_starter_deck,
     get_cpu_ai_mode,
-    DIFFICULTY_CONFIG,
-    DECK_PRESETS,
-    _filter_cards,
-    _sort_cards,
 )
-from triple_triad.cards import Card, CARDS
+from triple_triad.deck.picker import _filter_cards, _sort_cards
+from triple_triad.deck.presets import DECK_PRESETS, build_preset_deck, list_presets
+from triple_triad.models.card import Card
 
 
 class TestDeck:
@@ -119,14 +117,20 @@ class TestDeck:
         all_names = sorted(CARDS.keys())
         results = _filter_cards(all_names, element="Fire")
         assert len(results) > 0
-        assert all(CARDS[name].element and CARDS[name].element.value == "Fire" for name in results)
+        assert all(
+            CARDS[name].element and CARDS[name].element.value == "Fire"
+            for name in results
+        )
 
     def test_filter_cards_combined(self):
         """Test filtering cards by level and element combined."""
         all_names = sorted(CARDS.keys())
         results = _filter_cards(all_names, level_range=(1, 5), element="Thunder")
         assert all(1 <= CARDS[name].level <= 5 for name in results)
-        assert all(CARDS[name].element and CARDS[name].element.value == "Thunder" for name in results)
+        assert all(
+            CARDS[name].element and CARDS[name].element.value == "Thunder"
+            for name in results
+        )
 
     def test_sort_cards_by_level(self):
         """Test sorting cards by level."""
@@ -169,6 +173,7 @@ class TestDeck:
     def test_build_preset_deck_invalid(self):
         """Test building a deck from an invalid preset."""
         import pytest
+
         with pytest.raises(ValueError):
             build_preset_deck("NonExistentPreset")
 
@@ -176,7 +181,9 @@ class TestDeck:
         """Test that all cards in presets exist in the card database."""
         for preset_name, card_names in DECK_PRESETS.items():
             for name in card_names:
-                assert name in CARDS, f"Card '{name}' in preset '{preset_name}' not found in CARDS"
+                assert name in CARDS, (
+                    f"Card '{name}' in preset '{preset_name}' not found in CARDS"
+                )
 
     def test_build_random_deck(self):
         """Test building a random deck."""
@@ -189,6 +196,7 @@ class TestDeck:
     def test_all_cards_in_database(self):
         """Test that all cards in CARDS dictionary are valid."""
         from triple_triad.data.cards import CardStats, Element
+
         for name, stats in CARDS.items():
             assert isinstance(name, str)
             assert isinstance(stats, CardStats)

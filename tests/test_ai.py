@@ -1,6 +1,8 @@
-from triple_triad.ai import cpu_choose, _random_choice, _greedy_choice
-from triple_triad.cards import Card
-from triple_triad.rules import simulate_capture
+from triple_triad.ai.base import cpu_choose
+from triple_triad.ai.greedy_ai import greedy_choice
+from triple_triad.ai.random_ai import random_choice
+from triple_triad.engine.rules import simulate_capture
+from triple_triad.models.card import Card
 
 
 class TestAI:
@@ -34,14 +36,14 @@ class TestAI:
     def test_random_choice(self, cpu_hand):
         """Test random choice function."""
         empty_positions = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-        card_idx, position = _random_choice(empty_positions, cpu_hand)
+        card_idx, position = random_choice(empty_positions, cpu_hand)
         assert 0 <= card_idx < len(cpu_hand)
         assert position in empty_positions
 
     def test_greedy_choice_empty_board(self, empty_board, cpu_hand, basic_rules):
         """Test greedy choice on empty board."""
         empty_positions = [i for i in range(9) if empty_board.is_empty(i)]
-        card_idx, position = _greedy_choice(
+        card_idx, position = greedy_choice(
             empty_board, cpu_hand, basic_rules, empty_positions
         )
         assert 0 <= card_idx < len(cpu_hand)
@@ -63,7 +65,7 @@ class TestAI:
             card.owner = "CPU"
 
         empty_positions = [i for i in range(9) if empty_board.is_empty(i)]
-        card_idx, position = _greedy_choice(
+        card_idx, position = greedy_choice(
             empty_board, cpu_hand, basic_rules, empty_positions
         )
 
@@ -104,7 +106,7 @@ class TestAI:
             card.owner = "CPU"
 
         empty_positions = [i for i in range(9) if empty_board.is_empty(i)]
-        card_idx, position = _greedy_choice(
+        card_idx, position = greedy_choice(
             empty_board, cpu_hand, basic_rules, empty_positions
         )
 
@@ -120,7 +122,7 @@ class TestAI:
 
         # Run multiple times to check for randomness
         for _ in range(10):
-            card_idx, position = _random_choice(empty_positions, cpu_hand)
+            card_idx, position = random_choice(empty_positions, cpu_hand)
             results.add((card_idx, position))
 
         # With 10 runs, we should get at least 2 different results (very likely)

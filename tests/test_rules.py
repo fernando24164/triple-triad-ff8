@@ -1,5 +1,10 @@
-from triple_triad.rules import resolve_captures, get_attacker_value, get_defender_value, OPPOSITE
-from triple_triad.cards import Card
+from triple_triad.engine.rules import (
+    OPPOSITE,
+    get_attacker_value,
+    get_defender_value,
+    resolve_captures,
+)
+from triple_triad.models.card import Card
 
 
 class TestRules:
@@ -7,24 +12,24 @@ class TestRules:
 
     def test_opposite_dict(self):
         """Test that OPPOSITE dictionary is correct."""
-        assert OPPOSITE['top'] == 'bottom'
-        assert OPPOSITE['bottom'] == 'top'
-        assert OPPOSITE['left'] == 'right'
-        assert OPPOSITE['right'] == 'left'
+        assert OPPOSITE["top"] == "bottom"
+        assert OPPOSITE["bottom"] == "top"
+        assert OPPOSITE["left"] == "right"
+        assert OPPOSITE["right"] == "left"
 
     def test_get_attacker_value(self, sample_card):
         """Test getting attacker value by direction."""
-        assert get_attacker_value(sample_card, 'top') == 1
-        assert get_attacker_value(sample_card, 'right') == 4
-        assert get_attacker_value(sample_card, 'bottom') == 1
-        assert get_attacker_value(sample_card, 'left') == 5
+        assert get_attacker_value(sample_card, "top") == 1
+        assert get_attacker_value(sample_card, "right") == 4
+        assert get_attacker_value(sample_card, "bottom") == 1
+        assert get_attacker_value(sample_card, "left") == 5
 
     def test_get_defender_value(self, sample_card):
         """Test getting defender value by direction."""
-        assert get_defender_value(sample_card, 'top') == 1  # bottom
-        assert get_defender_value(sample_card, 'right') == 5  # left
-        assert get_defender_value(sample_card, 'bottom') == 1  # top
-        assert get_defender_value(sample_card, 'left') == 4  # right
+        assert get_defender_value(sample_card, "top") == 1  # bottom
+        assert get_defender_value(sample_card, "right") == 5  # left
+        assert get_defender_value(sample_card, "bottom") == 1  # top
+        assert get_defender_value(sample_card, "left") == 4  # right
 
     def test_basic_capture(self, empty_board, basic_rules):
         """Test basic capture logic."""
@@ -57,7 +62,7 @@ class TestRules:
         # Player card's right (1) vs CPU card's left (5) - no capture
         # Let's try a different setup
         empty_board.cells = [None] * 9
-        
+
         # Place CPU card at position 1
         cpu_card = Card("Geezard")  # T:1 R:4 B:1 L:5
         cpu_card.owner = "CPU"
@@ -119,7 +124,7 @@ class TestRules:
         # Player's left (5) vs Funguar's right (1) - not equal
         # Let's use a different card
         empty_board.cells = [None] * 9
-        
+
         # Place CPU cards
         cpu_card = Card("Geezard")  # T:1 R:4 B:1 L:5
         cpu_card.owner = "CPU"

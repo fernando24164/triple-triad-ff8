@@ -1,16 +1,16 @@
-from .deck import (
-    build_starter_deck,
+from .deck.builder import (
+    DIFFICULTY_CONFIG,
     build_cpu_deck,
     build_random_deck,
-    choose_deck,
+    build_starter_deck,
     get_cpu_ai_mode,
-    DIFFICULTY_CONFIG,
 )
-from .ui import print_banner, choose_rules
+from .deck.deck_selector import choose_preset_deck
+from .deck.picker import choose_deck
+from .engine.difficulty_selector import choose_difficulty
+from .engine.game_loop import run_game
 from .synth.player import ChiptunePlayer
-from .difficulty_selector import choose_difficulty
-from .deck_selector import choose_preset_deck
-from .game_loop import run_game
+from .ui.display import choose_rules, print_banner
 
 
 def main():

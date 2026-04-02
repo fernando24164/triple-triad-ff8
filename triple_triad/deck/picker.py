@@ -1,124 +1,8 @@
-# triple_triad/deck.py
 import random
 
-from .cards import Card, CARDS
-
-
-# ── Difficulty configuration ───────────────────────────────────────────────
-DIFFICULTY_CONFIG = {
-    "easy": {
-        "player_max_level": 9,  # Player can pick any card
-        "cpu_min_level": 1,
-        "cpu_max_level": 3,  # CPU stuck with weak cards
-        "cpu_ai": "random",  # CPU plays randomly
-        "description": "CPU uses weak cards (Lv 1-3) and plays randomly",
-    },
-    "medium": {
-        "player_max_level": 9,
-        "cpu_min_level": 4,
-        "cpu_max_level": 6,  # CPU uses mid-tier cards
-        "cpu_ai": "greedy",  # CPU plays greedy
-        "description": "CPU uses mid-tier cards (Lv 4-6) and plays smart",
-    },
-    "hard": {
-        "player_max_level": 9,
-        "cpu_min_level": 7,
-        "cpu_max_level": 9,  # CPU uses top-tier cards
-        "cpu_ai": "greedy",  # CPU plays greedy
-        "description": "CPU uses elite cards (Lv 7-9) and plays optimally",
-    },
-}
-
-
-def build_starter_deck():
-    """Return a list of 5 random low-level cards for the player."""
-    low_cards = [name for name, data in CARDS.items() if data.level <= 3]
-    chosen = random.sample(low_cards, min(5, len(low_cards)))
-    return [Card(name) for name in chosen]
-
-
-def build_cpu_deck(difficulty: str = "medium") -> list[Card]:
-    """Build a CPU deck based on difficulty config."""
-    cfg = DIFFICULTY_CONFIG.get(difficulty, DIFFICULTY_CONFIG["medium"])
-    pool = [
-        name
-        for name, data in CARDS.items()
-        if cfg["cpu_min_level"] <= data.level <= cfg["cpu_max_level"]
-    ]
-    if len(pool) < 5:
-        # Fallback: widen the pool slightly to always guarantee 5 cards
-        pool = sorted(CARDS.keys(), key=lambda n: CARDS[n].level)
-    chosen = random.sample(pool, 5)
-    return [Card(name) for name in chosen]
-
-
-def get_cpu_ai_mode(difficulty: str) -> str:
-    """Return the AI mode string for this difficulty."""
-    return DIFFICULTY_CONFIG.get(difficulty, DIFFICULTY_CONFIG["medium"])["cpu_ai"]
-
-
-# ── Deck Presets ───────────────────────────────────────────────────────────
-
-DECK_PRESETS: dict[str, list[str]] = {
-    "Balanced": [
-        "Mesmerize",      # Lv3, no element, balanced stats
-        "Cactuar",        # Lv4, no element
-        "Bomb",           # Lv5, Fire
-        "Iron Giant",     # Lv6, no element, strong
-        "Shiva",          # Lv9, Ice, high stats
-    ],
-    "Fire Power": [
-        "SAM08G",         # Lv4, Fire
-        "Bomb",           # Lv5, Fire
-        "Hexadragon",     # Lv5, Fire
-        "Ruby Dragon",    # Lv6, Fire
-        "Ifrit",          # Lv9, Fire
-    ],
-    "Ice Wall": [
-        "Glacial Eye",    # Lv3, Ice
-        "Snow Lion",      # Lv4, Ice
-        "Shiva",          # Lv9, Ice
-        "Chimera",        # Lv6, Water (cold theme)
-        "Leviathan",      # Lv9, Water (cold theme)
-    ],
-    "Thunder Rush": [
-        "Gayla",          # Lv2, Thunder
-        "Cockatrice",     # Lv2, Thunder
-        "Thrustaevis",    # Lv3, Wind
-        "Blitz",          # Lv5, Thunder
-        "Quezacotl",      # Lv9, Thunder
-    ],
-    "Poison Squad": [
-        "Anacondaur",     # Lv3, Poison
-        "Tri-Face",       # Lv4, Poison
-        "Blue Dragon",    # Lv5, Poison
-        "Gerogero",       # Lv7, Poison
-        "Doomtrain",      # Lv9, Poison
-    ],
-}
-
-
-def list_presets() -> list[str]:
-    """Return a list of available deck preset names."""
-    return list(DECK_PRESETS.keys())
-
-
-def build_preset_deck(preset_name: str) -> list[Card]:
-    """Build a deck from a named preset. Returns 5 cards."""
-    if preset_name not in DECK_PRESETS:
-        raise ValueError(f"Unknown preset: {preset_name}. Available: {list_presets()}")
-    card_names = DECK_PRESETS[preset_name]
-    return [Card(name) for name in card_names]
-
-
-def build_random_deck() -> list[Card]:
-    """Build a deck of 5 random cards from the full card pool."""
-    all_names = list(CARDS.keys())
-    chosen = random.sample(all_names, min(5, len(all_names)))
-    return [Card(name) for name in chosen]
-
-
-# ── Card picker helpers ────────────────────────────────────────────────────
+from ..constants import DECK_SIZE
+from ..data.cards import CARDS
+from ..models.card import Card
 
 # Element names from the Element enum
 ELEMENT_NAMES = ["Thunder", "Earth", "Ice", "Wind", "Poison", "Fire", "Water", "Holy"]
@@ -130,6 +14,8 @@ LEVEL_RANGES = {
     "3": ("Advanced", 7, 9),
     "4": ("All", 1, 9),
 }
+
+PAGE_SIZE = 15
 
 
 def _filter_cards(
@@ -143,7 +29,9 @@ def _filter_cards(
         lo, hi = level_range
         result = [n for n in result if lo <= CARDS[n].level <= hi]
     if element:
-        result = [n for n in result if CARDS[n].element and CARDS[n].element.value == element]
+        result = [
+            n for n in result if CARDS[n].element and CARDS[n].element.value == element
+        ]
     return result
 
 
@@ -168,7 +56,7 @@ def _sort_cards(
 def _paginate_cards(
     all_names: list[str],
     page: int,
-    page_size: int = 15,
+    page_size: int = PAGE_SIZE,
     chosen_names: set[str] | None = None,
 ) -> None:
     """Print one page of the card list with stats in a compact table."""
@@ -184,7 +72,9 @@ def _paginate_cards(
         return
 
     # Header
-    print(f"  {'#':>3}  {'Name':<20} {'El':<8} {'Lv':>2}  {'▲':>2} {'▶':>2} {'▼':>2} {'◀':>2}")
+    print(
+        f"  {'#':>3}  {'Name':<20} {'El':<8} {'Lv':>2}  {'▲':>2} {'▶':>2} {'▼':>2} {'◀':>2}"
+    )
     print(f"  {'─' * 52}")
 
     for i, name in enumerate(page_names, start):
@@ -206,11 +96,13 @@ def _show_deck_preview(chosen: list[Card]) -> None:
         print("  Deck: (empty)")
         return
 
-    print(f"\n  ── Your Deck ({len(chosen)}/5) ──")
+    print(f"\n  ── Your Deck ({len(chosen)}/{DECK_SIZE}) ──")
     total_stats = {"top": 0, "right": 0, "bottom": 0, "left": 0}
     for i, c in enumerate(chosen, 1):
         el = f"[{c.element.value}]" if c.element else ""
-        print(f"    [{i}] {c.name:<18} {el:<10} Lv{c.level}  ▲{c.top} ▶{c.right} ▼{c.bottom} ◀{c.left}")
+        print(
+            f"    [{i}] {c.name:<18} {el:<10} Lv{c.level}  ▲{c.top} ▶{c.right} ▼{c.bottom} ◀{c.left}"
+        )
         total_stats["top"] += c.top
         total_stats["right"] += c.right
         total_stats["bottom"] += c.bottom
@@ -274,13 +166,19 @@ def _prompt_element() -> str | None:
                 return ELEMENT_NAMES[idx]
         except ValueError:
             pass
-        print(f"  ✗ Enter a number between 0 and {len(ELEMENT_NAMES)}, or 'c' to cancel.")
+        print(
+            f"  ✗ Enter a number between 0 and {len(ELEMENT_NAMES)}, or 'c' to cancel."
+        )
 
 
 def _prompt_filters(current_level_range, current_element):
     """Show filter menu and return updated (level_range, element) tuple."""
     print("\n  ── Current Filters ──")
-    lr_label = f"Level {current_level_range[0]}-{current_level_range[1]}" if current_level_range else "Any"
+    lr_label = (
+        f"Level {current_level_range[0]}-{current_level_range[1]}"
+        if current_level_range
+        else "Any"
+    )
     el_label = current_element if current_element else "Any"
     print(f"  Level range: {lr_label}")
     print(f"  Element:     {el_label}")
@@ -302,6 +200,21 @@ def _prompt_filters(current_level_range, current_element):
         if choice == "3":
             return None, None
         print("  ✗ Enter 0, 1, 2, or 3.")
+
+
+def _fill_remaining(
+    chosen: list[Card],
+    chosen_names: set[str],
+    all_names: list[str],
+) -> None:
+    """Fill the deck to DECK_SIZE cards with random unchosen cards."""
+    remaining = [n for n in all_names if n not in chosen_names]
+    needed = DECK_SIZE - len(chosen)
+    fills = random.sample(remaining, min(needed, len(remaining)))
+    for name in fills:
+        chosen.append(Card(name))
+        chosen_names.add(name)
+        print(f"  ↻ Auto-filled: {name}")
 
 
 def choose_deck() -> list[Card]:
@@ -329,14 +242,13 @@ def choose_deck() -> list[Card]:
 
     # View state
     page = 0
-    PAGE_SIZE = 15
 
     print("\n" + "═" * 62)
-    print("  CARD SELECTION  —  Choose 5 cards")
+    print(f"  CARD SELECTION  —  Choose {DECK_SIZE} cards")
     print("  Type 'help' for all commands, or a card number to pick")
     print("═" * 62)
 
-    while len(chosen) < 5:
+    while len(chosen) < DECK_SIZE:
         # Build the filtered/sorted view
         view_names = _filter_cards(all_names, level_range, element)
         if search_query:
@@ -370,7 +282,7 @@ def choose_deck() -> list[Card]:
 
         # ── Prompt ──────────────────────────────────────────────────────
         slot = len(chosen) + 1
-        raw = input(f"\n  Pick card {slot}/5 ❯ ").strip().lower()
+        raw = input(f"\n  Pick card {slot}/{DECK_SIZE} ❯ ").strip().lower()
 
         if not raw:
             continue
@@ -393,7 +305,9 @@ def choose_deck() -> list[Card]:
             if chosen:
                 removed = chosen.pop()
                 chosen_names.discard(removed.name)
-                print(f"  ✓ Removed [{removed.name}] from your deck ({len(chosen)}/5)")
+                print(
+                    f"  ✓ Removed [{removed.name}] from your deck ({len(chosen)}/{DECK_SIZE})"
+                )
             else:
                 print("  ✗ Nothing to undo.")
             continue
@@ -460,28 +374,10 @@ def choose_deck() -> list[Card]:
             stats = CARDS[name]
             el = f"[{stats.element}]" if stats.element else ""
             print(
-                f"  ✓ Added ({len(chosen)}/5): {name}{el}  "
+                f"  ✓ Added ({len(chosen)}/{DECK_SIZE}): {name}{el}  "
                 f"▲{stats.top} ▶{stats.right} ▼{stats.bottom} ◀{stats.left}  Lv{stats.level}"
             )
         except ValueError:
             print("  ✗ Unknown command. Enter a card number or type 'help'.")
 
     return chosen
-
-
-# ── Internal helpers ───────────────────────────────────────────────────────
-
-
-def _fill_remaining(
-    chosen: list[Card],
-    chosen_names: set[str],
-    all_names: list[str],
-) -> None:
-    """Fill the deck to 5 cards with random unchosen cards."""
-    remaining = [n for n in all_names if n not in chosen_names]
-    needed = 5 - len(chosen)
-    fills = random.sample(remaining, min(needed, len(remaining)))
-    for name in fills:
-        chosen.append(Card(name))
-        chosen_names.add(name)
-        print(f"  ↻ Auto-filled: {name}")

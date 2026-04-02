@@ -1,6 +1,7 @@
 import pytest
-from triple_triad.cards import Card
-from triple_triad.board import Board
+
+from triple_triad.models.board import Board
+from triple_triad.models.card import Card
 
 
 @pytest.fixture
@@ -12,13 +13,25 @@ def sample_card():
 @pytest.fixture
 def sample_cards():
     """Return a list of sample cards for testing."""
-    return [Card("Geezard"), Card("Funguar"), Card("Bite Bug"), Card("Red Bat"), Card("Blobra")]
+    return [
+        Card("Geezard"),
+        Card("Funguar"),
+        Card("Bite Bug"),
+        Card("Red Bat"),
+        Card("Blobra"),
+    ]
 
 
 @pytest.fixture
 def player_hand():
     """Return a player hand with 5 cards."""
-    cards = [Card("Geezard"), Card("Funguar"), Card("Bite Bug"), Card("Red Bat"), Card("Blobra")]
+    cards = [
+        Card("Geezard"),
+        Card("Funguar"),
+        Card("Bite Bug"),
+        Card("Red Bat"),
+        Card("Blobra"),
+    ]
     for card in cards:
         card.owner = "P"
     return cards
@@ -27,7 +40,13 @@ def player_hand():
 @pytest.fixture
 def cpu_hand():
     """Return a CPU hand with 5 cards."""
-    cards = [Card("Grat"), Card("Buel"), Card("Mesmerize"), Card("Glacial Eye"), Card("Belhelmel")]
+    cards = [
+        Card("Grat"),
+        Card("Buel"),
+        Card("Mesmerize"),
+        Card("Glacial Eye"),
+        Card("Belhelmel"),
+    ]
     for card in cards:
         card.owner = "CPU"
     return cards
@@ -56,8 +75,17 @@ def board_with_cards():
 def full_board():
     """Return a full board with all 9 cards."""
     board = Board()
-    card_names = ["Geezard", "Funguar", "Bite Bug", "Red Bat", "Blobra", 
-                  "Gayla", "Gesper", "Fastitocalon", "Blood Soul"]
+    card_names = [
+        "Geezard",
+        "Funguar",
+        "Bite Bug",
+        "Red Bat",
+        "Blobra",
+        "Gayla",
+        "Gesper",
+        "Fastitocalon",
+        "Blood Soul",
+    ]
     for i, name in enumerate(card_names):
         card = Card(name)
         card.owner = "P" if i % 2 == 0 else "CPU"

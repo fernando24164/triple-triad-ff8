@@ -44,4 +44,3 @@ indent-style = "space"
 line-ending = "auto"
 skip-magic-trailing-comma = false
 docstring-code-format = false
-force-single-line = false

@@ -1,7 +1,8 @@
 import numpy as np
 
-from .constants import SAMPLE_RATE, NOTE_FREQ, HARMONY_MAP
-from .melodies.background_music import CHORDS, MELODY, BASS, PERC
+from .constants import HARMONY_MAP, NOTE_FREQ, SAMPLE_RATE
+from .melodies.background_music import BASS, CHORDS, MELODY, PERC
+
 
 def _square(frequency: float, duration: float, duty: float = 0.5) -> np.ndarray:
     """pulse channel (square wave)."""

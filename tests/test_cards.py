@@ -1,4 +1,5 @@
-from triple_triad.cards import Card, CARDS
+from triple_triad.data.cards import CARDS
+from triple_triad.models.card import Card
 
 
 class TestCard:

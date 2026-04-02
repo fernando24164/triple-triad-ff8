@@ -1,7 +1,7 @@
-from triple_triad.cards import Card
-from triple_triad.rules import resolve_captures
-from triple_triad.ai import cpu_choose
-from triple_triad.deck import build_cpu_deck, get_cpu_ai_mode
+from triple_triad.ai.base import cpu_choose
+from triple_triad.deck.builder import build_cpu_deck, get_cpu_ai_mode
+from triple_triad.engine.rules import resolve_captures
+from triple_triad.models.card import Card
 
 
 class TestGameLogic:

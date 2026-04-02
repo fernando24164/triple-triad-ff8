@@ -1,5 +1,5 @@
-from triple_triad.board import Color
-from triple_triad.cards import Card
+from triple_triad.models.card import Card
+from triple_triad.ui.color import Color
 
 
 class TestBoard:

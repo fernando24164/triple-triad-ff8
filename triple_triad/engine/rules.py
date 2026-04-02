@@ -1,6 +1,4 @@
-# Game rules and capture logic
-
-OPPOSITE = {'top': 'bottom', 'bottom': 'top', 'left': 'right', 'right': 'left'}
+OPPOSITE = {"top": "bottom", "bottom": "top", "left": "right", "right": "left"}
 
 
 def get_attacker_value(card, direction):
@@ -36,10 +34,10 @@ def _evaluate_captures(board, pos, card, owner, rules):
         if atk > dfn:
             basic.append((npos, ncard))
 
-        if 'Same' in rules and atk == dfn:
+        if "Same" in rules and atk == dfn:
             same_candidates.append((npos, ncard))
 
-        if 'Plus' in rules:
+        if "Plus" in rules:
             plus_candidates.append((npos, ncard, atk + dfn))
 
     same = []
@@ -47,12 +45,12 @@ def _evaluate_captures(board, pos, card, owner, rules):
     events = []
 
     # Same rule: if 2+ neighbors have equal values
-    if 'Same' in rules and len(same_candidates) >= 2:
+    if "Same" in rules and len(same_candidates) >= 2:
         events.append("Same")
         same = list(same_candidates)
 
     # Plus rule: if 2+ neighbors share the same sum
-    if 'Plus' in rules and len(plus_candidates) >= 2:
+    if "Plus" in rules and len(plus_candidates) >= 2:
         sums = [x[2] for x in plus_candidates]
         for s in set(sums):
             matching = [x for x in plus_candidates if x[2] == s]
@@ -92,7 +90,7 @@ def simulate_capture(board, pos, card, owner, rules):
 
     Args:
         board: The current Board object (read-only)
-        pos: Position to simulate placing at (0-8)
+        pos: Position to simulate placing at (0..BOARD_CELLS-1)
         card: Card object with top/right/bottom/left attributes
         owner: The owner of the placed card ('P' or 'CPU')
         rules: List of active rules

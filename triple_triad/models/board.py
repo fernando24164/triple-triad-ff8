@@ -1,48 +1,14 @@
-# triple_triad/board.py
-
-
-class Color:
-    """ANSI color codes for terminal rendering."""
-
-    RESET = "\033[0m"
-    # Card ownership
-    P_FG = "\033[92m"  # bright green  — player
-    CPU_FG = "\033[91m"  # bright red    — CPU
-    # Board structure
-    BORDER = "\033[90m"  # dark grey     — grid lines
-    EMPTY_POS = "\033[33m"  # yellow        — empty cell number
-
-    @staticmethod
-    def player(text: str) -> str:
-        return f"{Color.P_FG}{text}{Color.RESET}"
-
-    @staticmethod
-    def cpu(text: str) -> str:
-        return f"{Color.CPU_FG}{text}{Color.RESET}"
-
-    @staticmethod
-    def border(text: str) -> str:
-        return f"{Color.BORDER}{text}{Color.RESET}"
-
-    @staticmethod
-    def empty(text: str) -> str:
-        return f"{Color.EMPTY_POS}{text}{Color.RESET}"
-
-    @staticmethod
-    def card(text: str, owner: str) -> str:
-        """Color a string based on card owner ('P' or 'CPU')."""
-        if owner == "P":
-            return Color.player(text)
-        return Color.cpu(text)
+from ..constants import BOARD_CELLS, GRID_SIZE
+from ..ui.color import Color
 
 
 class Board:
-    """3x3 grid. Positions 0-8 (row-major)."""
+    """GRID_SIZE x GRID_SIZE grid. Positions 0..BOARD_CELLS-1 (row-major)."""
 
     CELL_W = 18  # inner width of each cell (visible characters only)
 
     def __init__(self):
-        self.cells = [None] * 9  # Card or None
+        self.cells = [None] * BOARD_CELLS  # Card or None
 
     def place(self, pos, card):
         self.cells[pos] = card
@@ -52,15 +18,15 @@ class Board:
 
     def get_neighbors(self, pos):
         """Return dict of direction -> (neighbor_pos, neighbor_card)."""
-        row, col = divmod(pos, 3)
+        row, col = divmod(pos, GRID_SIZE)
         neighbors = {}
         if row > 0:
-            neighbors["top"] = (pos - 3, self.cells[pos - 3])
-        if row < 2:
-            neighbors["bottom"] = (pos + 3, self.cells[pos + 3])
+            neighbors["top"] = (pos - GRID_SIZE, self.cells[pos - GRID_SIZE])
+        if row < GRID_SIZE - 1:
+            neighbors["bottom"] = (pos + GRID_SIZE, self.cells[pos + GRID_SIZE])
         if col > 0:
             neighbors["left"] = (pos - 1, self.cells[pos - 1])
-        if col < 2:
+        if col < GRID_SIZE - 1:
             neighbors["right"] = (pos + 1, self.cells[pos + 1])
         return neighbors
 
@@ -149,7 +115,7 @@ class Board:
     @classmethod
     def _hline(cls, left: str, mid: str, right: str, fill: str) -> str:
         segment = fill * cls.CELL_W
-        line = left + (mid.join([segment] * 3)) + right
+        line = left + (mid.join([segment] * GRID_SIZE)) + right
         return cls._colored_border(line)
 
     # ── Main renderer ──────────────────────────────────────────────────────
@@ -162,8 +128,8 @@ class Board:
 
         lines = [top]
 
-        for row in range(3):
-            cells = [self.cells[row * 3 + col] for col in range(3)]
+        for row in range(GRID_SIZE):
+            cells = [self.cells[row * GRID_SIZE + col] for col in range(GRID_SIZE)]
 
             # Build each of the 4 content rows for this grid row
             row_renderers = [
@@ -176,7 +142,7 @@ class Board:
             for render_idx, renderer in enumerate(row_renderers):
                 parts = []
                 for col, card in enumerate(cells):
-                    pos = row * 3 + col
+                    pos = row * GRID_SIZE + col
                     if card is None:
                         # Show position number only on the middle row
                         if render_idx == 2:
@@ -188,7 +154,7 @@ class Board:
 
                 lines.append(sep + sep.join(parts) + sep)
 
-            if row < 2:
+            if row < GRID_SIZE - 1:
                 lines.append(mid)
 
         lines.append(bot)

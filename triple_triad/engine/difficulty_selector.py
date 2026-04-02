@@ -1,4 +1,4 @@
-from .deck import DIFFICULTY_CONFIG
+from ..deck.builder import DIFFICULTY_CONFIG
 
 
 def choose_difficulty() -> str:
@@ -13,7 +13,7 @@ def choose_difficulty() -> str:
         cfg = DIFFICULTY_CONFIG[diff]
         print(f"  [{key}] {diff.capitalize():<8} — {cfg['description']}")
 
-    diff_map = {key: diff for key, diff in options}
+    diff_map = dict(options)
     while True:
         choice = input("\n  Choose difficulty [1/2/3]: ").strip()
         if choice in diff_map:

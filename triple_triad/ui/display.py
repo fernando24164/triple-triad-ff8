@@ -1,18 +1,17 @@
-# UI functions for display
-
-
 def display_hand(hand, label, show=True):
     print(f"\n  {label}'s Hand:")
     print("  " + "─" * 60)
     if show:
         for i, card in enumerate(hand, 1):
             el = f"[{card.element}]" if card.element else ""
-            print(f"  [{i}] {card.name}{el}  "
-                  f"T:{card.top} R:{card.right} B:{card.bottom} L:{card.left}  "
-                  f"Lv:{card.level}")
+            print(
+                f"  [{i}] {card.name}{el}  "
+                f"T:{card.top} R:{card.right} B:{card.bottom} L:{card.left}  "
+                f"Lv:{card.level}"
+            )
     else:
         for i in range(len(hand)):
-            print(f"  [{i+1}] ???")
+            print(f"  [{i + 1}] ???")
     print("  " + "─" * 60)
 
 
@@ -35,9 +34,9 @@ def choose_rules():
     raw = input("  Your choice: ").strip()
     rules = set()
     if raw:
-        for token in raw.split(','):
+        for token in raw.split(","):
             token = token.strip()
-            mapping = {'1': 'Open', '2': 'Same', '3': 'Plus', '4': 'Random'}
+            mapping = {"1": "Open", "2": "Same", "3": "Plus", "4": "Random"}
             if token in mapping:
                 rules.add(mapping[token])
     return rules
