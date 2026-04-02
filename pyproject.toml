@@ -1,0 +1,27 @@
+[project]
+name = "triple-triad-ff8"
+version = "0.1.1"
+description = "A fan-made tribute to the Triple Triad card game from Final Fantasy VIII"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.13"
+dependencies = [
+    "numpy>=2.4.4",
+    "pygame>=2.6.1",
+]
+
+[project.scripts]
+triple-triad = "triple_triad.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["triple_triad"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.15.8",
+]
