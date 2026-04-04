@@ -1,7 +1,11 @@
 from ..engine.rules import simulate_capture
+from ..models.board import Board
+from ..models.card import Card
 
 
-def greedy_choice(board, cpu_hand: list, rules, empty_positions: list):
+def greedy_choice(
+    board: Board, cpu_hand: list[Card], rules: list[str], empty_positions: list[int]
+) -> tuple[int, int]:
     best_score = -1
     best_card_idx = 0
     best_pos = empty_positions[0]

@@ -13,7 +13,7 @@ from .synth.player import ChiptunePlayer
 from .ui.display import choose_rules, print_banner
 
 
-def main():
+def main() -> None:
     print_banner()
 
     # ── Start background music ─────────────────────────────────────────────

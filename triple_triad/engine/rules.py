@@ -1,15 +1,22 @@
+from typing import Any
+
+from ..models.board import Board
+from ..models.card import Card
+
 OPPOSITE = {"top": "bottom", "bottom": "top", "left": "right", "right": "left"}
 
 
-def get_attacker_value(card, direction):
+def get_attacker_value(card: Card, direction: str) -> int:
     return getattr(card, direction)
 
 
-def get_defender_value(card, direction):
+def get_defender_value(card: Card, direction: str) -> int:
     return getattr(card, OPPOSITE[direction])
 
 
-def _evaluate_captures(board, pos, card, owner, rules):
+def _evaluate_captures(
+    board: Board, pos: int, card: Card, owner: str | None, rules: list[str]
+) -> dict[str, Any]:
     """Shared capture evaluation used by resolve_captures and simulate_capture.
 
     Returns:
@@ -21,9 +28,9 @@ def _evaluate_captures(board, pos, card, owner, rules):
     """
     neighbors = board.get_neighbors(pos)
 
-    basic = []
-    same_candidates = []
-    plus_candidates = []
+    basic: list[tuple[int, Card]] = []
+    same_candidates: list[tuple[int, Card]] = []
+    plus_candidates: list[tuple[int, Card, int]] = []
 
     for direction, (npos, ncard) in neighbors.items():
         if ncard is None or ncard.owner == owner:
@@ -40,9 +47,9 @@ def _evaluate_captures(board, pos, card, owner, rules):
         if "Plus" in rules:
             plus_candidates.append((npos, ncard, atk + dfn))
 
-    same = []
-    plus = []
-    events = []
+    same: list[tuple[int, Card]] = []
+    plus: list[tuple[int, Card]] = []
+    events: list[str] = []
 
     # Same rule: if 2+ neighbors have equal values
     if "Same" in rules and len(same_candidates) >= 2:
@@ -61,7 +68,9 @@ def _evaluate_captures(board, pos, card, owner, rules):
     return {"basic": basic, "same": same, "plus": plus, "events": events}
 
 
-def resolve_captures(board, pos, placed_card, rules):
+def resolve_captures(
+    board: Board, pos: int, placed_card: Card, rules: list[str]
+) -> tuple[list[tuple[int, Card]], list[str]]:
     """Apply basic capture logic (and Same/Plus if enabled).
 
     Returns:
@@ -70,7 +79,7 @@ def resolve_captures(board, pos, placed_card, rules):
     """
     result = _evaluate_captures(board, pos, placed_card, placed_card.owner, rules)
 
-    captures = list(result["basic"])
+    captures: list[tuple[int, Card]] = list(result["basic"])
     for entry in result["same"]:
         if entry not in captures:
             captures.append(entry)
@@ -81,7 +90,9 @@ def resolve_captures(board, pos, placed_card, rules):
     return captures, result["events"]
 
 
-def simulate_capture(board, pos, card, owner, rules):
+def simulate_capture(
+    board: Board, pos: int, card: Card, owner: str | None, rules: list[str]
+) -> int:
     """
     Calculate captures for a hypothetical move without modifying state.
 
@@ -92,7 +103,7 @@ def simulate_capture(board, pos, card, owner, rules):
         board: The current Board object (read-only)
         pos: Position to simulate placing at (0..BOARD_CELLS-1)
         card: Card object with top/right/bottom/left attributes
-        owner: The owner of the placed card ('P' or 'CPU')
+        owner: The owner of the placed card ('P', 'CPU', or None for simulation)
         rules: List of active rules
 
     Returns:
@@ -100,8 +111,8 @@ def simulate_capture(board, pos, card, owner, rules):
     """
     result = _evaluate_captures(board, pos, card, owner, rules)
 
-    captured_positions = {npos for npos, _ in result["basic"]}
-    count = len(captured_positions)
+    captured_positions: set[int] = {npos for npos, _ in result["basic"]}
+    count: int = len(captured_positions)
 
     for entry in result["same"] + result["plus"]:
         if entry[0] not in captured_positions:

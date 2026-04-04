@@ -1,4 +1,5 @@
 from ..constants import BOARD_CELLS, GRID_SIZE
+from ..models.card import Card
 from ..ui.color import Color
 
 
@@ -6,17 +7,18 @@ class Board:
     """GRID_SIZE x GRID_SIZE grid. Positions 0..BOARD_CELLS-1 (row-major)."""
 
     CELL_W = 18  # inner width of each cell (visible characters only)
+    cells: list[Card | None]
 
     def __init__(self):
         self.cells = [None] * BOARD_CELLS  # Card or None
 
-    def place(self, pos, card):
+    def place(self, pos: int, card: Card) -> None:
         self.cells[pos] = card
 
-    def is_empty(self, pos):
+    def is_empty(self, pos: int) -> bool:
         return self.cells[pos] is None
 
-    def get_neighbors(self, pos):
+    def get_neighbors(self, pos: int) -> dict[str, tuple[int, Card | None]]:
         """Return dict of direction -> (neighbor_pos, neighbor_card)."""
         row, col = divmod(pos, GRID_SIZE)
         neighbors = {}
