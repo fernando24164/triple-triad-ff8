@@ -52,9 +52,25 @@ Triple Triad is a 2-player card game played on a 3×3 grid. Each player has 5 ca
 - **NumPy** (for audio synthesis)
 - **Pygame** (for audio playback — optional, game runs silently without it)
 
-### Installation
+### Installation from PyPI
+
+Using pip:
 
 ```bash
+pip install triple-triad-ff8
+```
+
+Using uv:
+
+```bash
+uv pip install triple-triad-ff8
+```
+
+### Installation from Source
+
+```bash
+git clone https://github.com/fernando24164/triple-triad-ff8.git
+cd triple-triad-ff8
 uv sync --locked
 ```
 
@@ -69,6 +85,28 @@ or
 ```bash
 uv run triple-triad
 ```
+
+or if installed via pip:
+
+```bash
+triple-triad
+```
+
+### Help and Tutorial
+
+To view the game tutorial and learn how to play:
+
+```bash
+triple-triad --help
+```
+
+or
+
+```bash
+triple-triad -h
+```
+
+This displays a comprehensive guide covering game rules, card mechanics, and gameplay tips.
 
 
 ## 🎵 Audio

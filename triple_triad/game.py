@@ -1,3 +1,6 @@
+import argparse
+import sys
+
 from .deck.builder import (
     DIFFICULTY_CONFIG,
     build_cpu_deck,
@@ -10,10 +13,22 @@ from .deck.picker import choose_deck
 from .engine.difficulty_selector import choose_difficulty
 from .engine.game_loop import run_game
 from .synth.player import ChiptunePlayer
-from .ui.display import choose_rules, print_banner
+from .ui.display import choose_rules, print_banner, print_help
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Triple Triad - Final Fantasy VIII card game", add_help=False
+    )
+    parser.add_argument(
+        "-h", "--help", action="store_true", help="Show game tutorial and help"
+    )
+    args = parser.parse_args()
+
+    if args.help:
+        print_help()
+        sys.exit(0)
+
     print_banner()
 
     # ── Start background music ─────────────────────────────────────────────
