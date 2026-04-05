@@ -1,4 +1,5 @@
 from ..constants import BOARD_CELLS, GRID_SIZE
+from ..data.cards import Element
 from ..models.card import Card
 from ..ui.color import Color
 
@@ -8,9 +9,11 @@ class Board:
 
     CELL_W = 18  # inner width of each cell (visible characters only)
     cells: list[Card | None]
+    elements: list[Element | None]
 
-    def __init__(self):
+    def __init__(self, elements: list[Element | None] | None = None):
         self.cells = [None] * BOARD_CELLS  # Card or None
+        self.elements = elements if elements is not None else [None] * BOARD_CELLS
 
     def place(self, pos: int, card: Card) -> None:
         self.cells[pos] = card
@@ -101,10 +104,14 @@ class Board:
         return Color.card(plain, card.owner)
 
     @staticmethod
-    def _render_empty(pos: int) -> str:
+    def _render_empty(pos: int, element: Element | None = None) -> str:
         """Empty cell: show position number centred on row 3."""
         w = Board.CELL_W
-        label = f"[ {pos + 1} ]"
+        if element:
+            el_abbr = element.value[:3]
+            label = f"[{pos + 1}] {el_abbr}"
+        else:
+            label = f"[ {pos + 1} ]"
         plain = f"{label:^{w}}"
         return Color.empty(plain)
 
@@ -148,7 +155,8 @@ class Board:
                     if card is None:
                         # Show position number only on the middle row
                         if render_idx == 2:
-                            parts.append(self._render_empty(pos))
+                            element = self.elements[pos]
+                            parts.append(self._render_empty(pos, element))
                         else:
                             parts.append(" " * self.CELL_W)
                     else:

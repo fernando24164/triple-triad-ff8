@@ -2,15 +2,22 @@ import random
 
 from ..ai.base import cpu_choose
 from ..constants import BOARD_CELLS
+from ..data.cards import Element
 from ..models.board import Board
 from ..ui.display import display_hand
 from .rules import resolve_captures
 from .scoring import calculate_final_scores, calculate_scores
 
 
-def run_game(player_hand, cpu_hand, rules, ai_mode):
+def run_game(
+    player_hand,
+    cpu_hand,
+    rules,
+    ai_mode,
+    board_elements: list[Element | None] | None = None,
+):
     """Run the full game loop until the board is full."""
-    board = Board()
+    board = Board(elements=board_elements)
     first = random.choice(["P", "CPU"])
     print(f"\n  {'You go' if first == 'P' else 'CPU goes'} first!\n")
 

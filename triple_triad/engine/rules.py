@@ -1,13 +1,24 @@
 from typing import Any
 
+from ..data.cards import Element
 from ..models.board import Board
 from ..models.card import Card
 
 OPPOSITE = {"top": "bottom", "bottom": "top", "left": "right", "right": "left"}
 
 
-def get_attacker_value(card: Card, direction: str) -> int:
-    return getattr(card, direction)
+def get_attacker_value(
+    card: Card,
+    direction: str,
+    pos: int,
+    board_elements: list[Element | None] | None = None,
+) -> int:
+    base_value = getattr(card, direction)
+    if board_elements and pos < len(board_elements):
+        cell_element = board_elements[pos]
+        if cell_element and card.element == cell_element:
+            return base_value + 1
+    return base_value
 
 
 def get_defender_value(card: Card, direction: str) -> int:
@@ -27,6 +38,7 @@ def _evaluate_captures(
             events: list of triggered rule names ("Same", "Plus")
     """
     neighbors = board.get_neighbors(pos)
+    board_elements = getattr(board, "elements", None)
 
     basic: list[tuple[int, Card]] = []
     same_candidates: list[tuple[int, Card]] = []
@@ -35,7 +47,7 @@ def _evaluate_captures(
     for direction, (npos, ncard) in neighbors.items():
         if ncard is None or ncard.owner == owner:
             continue
-        atk = get_attacker_value(card, direction)
+        atk = get_attacker_value(card, direction, pos, board_elements)
         dfn = get_defender_value(ncard, direction)
 
         if atk > dfn:

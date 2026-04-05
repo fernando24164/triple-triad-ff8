@@ -62,6 +62,24 @@ def print_help():
   4. Game ends when all 9 spaces are filled.
   5. Player with most cards wins!
 
+  ELEMENT SQUARES
+  ───────────────
+  Some boards have elemental squares. When you place a card on
+  a square matching its element, all directional values receive
+  a +1 bonus during capture comparisons:
+    - Card element matches square element → +1 to all sides
+    - Bonus is temporary, only active during comparisons
+    - Elements shown on empty cells as abbreviations (e.g. [1]🔥)
+
+  ELEMENT SQUARES
+  ───────────────
+  Some boards have elemental squares. When you place a card on
+  a square matching its element, all directional values receive
+  a +1 bonus during capture comparisons:
+    - Card element matches square element → +1 to all sides
+    - Bonus is temporary, only active during comparisons
+    - Elements shown on empty cells as abbreviations (e.g. [1]🔥)
+
   CAPTURE EXAMPLE
   ───────────────
   Your card (Right=8) placed next to opponent's card (Left=5):

@@ -19,10 +19,10 @@ class TestRules:
 
     def test_get_attacker_value(self, sample_card):
         """Test getting attacker value by direction."""
-        assert get_attacker_value(sample_card, "top") == 1
-        assert get_attacker_value(sample_card, "right") == 4
-        assert get_attacker_value(sample_card, "bottom") == 1
-        assert get_attacker_value(sample_card, "left") == 5
+        assert get_attacker_value(sample_card, "top", 4) == 1
+        assert get_attacker_value(sample_card, "right", 4) == 4
+        assert get_attacker_value(sample_card, "bottom", 4) == 1
+        assert get_attacker_value(sample_card, "left", 4) == 5
 
     def test_get_defender_value(self, sample_card):
         """Test getting defender value by direction."""

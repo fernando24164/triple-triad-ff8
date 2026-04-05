@@ -13,6 +13,7 @@ from .deck.picker import choose_deck
 from .engine.difficulty_selector import choose_difficulty
 from .engine.game_loop import run_game
 from .synth.player import ChiptunePlayer
+from .ui.board_selector import choose_board
 from .ui.display import choose_rules, print_banner, print_help
 
 
@@ -43,6 +44,9 @@ def main() -> None:
         # ── Rules ──────────────────────────────────────────────────────────────
         rules = choose_rules()
         print(f"\n  Active rules: {', '.join(rules) if rules else 'None (Basic)'}")
+
+        # ── Board selection ────────────────────────────────────────────────────
+        board_elements = choose_board()
 
         # ── Deck selection ─────────────────────────────────────────────────────
         print("\n  ── Deck Selection ──")
@@ -91,7 +95,7 @@ def main() -> None:
             )
 
         # ── Play ───────────────────────────────────────────────────────────────
-        run_game(player_hand, cpu_hand, rules, ai_mode)
+        run_game(player_hand, cpu_hand, rules, ai_mode, board_elements)
 
     finally:
         music_player.stop()
