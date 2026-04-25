@@ -17,6 +17,7 @@ classifiers = [
 ]
 urls = { "Homepage" = "https://github.com/fernando24164/triple-triad-ff8" }
 dependencies = [
+    "blessed>=1.38.0",
     "numpy>=2.4.4",
     "pygame>=2.6.1",
 ]

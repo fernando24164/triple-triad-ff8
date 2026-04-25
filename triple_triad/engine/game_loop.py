@@ -4,6 +4,7 @@ from ..ai.base import cpu_choose
 from ..constants import BOARD_CELLS
 from ..data.cards import Element
 from ..models.board import Board
+from ..ui.cli import pause_message
 from ..ui.display import display_hand
 from .rules import resolve_captures
 from .scoring import calculate_final_scores, calculate_scores
@@ -100,9 +101,13 @@ def run_game(
 
     if p_final > c_final:
         print("\n  🏆  YOU WIN!  Congratulations!")
+        pause_message()
+        return "P"
     elif c_final > p_final:
         print("\n  💀  CPU WINS!  Better luck next time!")
+        pause_message()
+        return "CPU"
     else:
         print("\n  🤝  IT'S A DRAW!")
-
-    print()
+        pause_message()
+        return "Draw"

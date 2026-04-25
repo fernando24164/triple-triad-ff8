@@ -1,5 +1,10 @@
+import os
 import threading
 import time
+
+# To remove pygame message at the beggining when imported
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+
 
 from .constants import SAMPLE_RATE
 from .wave_generators import generate_music_buffer
@@ -7,7 +12,6 @@ from .wave_generators import generate_music_buffer
 try:
     import numpy as np
     import pygame
-    import pygame.sndarray
 
     HAS_AUDIO = True
 except (ImportError, OSError):
