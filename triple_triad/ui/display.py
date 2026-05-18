@@ -23,7 +23,7 @@ def print_banner():
     print("""
  ╔══════════════════════════════════════════════════════════╗
  ║          TRIPLE TRIAD  —  Final Fantasy VIII             ║
- ║                  Text Edition  🃏                        ║
+ ║                       Text Edition  🃏                   ║
  ╚══════════════════════════════════════════════════════════╝
  """)
 

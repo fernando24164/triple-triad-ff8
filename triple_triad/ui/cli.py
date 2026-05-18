@@ -8,6 +8,13 @@ from ..data.cards import Element
 
 term = Terminal()
 
+TITLE_ART = [
+    "╔══════════════════════════════════════════════════════════╗",
+    "║          TRIPLE TRIAD  —  Final Fantasy VIII             ║",
+    "║                       Text Edition                       ║",
+    "╚══════════════════════════════════════════════════════════╝",
+]
+
 
 def _center_x(text: str) -> int:
     return max(0, (term.width - len(text)) // 2)
@@ -19,6 +26,54 @@ def _draw_frame(title: str, subtitle: str = "") -> None:
     print(term.move_yx(2, _center_x(title)) + term.cyan(title))
     if subtitle:
         print(term.move_yx(3, _center_x(subtitle)) + term.dim + subtitle)
+
+
+def _screen_border() -> None:
+    w, h = term.width, term.height
+    c = term.cyan
+    parts = [
+        term.move_yx(0, 0) + c + "╔" + "═" * (w - 2) + "╗",
+    ]
+    for y in range(1, h - 1):
+        parts.append(term.move_yx(y, 0) + c + "║")
+        parts.append(term.move_yx(y, w - 1) + c + "║")
+    parts.append(term.move_yx(h - 1, 0) + c + "╚" + "═" * (w - 2) + "╝")
+    print("".join(parts), end="")
+
+
+def _animate_title() -> None:
+    title_h = len(TITLE_ART)
+    final_y = 2
+    start_y = -title_h - 2
+    frames = 30
+
+    for i in range(frames + 1):
+        t = i / frames
+        eased = 1 - (1 - t) * (1 - t) * (1 - t)
+        y = int(start_y + (final_y - start_y) * eased)
+
+        print(term.clear)
+        _screen_border()
+        for row, line in enumerate(TITLE_ART):
+            screen_y = y + row
+            if 0 <= screen_y < term.height:
+                print(
+                    term.normal
+                    + term.move_yx(screen_y, _center_x(line))
+                    + term.bold_cyan(line)
+                )
+        time.sleep(0.025)
+
+    for extra, delay in ((3, 0.06), (2, 0.05), (1, 0.04), (0, 0)):
+        print(term.clear)
+        _screen_border()
+        for row, line in enumerate(TITLE_ART):
+            print(
+                term.normal
+                + term.move_yx(final_y + extra + row, _center_x(line))
+                + term.bold_cyan(line)
+            )
+        time.sleep(delay)
 
 
 def loading_screen(duration: float = 1.8, steps: int = 24) -> None:
@@ -119,10 +174,54 @@ def multi_selector(
 
 def main_menu() -> str:
     items = ["New Game", "Options", "Quit"]
-    sel = selector("Main Menu", items, help_text="↑/↓ move • Enter select")
-    if sel is None:
-        return "quit"
-    return ["new_game", "options", "quit"][sel]
+    idx = 0
+
+    with term.fullscreen(), term.cbreak(), term.hidden_cursor():
+        _animate_title()
+
+        while True:
+            print(term.clear)
+            _screen_border()
+
+            for row, line in enumerate(TITLE_ART):
+                print(
+                    term.normal
+                    + term.move_yx(2 + row, _center_x(line))
+                    + term.bold_cyan(line)
+                )
+
+            start_y = 2 + len(TITLE_ART) + 2
+            for i, item in enumerate(items):
+                line = f"  {item}  "
+                x = _center_x(line)
+                if i == idx:
+                    print(
+                        term.normal
+                        + term.move_yx(start_y + i, x)
+                        + term.bold_black_on_cyan(line)
+                    )
+                else:
+                    print(term.normal + term.move_yx(start_y + i, x) + term.white(line))
+
+            help_text = "↑/↓ move • Enter select"
+            print(
+                term.normal
+                + term.move_yx(term.height - 2, _center_x(help_text))
+                + term.dim
+                + help_text
+            )
+
+            k = term.inkey(timeout=0.15)
+            if not k:
+                continue
+            if k.name == "KEY_UP":
+                idx = (idx - 1) % len(items)
+            elif k.name == "KEY_DOWN":
+                idx = (idx + 1) % len(items)
+            elif k.name == "KEY_ENTER" or k == "\n":
+                return ["new_game", "options", "quit"][idx]
+            elif str(k).lower() == "q":
+                return "quit"
 
 
 def new_game_menu() -> str | None:
