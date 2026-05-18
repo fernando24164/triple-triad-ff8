@@ -2,7 +2,7 @@ import random
 
 from ..constants import DECK_SIZE
 from ..data.cards import CARDS
-from ..models.card import Card
+from ..models.card import Card, stat_display
 
 # Element names from the Element enum
 ELEMENT_NAMES = ["Thunder", "Earth", "Ice", "Wind", "Poison", "Fire", "Water", "Holy"]
@@ -11,8 +11,8 @@ ELEMENT_NAMES = ["Thunder", "Earth", "Ice", "Wind", "Poison", "Fire", "Water", "
 LEVEL_RANGES = {
     "1": ("Beginner", 1, 3),
     "2": ("Intermediate", 4, 6),
-    "3": ("Advanced", 7, 9),
-    "4": ("All", 1, 9),
+    "3": ("Advanced", 7, 10),
+    "4": ("All", 1, 10),
 }
 
 PAGE_SIZE = 15
@@ -83,7 +83,8 @@ def _paginate_cards(
         taken = " ✓" if name in chosen_names else ""
         print(
             f"  {start + i + 1:>3}  {name:<20} {el:<8} {stats.level:>2}  "
-            f"{stats.top:>2} {stats.right:>2} {stats.bottom:>2} {stats.left:>2}{taken}"
+            f"{stat_display(stats.top):>2} {stat_display(stats.right):>2} "
+            f"{stat_display(stats.bottom):>2} {stat_display(stats.left):>2}{taken}"
         )
 
     total_pages = max(1, (len(all_names) + page_size - 1) // page_size)
@@ -101,7 +102,9 @@ def _show_deck_preview(chosen: list[Card]) -> None:
     for i, c in enumerate(chosen):
         el = f"[{c.element.value}]" if c.element else ""
         print(
-            f"    [{i + 1}] {c.name:<18} {el:<10} Lv{c.level}  ▲{c.top} ▶{c.right} ▼{c.bottom} ◀{c.left}"
+            f"    [{i + 1}] {c.name:<18} {el:<10} Lv{c.level}  "
+            f"▲{stat_display(c.top)} ▶{stat_display(c.right)} "
+            f"▼{stat_display(c.bottom)} ◀{stat_display(c.left)}"
         )
         total_stats["top"] += c.top
         total_stats["right"] += c.right
@@ -375,7 +378,8 @@ def choose_deck() -> list[Card]:
             el = f"[{stats.element}]" if stats.element else ""
             print(
                 f"  ✓ Added ({len(chosen)}/{DECK_SIZE}): {name}{el}  "
-                f"▲{stats.top} ▶{stats.right} ▼{stats.bottom} ◀{stats.left}  Lv{stats.level}"
+                f"▲{stat_display(stats.top)} ▶{stat_display(stats.right)} "
+                f"▼{stat_display(stats.bottom)} ◀{stat_display(stats.left)}  Lv{stats.level}"
             )
         except ValueError:
             print("  ✗ Unknown command. Enter a card number or type 'help'.")

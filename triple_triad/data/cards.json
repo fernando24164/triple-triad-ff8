@@ -1,0 +1,992 @@
+{
+  "Geezard": {
+    "name": "Geezard",
+    "top": 1,
+    "right": 4,
+    "bottom": 1,
+    "left": 5,
+    "element": null,
+    "level": 1
+  },
+  "Funguar": {
+    "name": "Funguar",
+    "top": 5,
+    "right": 1,
+    "bottom": 1,
+    "left": 3,
+    "element": null,
+    "level": 1
+  },
+  "Bite Bug": {
+    "name": "Bite Bug",
+    "top": 1,
+    "right": 3,
+    "bottom": 3,
+    "left": 5,
+    "element": null,
+    "level": 1
+  },
+  "Red Bat": {
+    "name": "Red Bat",
+    "top": 6,
+    "right": 1,
+    "bottom": 1,
+    "left": 2,
+    "element": null,
+    "level": 1
+  },
+  "Blobra": {
+    "name": "Blobra",
+    "top": 2,
+    "right": 3,
+    "bottom": 1,
+    "left": 5,
+    "element": null,
+    "level": 1
+  },
+  "Gayla": {
+    "name": "Gayla",
+    "top": 2,
+    "right": 1,
+    "bottom": 4,
+    "left": 4,
+    "element": null,
+    "level": 1
+  },
+  "Gesper": {
+    "name": "Gesper",
+    "top": 1,
+    "right": 5,
+    "bottom": 4,
+    "left": 1,
+    "element": null,
+    "level": 1
+  },
+  "Fastitocalon-F": {
+    "name": "Fastitocalon-F",
+    "top": 3,
+    "right": 5,
+    "bottom": 2,
+    "left": 1,
+    "element": "Earth",
+    "level": 1
+  },
+  "Blood Soul": {
+    "name": "Blood Soul",
+    "top": 2,
+    "right": 1,
+    "bottom": 6,
+    "left": 1,
+    "element": null,
+    "level": 1
+  },
+  "Caterchipillar": {
+    "name": "Caterchipillar",
+    "top": 4,
+    "right": 2,
+    "bottom": 4,
+    "left": 3,
+    "element": null,
+    "level": 1
+  },
+  "Cockatrice": {
+    "name": "Cockatrice",
+    "top": 2,
+    "right": 1,
+    "bottom": 2,
+    "left": 6,
+    "element": null,
+    "level": 1
+  },
+  "Grat": {
+    "name": "Grat",
+    "top": 7,
+    "right": 1,
+    "bottom": 3,
+    "left": 1,
+    "element": null,
+    "level": 2
+  },
+  "Buel": {
+    "name": "Buel",
+    "top": 6,
+    "right": 2,
+    "bottom": 2,
+    "left": 3,
+    "element": null,
+    "level": 2
+  },
+  "Mesmerize": {
+    "name": "Mesmerize",
+    "top": 5,
+    "right": 3,
+    "bottom": 3,
+    "left": 4,
+    "element": null,
+    "level": 2
+  },
+  "Glacial Eye": {
+    "name": "Glacial Eye",
+    "top": 6,
+    "right": 1,
+    "bottom": 4,
+    "left": 3,
+    "element": "Ice",
+    "level": 2
+  },
+  "Belhelmel": {
+    "name": "Belhelmel",
+    "top": 3,
+    "right": 4,
+    "bottom": 5,
+    "left": 3,
+    "element": null,
+    "level": 2
+  },
+  "Thrustaevis": {
+    "name": "Thrustaevis",
+    "top": 5,
+    "right": 3,
+    "bottom": 2,
+    "left": 5,
+    "element": "Wind",
+    "level": 2
+  },
+  "Anacondaur": {
+    "name": "Anacondaur",
+    "top": 5,
+    "right": 1,
+    "bottom": 3,
+    "left": 5,
+    "element": "Poison",
+    "level": 2
+  },
+  "Creeps": {
+    "name": "Creeps",
+    "top": 5,
+    "right": 2,
+    "bottom": 5,
+    "left": 2,
+    "element": null,
+    "level": 2
+  },
+  "Grendel": {
+    "name": "Grendel",
+    "top": 4,
+    "right": 4,
+    "bottom": 5,
+    "left": 2,
+    "element": null,
+    "level": 2
+  },
+  "Jelleye": {
+    "name": "Jelleye",
+    "top": 3,
+    "right": 2,
+    "bottom": 1,
+    "left": 7,
+    "element": null,
+    "level": 2
+  },
+  "Grand Mantis": {
+    "name": "Grand Mantis",
+    "top": 5,
+    "right": 2,
+    "bottom": 5,
+    "left": 3,
+    "element": null,
+    "level": 2
+  },
+  "Forbidden": {
+    "name": "Forbidden",
+    "top": 6,
+    "right": 6,
+    "bottom": 3,
+    "left": 2,
+    "element": null,
+    "level": 3
+  },
+  "Armadodo": {
+    "name": "Armadodo",
+    "top": 6,
+    "right": 3,
+    "bottom": 1,
+    "left": 6,
+    "element": "Earth",
+    "level": 3
+  },
+  "Tri-Face": {
+    "name": "Tri-Face",
+    "top": 3,
+    "right": 5,
+    "bottom": 5,
+    "left": 5,
+    "element": "Poison",
+    "level": 3
+  },
+  "Fastitocalon": {
+    "name": "Fastitocalon",
+    "top": 7,
+    "right": 5,
+    "bottom": 1,
+    "left": 3,
+    "element": "Earth",
+    "level": 3
+  },
+  "Snow Lion": {
+    "name": "Snow Lion",
+    "top": 7,
+    "right": 1,
+    "bottom": 5,
+    "left": 3,
+    "element": "Ice",
+    "level": 3
+  },
+  "Ochu": {
+    "name": "Ochu",
+    "top": 5,
+    "right": 6,
+    "bottom": 3,
+    "left": 3,
+    "element": null,
+    "level": 3
+  },
+  "SAM08G": {
+    "name": "SAM08G",
+    "top": 5,
+    "right": 6,
+    "bottom": 2,
+    "left": 4,
+    "element": "Fire",
+    "level": 3
+  },
+  "Death Claw": {
+    "name": "Death Claw",
+    "top": 4,
+    "right": 4,
+    "bottom": 7,
+    "left": 2,
+    "element": "Fire",
+    "level": 3
+  },
+  "Cactuar": {
+    "name": "Cactuar",
+    "top": 6,
+    "right": 2,
+    "bottom": 6,
+    "left": 3,
+    "element": null,
+    "level": 3
+  },
+  "Tonberry": {
+    "name": "Tonberry",
+    "top": 3,
+    "right": 6,
+    "bottom": 4,
+    "left": 4,
+    "element": null,
+    "level": 3
+  },
+  "Abyss Worm": {
+    "name": "Abyss Worm",
+    "top": 7,
+    "right": 3,
+    "bottom": 2,
+    "left": 5,
+    "element": "Earth",
+    "level": 3
+  },
+  "Turtapod": {
+    "name": "Turtapod",
+    "top": 2,
+    "right": 3,
+    "bottom": 6,
+    "left": 7,
+    "element": null,
+    "level": 4
+  },
+  "Vysage": {
+    "name": "Vysage",
+    "top": 6,
+    "right": 5,
+    "bottom": 4,
+    "left": 5,
+    "element": null,
+    "level": 4
+  },
+  "T-Rexaur": {
+    "name": "T-Rexaur",
+    "top": 4,
+    "right": 6,
+    "bottom": 2,
+    "left": 7,
+    "element": null,
+    "level": 4
+  },
+  "Bomb": {
+    "name": "Bomb",
+    "top": 2,
+    "right": 7,
+    "bottom": 6,
+    "left": 3,
+    "element": "Fire",
+    "level": 4
+  },
+  "Blitz": {
+    "name": "Blitz",
+    "top": 1,
+    "right": 6,
+    "bottom": 4,
+    "left": 7,
+    "element": null,
+    "level": 4
+  },
+  "Wendigo": {
+    "name": "Wendigo",
+    "top": 7,
+    "right": 3,
+    "bottom": 1,
+    "left": 6,
+    "element": null,
+    "level": 4
+  },
+  "Torama": {
+    "name": "Torama",
+    "top": 7,
+    "right": 4,
+    "bottom": 4,
+    "left": 4,
+    "element": null,
+    "level": 4
+  },
+  "Imp": {
+    "name": "Imp",
+    "top": 3,
+    "right": 7,
+    "bottom": 3,
+    "left": 6,
+    "element": null,
+    "level": 4
+  },
+  "Blue Dragon": {
+    "name": "Blue Dragon",
+    "top": 6,
+    "right": 2,
+    "bottom": 7,
+    "left": 3,
+    "element": "Poison",
+    "level": 4
+  },
+  "Adamantoise": {
+    "name": "Adamantoise",
+    "top": 4,
+    "right": 5,
+    "bottom": 5,
+    "left": 6,
+    "element": "Earth",
+    "level": 4
+  },
+  "Hexadragon": {
+    "name": "Hexadragon",
+    "top": 7,
+    "right": 5,
+    "bottom": 4,
+    "left": 3,
+    "element": "Fire",
+    "level": 4
+  },
+  "Iron Giant": {
+    "name": "Iron Giant",
+    "top": 6,
+    "right": 5,
+    "bottom": 6,
+    "left": 5,
+    "element": null,
+    "level": 5
+  },
+  "Behemoth": {
+    "name": "Behemoth",
+    "top": 3,
+    "right": 6,
+    "bottom": 5,
+    "left": 7,
+    "element": null,
+    "level": 5
+  },
+  "Chimera": {
+    "name": "Chimera",
+    "top": 7,
+    "right": 6,
+    "bottom": 5,
+    "left": 3,
+    "element": "Water",
+    "level": 5
+  },
+  "PuPu": {
+    "name": "PuPu",
+    "top": 3,
+    "right": 10,
+    "bottom": 2,
+    "left": 1,
+    "element": null,
+    "level": 5
+  },
+  "Elastoid": {
+    "name": "Elastoid",
+    "top": 6,
+    "right": 2,
+    "bottom": 6,
+    "left": 7,
+    "element": null,
+    "level": 5
+  },
+  "GIM47N": {
+    "name": "GIM47N",
+    "top": 5,
+    "right": 5,
+    "bottom": 7,
+    "left": 4,
+    "element": null,
+    "level": 5
+  },
+  "Malboro": {
+    "name": "Malboro",
+    "top": 7,
+    "right": 7,
+    "bottom": 4,
+    "left": 2,
+    "element": "Poison",
+    "level": 5
+  },
+  "Ruby Dragon": {
+    "name": "Ruby Dragon",
+    "top": 7,
+    "right": 2,
+    "bottom": 7,
+    "left": 4,
+    "element": "Fire",
+    "level": 5
+  },
+  "Elnoyle": {
+    "name": "Elnoyle",
+    "top": 5,
+    "right": 3,
+    "bottom": 7,
+    "left": 6,
+    "element": null,
+    "level": 5
+  },
+  "Tonberry King": {
+    "name": "Tonberry King",
+    "top": 4,
+    "right": 6,
+    "bottom": 7,
+    "left": 4,
+    "element": null,
+    "level": 5
+  },
+  "Wedge, Biggs": {
+    "name": "Wedge, Biggs",
+    "top": 6,
+    "right": 6,
+    "bottom": 2,
+    "left": 7,
+    "element": null,
+    "level": 5
+  },
+  "Fujin, Raijin": {
+    "name": "Fujin, Raijin",
+    "top": 2,
+    "right": 8,
+    "bottom": 8,
+    "left": 4,
+    "element": null,
+    "level": 6
+  },
+  "Elvoret": {
+    "name": "Elvoret",
+    "top": 7,
+    "right": 8,
+    "bottom": 3,
+    "left": 4,
+    "element": "Wind",
+    "level": 6
+  },
+  "X-ATM092": {
+    "name": "X-ATM092",
+    "top": 4,
+    "right": 8,
+    "bottom": 7,
+    "left": 3,
+    "element": null,
+    "level": 6
+  },
+  "Granaldo": {
+    "name": "Granaldo",
+    "top": 7,
+    "right": 2,
+    "bottom": 8,
+    "left": 5,
+    "element": null,
+    "level": 6
+  },
+  "Gerogero": {
+    "name": "Gerogero",
+    "top": 1,
+    "right": 8,
+    "bottom": 8,
+    "left": 3,
+    "element": "Poison",
+    "level": 6
+  },
+  "Iguion": {
+    "name": "Iguion",
+    "top": 8,
+    "right": 2,
+    "bottom": 8,
+    "left": 2,
+    "element": null,
+    "level": 6
+  },
+  "Abadon": {
+    "name": "Abadon",
+    "top": 6,
+    "right": 8,
+    "bottom": 4,
+    "left": 5,
+    "element": null,
+    "level": 6
+  },
+  "Trauma": {
+    "name": "Trauma",
+    "top": 4,
+    "right": 8,
+    "bottom": 5,
+    "left": 6,
+    "element": null,
+    "level": 6
+  },
+  "Oilboyle": {
+    "name": "Oilboyle",
+    "top": 1,
+    "right": 8,
+    "bottom": 4,
+    "left": 8,
+    "element": null,
+    "level": 6
+  },
+  "Shumi Tribe": {
+    "name": "Shumi Tribe",
+    "top": 6,
+    "right": 5,
+    "bottom": 8,
+    "left": 4,
+    "element": null,
+    "level": 6
+  },
+  "Krysta": {
+    "name": "Krysta",
+    "top": 7,
+    "right": 5,
+    "bottom": 8,
+    "left": 1,
+    "element": null,
+    "level": 6
+  },
+  "Propagator": {
+    "name": "Propagator",
+    "top": 8,
+    "right": 4,
+    "bottom": 4,
+    "left": 8,
+    "element": null,
+    "level": 7
+  },
+  "Jumbo Cactuar": {
+    "name": "Jumbo Cactuar",
+    "top": 8,
+    "right": 8,
+    "bottom": 4,
+    "left": 4,
+    "element": null,
+    "level": 7
+  },
+  "Tri-Point": {
+    "name": "Tri-Point",
+    "top": 8,
+    "right": 5,
+    "bottom": 2,
+    "left": 8,
+    "element": null,
+    "level": 7
+  },
+  "Gargantua": {
+    "name": "Gargantua",
+    "top": 5,
+    "right": 6,
+    "bottom": 6,
+    "left": 8,
+    "element": null,
+    "level": 7
+  },
+  "Mobile Type 8": {
+    "name": "Mobile Type 8",
+    "top": 8,
+    "right": 6,
+    "bottom": 7,
+    "left": 3,
+    "element": null,
+    "level": 7
+  },
+  "Sphinxara": {
+    "name": "Sphinxara",
+    "top": 8,
+    "right": 3,
+    "bottom": 5,
+    "left": 8,
+    "element": null,
+    "level": 7
+  },
+  "Tiamat": {
+    "name": "Tiamat",
+    "top": 8,
+    "right": 8,
+    "bottom": 5,
+    "left": 4,
+    "element": null,
+    "level": 7
+  },
+  "BGH251F2": {
+    "name": "BGH251F2",
+    "top": 5,
+    "right": 7,
+    "bottom": 8,
+    "left": 5,
+    "element": null,
+    "level": 7
+  },
+  "Red Giant": {
+    "name": "Red Giant",
+    "top": 6,
+    "right": 8,
+    "bottom": 4,
+    "left": 7,
+    "element": null,
+    "level": 7
+  },
+  "Catoblepas": {
+    "name": "Catoblepas",
+    "top": 1,
+    "right": 8,
+    "bottom": 7,
+    "left": 7,
+    "element": null,
+    "level": 7
+  },
+  "Ultima Weapon": {
+    "name": "Ultima Weapon",
+    "top": 7,
+    "right": 7,
+    "bottom": 2,
+    "left": 8,
+    "element": null,
+    "level": 7
+  },
+  "Chubby Chocobo": {
+    "name": "Chubby Chocobo",
+    "top": 4,
+    "right": 4,
+    "bottom": 8,
+    "left": 9,
+    "element": null,
+    "level": 8
+  },
+  "Angelo": {
+    "name": "Angelo",
+    "top": 9,
+    "right": 6,
+    "bottom": 7,
+    "left": 3,
+    "element": null,
+    "level": 8
+  },
+  "Gilgamesh": {
+    "name": "Gilgamesh",
+    "top": 3,
+    "right": 7,
+    "bottom": 9,
+    "left": 6,
+    "element": null,
+    "level": 8
+  },
+  "MiniMog": {
+    "name": "MiniMog",
+    "top": 9,
+    "right": 3,
+    "bottom": 9,
+    "left": 2,
+    "element": null,
+    "level": 8
+  },
+  "Chicobo": {
+    "name": "Chicobo",
+    "top": 9,
+    "right": 4,
+    "bottom": 8,
+    "left": 4,
+    "element": null,
+    "level": 8
+  },
+  "Quezacotl": {
+    "name": "Quezacotl",
+    "top": 2,
+    "right": 9,
+    "bottom": 9,
+    "left": 4,
+    "element": null,
+    "level": 8
+  },
+  "Shiva": {
+    "name": "Shiva",
+    "top": 6,
+    "right": 7,
+    "bottom": 4,
+    "left": 9,
+    "element": "Ice",
+    "level": 8
+  },
+  "Ifrit": {
+    "name": "Ifrit",
+    "top": 9,
+    "right": 6,
+    "bottom": 2,
+    "left": 8,
+    "element": "Fire",
+    "level": 8
+  },
+  "Siren": {
+    "name": "Siren",
+    "top": 8,
+    "right": 9,
+    "bottom": 6,
+    "left": 2,
+    "element": null,
+    "level": 8
+  },
+  "Sacred": {
+    "name": "Sacred",
+    "top": 5,
+    "right": 1,
+    "bottom": 9,
+    "left": 9,
+    "element": "Earth",
+    "level": 8
+  },
+  "Minotaur": {
+    "name": "Minotaur",
+    "top": 9,
+    "right": 5,
+    "bottom": 2,
+    "left": 9,
+    "element": "Earth",
+    "level": 8
+  },
+  "Carbuncle": {
+    "name": "Carbuncle",
+    "top": 8,
+    "right": 4,
+    "bottom": 10,
+    "left": 4,
+    "element": null,
+    "level": 9
+  },
+  "Diablos": {
+    "name": "Diablos",
+    "top": 5,
+    "right": 10,
+    "bottom": 8,
+    "left": 3,
+    "element": null,
+    "level": 9
+  },
+  "Leviathan": {
+    "name": "Leviathan",
+    "top": 7,
+    "right": 10,
+    "bottom": 1,
+    "left": 7,
+    "element": "Water",
+    "level": 9
+  },
+  "Odin": {
+    "name": "Odin",
+    "top": 8,
+    "right": 10,
+    "bottom": 3,
+    "left": 5,
+    "element": null,
+    "level": 9
+  },
+  "Pandemona": {
+    "name": "Pandemona",
+    "top": 10,
+    "right": 1,
+    "bottom": 7,
+    "left": 7,
+    "element": "Wind",
+    "level": 9
+  },
+  "Cerberus": {
+    "name": "Cerberus",
+    "top": 7,
+    "right": 4,
+    "bottom": 6,
+    "left": 10,
+    "element": null,
+    "level": 9
+  },
+  "Alexander": {
+    "name": "Alexander",
+    "top": 9,
+    "right": 10,
+    "bottom": 4,
+    "left": 2,
+    "element": "Holy",
+    "level": 9
+  },
+  "Phoenix": {
+    "name": "Phoenix",
+    "top": 7,
+    "right": 2,
+    "bottom": 7,
+    "left": 10,
+    "element": "Fire",
+    "level": 9
+  },
+  "Bahamut": {
+    "name": "Bahamut",
+    "top": 10,
+    "right": 8,
+    "bottom": 2,
+    "left": 6,
+    "element": null,
+    "level": 9
+  },
+  "Doomtrain": {
+    "name": "Doomtrain",
+    "top": 3,
+    "right": 1,
+    "bottom": 10,
+    "left": 10,
+    "element": "Poison",
+    "level": 9
+  },
+  "Eden": {
+    "name": "Eden",
+    "top": 4,
+    "right": 4,
+    "bottom": 9,
+    "left": 10,
+    "element": null,
+    "level": 9
+  },
+  "Ward": {
+    "name": "Ward",
+    "top": 10,
+    "right": 7,
+    "bottom": 2,
+    "left": 8,
+    "element": null,
+    "level": 10
+  },
+  "Kiros": {
+    "name": "Kiros",
+    "top": 6,
+    "right": 7,
+    "bottom": 6,
+    "left": 10,
+    "element": null,
+    "level": 10
+  },
+  "Laguna": {
+    "name": "Laguna",
+    "top": 5,
+    "right": 10,
+    "bottom": 3,
+    "left": 9,
+    "element": null,
+    "level": 10
+  },
+  "Selphie": {
+    "name": "Selphie",
+    "top": 10,
+    "right": 8,
+    "bottom": 6,
+    "left": 4,
+    "element": null,
+    "level": 10
+  },
+  "Quistis": {
+    "name": "Quistis",
+    "top": 9,
+    "right": 6,
+    "bottom": 10,
+    "left": 2,
+    "element": null,
+    "level": 10
+  },
+  "Irvine": {
+    "name": "Irvine",
+    "top": 2,
+    "right": 6,
+    "bottom": 9,
+    "left": 10,
+    "element": null,
+    "level": 10
+  },
+  "Zell": {
+    "name": "Zell",
+    "top": 8,
+    "right": 5,
+    "bottom": 10,
+    "left": 6,
+    "element": null,
+    "level": 10
+  },
+  "Rinoa": {
+    "name": "Rinoa",
+    "top": 4,
+    "right": 10,
+    "bottom": 2,
+    "left": 10,
+    "element": null,
+    "level": 10
+  },
+  "Edea": {
+    "name": "Edea",
+    "top": 10,
+    "right": 10,
+    "bottom": 3,
+    "left": 3,
+    "element": null,
+    "level": 10
+  },
+  "Seifer": {
+    "name": "Seifer",
+    "top": 6,
+    "right": 9,
+    "bottom": 10,
+    "left": 4,
+    "element": null,
+    "level": 10
+  },
+  "Squall": {
+    "name": "Squall",
+    "top": 10,
+    "right": 4,
+    "bottom": 6,
+    "left": 9,
+    "element": null,
+    "level": 10
+  }
+}

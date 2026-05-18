@@ -1,3 +1,6 @@
+from ..models.card import stat_display
+
+
 def display_hand(hand, label, show=True):
     print(f"\n  {label}'s Hand:")
     print("  " + "─" * 60)
@@ -6,7 +9,8 @@ def display_hand(hand, label, show=True):
             el = f"[{card.element}]" if card.element else ""
             print(
                 f"  [{i}] {card.name}{el}  "
-                f"T:{card.top} R:{card.right} B:{card.bottom} L:{card.left}  "
+                f"T:{stat_display(card.top)} R:{stat_display(card.right)} "
+                f"B:{stat_display(card.bottom)} L:{stat_display(card.left)}  "
                 f"Lv:{card.level}"
             )
     else:
@@ -38,7 +42,7 @@ def print_help():
 
   CARD ANATOMY
   ────────────
-  Each card has 4 directional values (1-10) and optionally
+  Each card has 4 directional values (1-10, shown as A for 10) and optionally
   an element:
 
          ▲ Top

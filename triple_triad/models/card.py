@@ -1,6 +1,11 @@
 from ..data.cards import CARDS, CardStats, Element
 
 
+def stat_display(value: int) -> str:
+    """Convert a card stat value to display string (10 -> 'A')."""
+    return "A" if value == 10 else str(value)
+
+
 class Card:
     """A playing card with mutable game state (owner) and immutable stats.
 
@@ -45,7 +50,8 @@ class Card:
         el = f"[{self.element.value}]" if self.element else ""
         return (
             f"{self.name}{el} "
-            f"T:{self.top} R:{self.right} B:{self.bottom} L:{self.left} "
+            f"T:{stat_display(self.top)} R:{stat_display(self.right)} "
+            f"B:{stat_display(self.bottom)} L:{stat_display(self.left)} "
             f"Lv:{self.level}"
         )
 
@@ -56,7 +62,11 @@ class Card:
         return f"{owner_sym}{name_trunc}"
 
     def values_str(self) -> str:
-        return f"  {self.top}  \n{self.left}   {self.right}\n  {self.bottom}  "
+        return (
+            f"  {stat_display(self.top)}  \n"
+            f"{stat_display(self.left)}   {stat_display(self.right)}\n"
+            f"  {stat_display(self.bottom)}  "
+        )
 
     def __repr__(self) -> str:
         return (

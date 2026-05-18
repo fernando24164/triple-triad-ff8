@@ -22,9 +22,9 @@ DIFFICULTY_CONFIG = {
     "hard": {
         "player_max_level": 9,
         "cpu_min_level": 7,
-        "cpu_max_level": 9,  # CPU uses top-tier cards
+        "cpu_max_level": 10,  # CPU uses top-tier cards
         "cpu_ai": "greedy",  # CPU plays greedy
-        "description": "CPU uses elite cards (Lv 7-9) and plays optimally",
+        "description": "CPU uses elite cards (Lv 7-10) and plays optimally",
     },
 }
 

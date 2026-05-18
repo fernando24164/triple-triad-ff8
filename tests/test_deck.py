@@ -49,8 +49,8 @@ class TestDeck:
         deck = build_cpu_deck("hard")
         assert len(deck) == 5
         assert all(isinstance(card, Card) for card in deck)
-        # Hard difficulty: CPU uses cards level 7-9
-        assert all(7 <= card.level <= 9 for card in deck)
+        # Hard difficulty: CPU uses cards level 7-10
+        assert all(7 <= card.level <= 10 for card in deck)
 
     def test_build_cpu_deck_invalid_difficulty(self):
         """Test building CPU deck with invalid difficulty defaults to medium."""
@@ -95,13 +95,13 @@ class TestDeck:
             assert "cpu_ai" in cfg
             assert "description" in cfg
             assert cfg["player_max_level"] == 9
-            assert 1 <= cfg["cpu_min_level"] <= cfg["cpu_max_level"] <= 9
+            assert 1 <= cfg["cpu_min_level"] <= cfg["cpu_max_level"] <= 10
             assert cfg["cpu_ai"] in ["random", "greedy"]
 
     def test_filter_cards_by_level(self):
         """Test filtering cards by level range."""
         all_names = sorted(CARDS.keys())
-        for level in range(1, 10):
+        for level in range(1, 11):
             results = _filter_cards(all_names, level_range=(level, level))
             assert len(results) > 0
             assert all(CARDS[name].level == level for name in results)
@@ -125,10 +125,10 @@ class TestDeck:
     def test_filter_cards_combined(self):
         """Test filtering cards by level and element combined."""
         all_names = sorted(CARDS.keys())
-        results = _filter_cards(all_names, level_range=(1, 5), element="Thunder")
+        results = _filter_cards(all_names, level_range=(1, 5), element="Fire")
         assert all(1 <= CARDS[name].level <= 5 for name in results)
         assert all(
-            CARDS[name].element and CARDS[name].element.value == "Thunder"
+            CARDS[name].element and CARDS[name].element.value == "Fire"
             for name in results
         )
 
@@ -205,4 +205,4 @@ class TestDeck:
             assert 1 <= stats.bottom <= 10
             assert 1 <= stats.left <= 10
             assert stats.element is None or isinstance(stats.element, Element)
-            assert 1 <= stats.level <= 9
+            assert 1 <= stats.level <= 10

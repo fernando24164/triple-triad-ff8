@@ -2,38 +2,38 @@ from ..models.card import Card
 
 DECK_PRESETS: dict[str, list[str]] = {
     "Balanced": [
-        "Mesmerize",  # Lv3, no element, balanced stats
-        "Cactuar",  # Lv4, no element
-        "Bomb",  # Lv5, Fire
-        "Iron Giant",  # Lv6, no element, strong
-        "Shiva",  # Lv9, Ice, high stats
+        "Mesmerize",  # Lv2, no element, balanced stats
+        "Cactuar",  # Lv3, no element
+        "Bomb",  # Lv4, Fire
+        "Iron Giant",  # Lv5, no element, strong
+        "Shiva",  # Lv8, Ice, high stats
     ],
     "Fire Power": [
-        "SAM08G",  # Lv4, Fire
-        "Bomb",  # Lv5, Fire
-        "Hexadragon",  # Lv5, Fire
-        "Ruby Dragon",  # Lv6, Fire
-        "Ifrit",  # Lv9, Fire
+        "SAM08G",  # Lv3, Fire
+        "Bomb",  # Lv4, Fire
+        "Hexadragon",  # Lv4, Fire
+        "Ruby Dragon",  # Lv5, Fire
+        "Ifrit",  # Lv8, Fire
     ],
     "Ice Wall": [
-        "Glacial Eye",  # Lv3, Ice
-        "Snow Lion",  # Lv4, Ice
-        "Shiva",  # Lv9, Ice
-        "Chimera",  # Lv6, Water (cold theme)
+        "Glacial Eye",  # Lv2, Ice
+        "Snow Lion",  # Lv3, Ice
+        "Shiva",  # Lv8, Ice
+        "Chimera",  # Lv5, Water (cold theme)
         "Leviathan",  # Lv9, Water (cold theme)
     ],
-    "Thunder Rush": [
-        "Gayla",  # Lv2, Thunder
-        "Cockatrice",  # Lv2, Thunder
-        "Thrustaevis",  # Lv3, Wind
-        "Blitz",  # Lv5, Thunder
-        "Quezacotl",  # Lv9, Thunder
+    "Rush": [
+        "Gayla",  # Lv1, no element, fast low-level
+        "Thrustaevis",  # Lv2, Wind
+        "Elvoret",  # Lv6, Wind
+        "Pandemona",  # Lv9, Wind
+        "Angelo",  # Lv8, no element
     ],
     "Poison Squad": [
-        "Anacondaur",  # Lv3, Poison
-        "Tri-Face",  # Lv4, Poison
-        "Blue Dragon",  # Lv5, Poison
-        "Gerogero",  # Lv7, Poison
+        "Anacondaur",  # Lv2, Poison
+        "Tri-Face",  # Lv3, Poison
+        "Blue Dragon",  # Lv4, Poison
+        "Gerogero",  # Lv6, Poison
         "Doomtrain",  # Lv9, Poison
     ],
 }

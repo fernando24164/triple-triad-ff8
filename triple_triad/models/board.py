@@ -1,6 +1,6 @@
 from ..constants import BOARD_CELLS, GRID_SIZE
 from ..data.cards import Element
-from ..models.card import Card
+from ..models.card import Card, stat_display
 from ..ui.color import Color
 
 
@@ -58,7 +58,7 @@ class Board:
         w = Board.CELL_W
         if card is None:
             return " " * w
-        plain = f"{'▲ ' + str(card.top):^{w}}"
+        plain = f"{'▲ ' + stat_display(card.top):^{w}}"
         return Color.card(plain, card.owner)
 
     @staticmethod
@@ -70,8 +70,8 @@ class Board:
 
         el = card.element[:3] if card.element else "   "
 
-        left_str = f"◀ {card.left}"
-        right_str = f"{card.right} ▶"
+        left_str = f"◀ {stat_display(card.left)}"
+        right_str = f"{stat_display(card.right)} ▶"
 
         # 1. Build a plain CELL_W-char canvas filled with spaces
         chars = [" "] * w
@@ -100,7 +100,7 @@ class Board:
         w = Board.CELL_W
         if card is None:
             return " " * w
-        plain = f"{'▼ ' + str(card.bottom):^{w}}"
+        plain = f"{'▼ ' + stat_display(card.bottom):^{w}}"
         return Color.card(plain, card.owner)
 
     @staticmethod

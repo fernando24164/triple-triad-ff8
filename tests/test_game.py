@@ -153,22 +153,22 @@ class TestGameLogic:
     def test_multiple_captures_single_turn(self, empty_board, basic_rules):
         """Test capturing multiple cards in a single turn."""
         # Place CPU cards at positions 1 and 3
-        cpu_card1 = Card("Geezard")  # T:1 R:4 B:1 L:5
+        cpu_card1 = Card("Funguar")  # T:5 R:1 B:1 L:3
         cpu_card1.owner = "CPU"
         empty_board.place(1, cpu_card1)
 
-        cpu_card2 = Card("Funguar")  # T:5 R:1 B:1 L:3
+        cpu_card2 = Card("Geezard")  # T:1 R:4 B:1 L:5
         cpu_card2.owner = "CPU"
         empty_board.place(3, cpu_card2)
 
-        # Place player card at position 4 that captures both
+        # Place player card at position 4 that captures only one
         # Need top > Funguar's bottom (1) and left > Geezard's right (4)
-        player_card = Card("Gayla")  # T:2 R:4 B:4 L:1
+        player_card = Card("Gayla")  # T:2 R:1 B:4 L:4
         player_card.owner = "P"
         empty_board.place(4, player_card)
 
         # Player's top (2) > Funguar's bottom (1) - capture!
-        # Player's left (1) < Geezard's right (4) - no capture
+        # Player's left (4) > Geezard's right (4) - no capture (equal, not greater)
         captures, _ = resolve_captures(empty_board, 4, player_card, basic_rules)
         assert len(captures) == 1
 

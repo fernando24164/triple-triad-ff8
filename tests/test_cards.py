@@ -1,5 +1,5 @@
 from triple_triad.data.cards import CARDS
-from triple_triad.models.card import Card
+from triple_triad.models.card import Card, stat_display
 
 
 class TestCard:
@@ -18,10 +18,10 @@ class TestCard:
 
     def test_card_with_element(self):
         """Test that a card with an element is created correctly."""
-        card = Card("Gayla")
-        assert card.name == "Gayla"
-        assert card.element == "Thunder"
-        assert card.level == 2
+        card = Card("Armadodo")
+        assert card.name == "Armadodo"
+        assert card.element == "Earth"
+        assert card.level == 3
 
     def test_card_str(self, sample_card):
         """Test the string representation of a card."""
@@ -35,10 +35,10 @@ class TestCard:
 
     def test_card_str_with_element(self):
         """Test the string representation of a card with an element."""
-        card = Card("Gayla")
+        card = Card("Armadodo")
         result = str(card)
-        assert "Gayla" in result
-        assert "[Thunder]" in result
+        assert "Armadodo" in result
+        assert "[Earth]" in result
 
     def test_card_short_str(self, sample_card):
         """Test the short string representation."""
@@ -86,10 +86,10 @@ class TestCard:
             assert card.level == stats.level
 
     def test_card_levels(self):
-        """Test that cards have valid levels (1-9)."""
+        """Test that cards have valid levels (1-10)."""
         for name in CARDS:
             card = Card(name)
-            assert 1 <= card.level <= 9
+            assert 1 <= card.level <= 10
 
     def test_card_values(self):
         """Test that card values are valid (1-10)."""
@@ -99,3 +99,24 @@ class TestCard:
             assert 1 <= card.right <= 10
             assert 1 <= card.bottom <= 10
             assert 1 <= card.left <= 10
+
+    def test_stat_display_ace(self):
+        """Test that stat_display shows A for value 10."""
+        assert stat_display(10) == "A"
+        assert stat_display(9) == "9"
+        assert stat_display(5) == "5"
+        assert stat_display(1) == "1"
+
+    def test_card_str_shows_ace(self):
+        """Test that cards with value 10 display A in string output."""
+        # Carbuncle has bottom=10
+        card = Card("Carbuncle")
+        result = str(card)
+        assert "A" in result
+
+    def test_values_str_shows_ace(self):
+        """Test that values_str shows A for value 10."""
+        # Carbuncle has bottom=10
+        card = Card("Carbuncle")
+        result = card.values_str()
+        assert "A" in result
