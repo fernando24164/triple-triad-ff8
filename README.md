@@ -77,7 +77,7 @@ uv sync --locked
 ### Run the Game
 
 ```bash
-python -m triple_triad.game
+python -m triple_triad
 ```
 
 or

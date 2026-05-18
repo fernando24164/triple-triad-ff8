@@ -33,16 +33,26 @@ class CardStats:
 
 
 CARDS: dict[str, CardStats] = {}
-if CARDS_PATH.exists():
+if not CARDS_PATH.exists():
+    raise FileNotFoundError(
+        f"Missing card data file: {CARDS_PATH.resolve()}\n"
+        f"Ensure {CARDS_PATH.name} exists in {CARDS_PATH.parent.resolve()}"
+    )
+try:
     _raw = json.loads(CARDS_PATH.read_text())
-    for name, data in _raw.items():
-        element = Element(data["element"]) if data["element"] else None
-        CARDS[name] = CardStats(
-            name=data["name"],
-            top=data["top"],
-            right=data["right"],
-            bottom=data["bottom"],
-            left=data["left"],
-            element=element,
-            level=data["level"],
-        )
+except json.JSONDecodeError as e:
+    raise RuntimeError(
+        f"Corrupt card data file: {CARDS_PATH.resolve()}\n"
+        f"JSON error at line {e.lineno}, column {e.colno}: {e.msg}"
+    ) from e
+for name, data in _raw.items():
+    element = Element(data["element"]) if data["element"] else None
+    CARDS[name] = CardStats(
+        name=data["name"],
+        top=data["top"],
+        right=data["right"],
+        bottom=data["bottom"],
+        left=data["left"],
+        element=element,
+        level=data["level"],
+    )
