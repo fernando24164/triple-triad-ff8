@@ -1,5 +1,6 @@
 import random
 import time
+from typing import Any
 
 from blessed import Terminal
 
@@ -92,81 +93,152 @@ def loading_screen(duration: float = 1.8, steps: int = 24) -> None:
             time.sleep(duration / steps)
 
 
+class _MenuBase:
+    def __init__(
+        self,
+        title: str,
+        help_text: str = "↑/↓ move • Enter select • q back",
+        subtitle: str = "",
+    ) -> None:
+        self.title = title
+        self.help_text = help_text
+        self.subtitle = subtitle
+        self.idx = 0
+
+    def item_count(self) -> int:
+        raise NotImplementedError
+
+    def draw_items(self) -> None:
+        raise NotImplementedError
+
+    def on_enter(self) -> int | set[str] | None:
+        raise NotImplementedError
+
+    def on_quit(self) -> int | set[str] | None:
+        return None
+
+    def draw(self) -> None:
+        _draw_frame(self.title, self.subtitle)
+
+    def handle_key(self, k: Any) -> int | set[str] | None:
+        if k.name == "KEY_UP":
+            self.idx = (self.idx - 1) % self.item_count()
+        elif k.name == "KEY_DOWN":
+            self.idx = (self.idx + 1) % self.item_count()
+        elif k.name == "KEY_ENTER" or k == "\n":
+            return self.on_enter()
+        elif str(k).lower() == "q":
+            return self.on_quit()
+        return None
+
+    def run(self) -> int | set[str] | None:
+        with term.fullscreen(), term.cbreak(), term.hidden_cursor():
+            while True:
+                self.draw()
+                self.draw_items()
+                print(term.move_yx(term.height - 2, 2) + term.dim + self.help_text)
+
+                k = term.inkey(timeout=0.2)
+                if not k:
+                    continue
+                result = self.handle_key(k)
+                if result is not None:
+                    return result
+
+
+class _SelectorMenu(_MenuBase):
+    def __init__(
+        self,
+        title: str,
+        items: list[str],
+        subtitle: str = "",
+        help_text: str = "↑/↓ move • Enter select • q back",
+    ) -> None:
+        super().__init__(title, help_text, subtitle)
+        self.items = items
+
+    def item_count(self) -> int:
+        return len(self.items)
+
+    def draw_items(self) -> None:
+        start_y = max(5, term.height // 2 - len(self.items) // 2)
+        for i, item in enumerate(self.items):
+            line = f"  {item}  "
+            x = _center_x(line)
+            if i == self.idx:
+                print(term.move_yx(start_y + i, x) + term.bold_black_on_cyan(line))
+            else:
+                print(term.move_yx(start_y + i, x) + term.white(line))
+
+    def on_enter(self) -> int:
+        return self.idx
+
+    def on_quit(self) -> None:
+        return None
+
+
+class _MultiSelectorMenu(_MenuBase):
+    def __init__(
+        self,
+        title: str,
+        options: list[tuple[str, str]],
+        preselected: list[str] | None = None,
+        subtitle: str = "Space toggle • Enter confirm • q cancel",
+    ) -> None:
+        super().__init__(title, subtitle=subtitle)
+        self.options = options
+        self.selected = set(preselected or [])
+
+    def item_count(self) -> int:
+        return len(self.options)
+
+    def draw_items(self) -> None:
+        start_y = max(5, term.height // 2 - len(self.options) // 2)
+        for i, (opt_id, label) in enumerate(self.options):
+            mark = "✓" if opt_id in self.selected else " "
+            line = f"[{mark}] {label}"
+            x = _center_x(line)
+            if i == self.idx:
+                print(term.move_yx(start_y + i, x) + term.bold_black_on_cyan(line))
+            else:
+                print(term.move_yx(start_y + i, x) + term.white(line))
+
+    def handle_key(self, k: Any) -> set[str] | None:
+        if k == " ":
+            opt_id = self.options[self.idx][0]
+            if opt_id in self.selected:
+                self.selected.remove(opt_id)
+            else:
+                self.selected.add(opt_id)
+            return None
+        result = super().handle_key(k)
+        return result  # type: ignore[return-value]
+
+    def on_enter(self) -> set[str]:
+        return self.selected
+
+    def on_quit(self) -> None:
+        return None
+
+
 def selector(
     title: str,
     items: list[str],
     subtitle: str = "",
     help_text: str = "↑/↓ move • Enter select • q back",
 ) -> int | None:
-    idx = 0
-    with term.fullscreen(), term.cbreak(), term.hidden_cursor():
-        while True:
-            _draw_frame(title, subtitle)
-            start_y = max(5, term.height // 2 - len(items) // 2)
-
-            for i, item in enumerate(items):
-                line = f"  {item}  "
-                x = _center_x(line)
-                if i == idx:
-                    print(term.move_yx(start_y + i, x) + term.bold_black_on_cyan(line))
-                else:
-                    print(term.move_yx(start_y + i, x) + term.white(line))
-
-            print(term.move_yx(term.height - 2, 2) + term.dim + help_text)
-
-            k = term.inkey(timeout=0.2)
-            if not k:
-                continue
-            if k.name == "KEY_UP":
-                idx = (idx - 1) % len(items)
-            elif k.name == "KEY_DOWN":
-                idx = (idx + 1) % len(items)
-            elif k.name == "KEY_ENTER" or k == "\n":
-                return idx
-            elif str(k).lower() == "q":
-                return None
+    result = _SelectorMenu(title, items, subtitle, help_text).run()
+    return result  # type: ignore[return-value]
 
 
 def multi_selector(
     title: str,
-    options: list[tuple[str, str]],  # (id, label)
+    options: list[tuple[str, str]],
     preselected: list[str] | None = None,
     subtitle: str = "Space toggle • Enter confirm • q cancel",
 ) -> set[str] | None:
-    selected = set(preselected or [])
-    idx = 0
-
-    with term.fullscreen(), term.cbreak(), term.hidden_cursor():
-        while True:
-            _draw_frame(title, subtitle)
-            start_y = max(5, term.height // 2 - len(options) // 2)
-
-            for i, (opt_id, label) in enumerate(options):
-                mark = "✓" if opt_id in selected else " "
-                line = f"[{mark}] {label}"
-                x = _center_x(line)
-                if i == idx:
-                    print(term.move_yx(start_y + i, x) + term.bold_black_on_cyan(line))
-                else:
-                    print(term.move_yx(start_y + i, x) + term.white(line))
-
-            k = term.inkey(timeout=0.2)
-            if not k:
-                continue
-            if k.name == "KEY_UP":
-                idx = (idx - 1) % len(options)
-            elif k.name == "KEY_DOWN":
-                idx = (idx + 1) % len(options)
-            elif k == " ":
-                opt_id = options[idx][0]
-                if opt_id in selected:
-                    selected.remove(opt_id)
-                else:
-                    selected.add(opt_id)
-            elif k.name == "KEY_ENTER" or k == "\n":
-                return selected
-            elif str(k).lower() == "q":
-                return None
+    result = _MultiSelectorMenu(title, options, preselected, subtitle).run()
+    return result  # type: ignore[return-value]
 
 
 # ── Top menus ────────────────────────────────────────────────────────────────
@@ -233,7 +305,7 @@ def new_game_menu() -> str | None:
 
 
 def options_menu(music_on: bool) -> str | None:
-    music_label = "Mute Music" if music_on else "Continue Music"
+    music_label = "Mute Music" if music_on else "Start Music"
     items = [music_label, "Back"]
     sel = selector("Options", items)
     if sel is None or sel == 1:
