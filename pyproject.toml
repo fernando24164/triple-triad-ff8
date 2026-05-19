@@ -37,6 +37,7 @@ dev = [
     "pytest>=9.0.2",
     "ruff>=0.15.9",
     "pre-commit>=4.2.0",
+    "mypy>=2.1.0",
 ]
 
 [tool.ruff]
@@ -49,6 +50,19 @@ ignore = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["triple_triad"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true
+exclude = [
+    "tests/",
+    "build/",
+]
+
+[[tool.mypy.overrides]]
+module = ["blessed.*", "numpy.*", "pygame.*"]
+ignore_missing_imports = true
 
 [tool.ruff.format]
 quote-style = "double"

@@ -1,10 +1,11 @@
+from ..data.cards import Element
 from ..deck.builder import build_cpu_deck, build_random_deck
 from ..engine.game_loop import run_game
 from ..engine.utils import random_rules, reset_card_owners
 
 
 def run_tournament(
-    difficulty: str, ai_mode: str, board_elements: list
+    difficulty: str, ai_mode: str, board_elements: list[Element | None]
 ) -> tuple[int, int, int]:
     """
     Run a 3-game tournament with random rules for each game.

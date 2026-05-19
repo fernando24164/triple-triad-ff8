@@ -1,7 +1,7 @@
-from ..models.card import stat_display
+from ..models.card import Card, stat_display
 
 
-def display_hand(hand, label, show=True):
+def display_hand(hand: list[Card], label: str, show: bool = True) -> None:
     print(f"\n  {label}'s Hand:")
     print("  " + "─" * 60)
     if show:
@@ -19,7 +19,7 @@ def display_hand(hand, label, show=True):
     print("  " + "─" * 60)
 
 
-def print_banner():
+def print_banner() -> None:
     print("""
  ╔══════════════════════════════════════════════════════════╗
  ║          TRIPLE TRIAD  —  Final Fantasy VIII             ║
@@ -28,7 +28,7 @@ def print_banner():
  """)
 
 
-def print_help():
+def print_help() -> None:
     print("""
   ╔══════════════════════════════════════════════════════════╗
   ║              TRIPLE TRIAD - HOW TO PLAY                  ║
@@ -75,15 +75,6 @@ def print_help():
     - Bonus is temporary, only active during comparisons
     - Elements shown on empty cells as abbreviations (e.g. [1]🔥)
 
-  ELEMENT SQUARES
-  ───────────────
-  Some boards have elemental squares. When you place a card on
-  a square matching its element, all directional values receive
-  a +1 bonus during capture comparisons:
-    - Card element matches square element → +1 to all sides
-    - Bonus is temporary, only active during comparisons
-    - Elements shown on empty cells as abbreviations (e.g. [1]🔥)
-
   CAPTURE EXAMPLE
   ───────────────
   Your card (Right=8) placed next to opponent's card (Left=5):
@@ -119,21 +110,3 @@ def print_help():
   ║              Good luck!             ║
   ╚═════════════════════════════════════╝
   """)
-
-
-def choose_rules():
-    print("\n  ── Optional Rules ──")
-    print("  [1] Open   — See opponent's hand")
-    print("  [2] Same   — Equal values on 2+ sides = capture all")
-    print("  [3] Plus   — Equal sums on 2+ sides = capture all")
-    print("  [4] Random — Cards dealt randomly")
-    print("  (Enter numbers separated by commas, or press Enter for none)")
-    raw = input("  Your choice: ").strip()
-    rules = set()
-    if raw:
-        for token in raw.split(","):
-            token = token.strip()
-            mapping = {"1": "Open", "2": "Same", "3": "Plus", "4": "Random"}
-            if token in mapping:
-                rules.add(mapping[token])
-    return rules

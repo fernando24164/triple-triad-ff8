@@ -26,7 +26,7 @@ class Color:
         return f"{Color.EMPTY_POS}{text}{Color.RESET}"
 
     @staticmethod
-    def card(text: str, owner: str) -> str:
+    def card(text: str, owner: str | None) -> str:
         """Color a string based on card owner ('P' or 'CPU')."""
         if owner == "P":
             return Color.player(text)

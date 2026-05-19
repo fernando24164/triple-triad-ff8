@@ -30,7 +30,9 @@ def _filter_cards(
         result = [n for n in result if lo <= CARDS[n].level <= hi]
     if element:
         result = [
-            n for n in result if CARDS[n].element and CARDS[n].element.value == element
+            n
+            for n in result
+            if CARDS[n].element is not None and CARDS[n].element.value == element  # type: ignore[union-attr]
         ]
     return result
 
@@ -79,7 +81,7 @@ def _paginate_cards(
 
     for i, name in enumerate(page_names):
         stats = CARDS[name]
-        el = stats.element.value if stats.element else "—"
+        el = stats.element.value if stats.element is not None else "—"
         taken = " ✓" if name in chosen_names else ""
         print(
             f"  {start + i + 1:>3}  {name:<20} {el:<8} {stats.level:>2}  "
@@ -100,7 +102,7 @@ def _show_deck_preview(chosen: list[Card]) -> None:
     print(f"\n  ── Your Deck ({len(chosen)}/{DECK_SIZE}) ──")
     total_stats = {"top": 0, "right": 0, "bottom": 0, "left": 0}
     for i, c in enumerate(chosen):
-        el = f"[{c.element.value}]" if c.element else ""
+        el = f"[{c.element.value}]" if c.element is not None else ""
         print(
             f"    [{i + 1}] {c.name:<18} {el:<10} Lv{c.level}  "
             f"▲{stat_display(c.top)} ▶{stat_display(c.right)} "
@@ -174,7 +176,10 @@ def _prompt_element() -> str | None:
         )
 
 
-def _prompt_filters(current_level_range, current_element):
+def _prompt_filters(
+    current_level_range: tuple[int, int] | None,
+    current_element: str | None,
+) -> tuple[tuple[int, int] | None, str | None]:
     """Show filter menu and return updated (level_range, element) tuple."""
     print("\n  ── Current Filters ──")
     lr_label = (

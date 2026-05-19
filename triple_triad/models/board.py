@@ -41,7 +41,7 @@ class Board:
     # padding/alignment is always calculated on raw strings first.
 
     @staticmethod
-    def _render_row1(card) -> str:
+    def _render_row1(card: Card | None) -> str:
         """Owner symbol + card name, left-aligned."""
         w = Board.CELL_W
         if card is None:
@@ -53,7 +53,7 @@ class Board:
         return Color.card(plain, card.owner)
 
     @staticmethod
-    def _render_row2(card) -> str:
+    def _render_row2(card: Card | None) -> str:
         """Top value centered with up-arrow."""
         w = Board.CELL_W
         if card is None:
@@ -62,7 +62,7 @@ class Board:
         return Color.card(plain, card.owner)
 
     @staticmethod
-    def _render_row3(card) -> str:
+    def _render_row3(card: Card | None) -> str:
         """Left value — element — right value, all on one line."""
         w = Board.CELL_W
         if card is None:
@@ -95,7 +95,7 @@ class Board:
         return Color.card(plain, card.owner)
 
     @staticmethod
-    def _render_row4(card) -> str:
+    def _render_row4(card: Card | None) -> str:
         """Bottom value centered with down-arrow."""
         w = Board.CELL_W
         if card is None:

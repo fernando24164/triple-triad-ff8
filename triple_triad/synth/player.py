@@ -2,9 +2,7 @@ import os
 import threading
 import time
 
-# To remove pygame message at the beggining when imported
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
-
 
 from .constants import SAMPLE_RATE
 from .wave_generators import generate_music_buffer
@@ -24,14 +22,14 @@ class ChiptunePlayer:
     Silent no-op when audio libraries are unavailable.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._sound: pygame.mixer.Sound | None = None
         self._is_playing = False
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
 
-    def start(self):
+    def start(self) -> None:
         """Start background music (non-blocking)."""
         if not HAS_AUDIO:
             return
@@ -43,7 +41,7 @@ class ChiptunePlayer:
         self._thread.start()
         self._is_playing = True
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop playback and release resources."""
         if not self._is_playing:
             return
@@ -65,34 +63,35 @@ class ChiptunePlayer:
     def is_playing(self) -> bool:
         return self._is_playing
 
-    def _ensure_sound(self):
+    def _ensure_sound(self) -> None:
         """Generate the music buffer once and create a pygame Sound."""
         if self._sound is not None:
             return
 
         buf = generate_music_buffer()
 
-        # Convert to int16 stereo  (pygame sndarray expects (N, 2))
         pcm = (buf * 32767).astype(np.int16)
         stereo = np.column_stack((pcm, pcm))
 
         if not pygame.mixer.get_init():
             pygame.mixer.init(
                 frequency=SAMPLE_RATE,
-                size=-16,  # signed 16-bit
-                channels=2,  # stereo
+                size=-16,
+                channels=2,
                 buffer=2048,
             )
 
         self._sound = pygame.sndarray.make_sound(stereo)
 
-    def _play_loop(self):
+    def _play_loop(self) -> None:
         """Background thread: loop music until stop() is called."""
         try:
             self._ensure_sound()
         except Exception as e:
             print(f"  ♪ Could not generate music: {e}")
             return
+
+        assert self._sound is not None
 
         try:
             with self._lock:

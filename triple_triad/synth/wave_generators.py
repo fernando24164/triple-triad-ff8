@@ -48,36 +48,41 @@ def _envelope(
             np.linspace(sustain_level, 0, r),
         ]
     )
-    return wave * env
+    result: np.ndarray = wave * env
+    return result
 
 
-def _render_notes(notes, wave_fn, vol, **env):
+def _render_notes(
+    notes: list[tuple[str, float]],
+    wave_fn: object,
+    vol: float,
+    **env: float,
+) -> np.ndarray:
     """Render a list of (note, duration) → float64 buffer × volume."""
     buf = np.array([], dtype=np.float64)
     for note, dur in notes:
         freq = NOTE_FREQ.get(note, 0)
-        w = wave_fn(freq, dur)
+        w = wave_fn(freq, dur)  # type: ignore[operator]
         w = _envelope(w, **env)
         buf = np.concatenate([buf, w])
     return buf * vol
 
 
-def _render_melody(notes):
+def _render_melody(notes: list[tuple[str, float]]) -> np.ndarray:
     return _render_notes(
         notes, _square, 0.30, attack=0.02, decay=0.15, sustain_level=0.55, release=0.15
     )
 
 
-def _render_harmony(melody_notes):
+def _render_harmony(melody_notes: list[tuple[str, float]]) -> np.ndarray:
     """Generate a diatonic-third harmony from the melody."""
-    h_notes = []
+    h_notes: list[tuple[str, float]] = []
     for note, dur in melody_notes:
         if note == "R":
             h_notes.append(("R", dur))
             continue
         nb, octv = note[:-1], int(note[-1])
         hn = HARMONY_MAP.get(nb, "Do")
-        # La→Do and Si→Re cross into the next octave
         if nb in ("La", "Si", "Sib"):
             octv += 1
         h_notes.append((f"{hn}{octv}", dur))
@@ -92,7 +97,7 @@ def _render_harmony(melody_notes):
     )
 
 
-def _render_pad(chord_notes):
+def _render_pad(chord_notes: list[tuple[str, float]]) -> np.ndarray:
     """Soft sustained pad (slow attack, long release)."""
     return _render_notes(
         chord_notes,
@@ -105,7 +110,7 @@ def _render_pad(chord_notes):
     )
 
 
-def _render_bass(bass_notes):
+def _render_bass(bass_notes: list[tuple[str, float]]) -> np.ndarray:
     return _render_notes(
         bass_notes,
         _triangle,
@@ -117,7 +122,7 @@ def _render_bass(bass_notes):
     )
 
 
-def _render_perc(perc_pattern):
+def _render_perc(perc_pattern: list[tuple[bool, float]]) -> np.ndarray:
     buf = np.array([], dtype=np.float64)
     for hit, dur in perc_pattern:
         if hit:
@@ -137,9 +142,8 @@ def generate_music_buffer() -> np.ndarray:
     bass = _render_bass(BASS)
     perc = _render_perc(PERC)
 
-    # Trim all to shortest channel
     length = min(len(melody), len(harmony), len(pad), len(bass), len(perc))
-    mixed = (
+    mixed: np.ndarray = (
         melody[:length] * 1.0
         + harmony[:length] * 1.0
         + pad[:length] * 1.0
@@ -147,7 +151,6 @@ def generate_music_buffer() -> np.ndarray:
         + perc[:length] * 1.0
     )
 
-    # Normalize to ±0.8
     peak = np.max(np.abs(mixed))
     if peak > 0:
         mixed = mixed / peak * 0.8

@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
+from types import MappingProxyType
 
 CARDS_PATH = Path(__file__).parent / "cards.json"
 
@@ -32,7 +33,6 @@ class CardStats:
     level: int
 
 
-CARDS: dict[str, CardStats] = {}
 if not CARDS_PATH.exists():
     raise FileNotFoundError(
         f"Missing card data file: {CARDS_PATH.resolve()}\n"
@@ -45,9 +45,11 @@ except json.JSONDecodeError as e:
         f"Corrupt card data file: {CARDS_PATH.resolve()}\n"
         f"JSON error at line {e.lineno}, column {e.colno}: {e.msg}"
     ) from e
+
+_cards: dict[str, CardStats] = {}
 for name, data in _raw.items():
     element = Element(data["element"]) if data["element"] else None
-    CARDS[name] = CardStats(
+    _cards[name] = CardStats(
         name=data["name"],
         top=data["top"],
         right=data["right"],
@@ -56,3 +58,5 @@ for name, data in _raw.items():
         element=element,
         level=data["level"],
     )
+
+CARDS: MappingProxyType[str, CardStats] = MappingProxyType(_cards)

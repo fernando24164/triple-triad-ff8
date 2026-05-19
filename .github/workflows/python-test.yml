@@ -33,5 +33,8 @@ jobs:
       run: |
         uv sync --locked
 
+    - name: Run type checks
+      run: uv run mypy triple_triad/
+
     - name: Run tests
       run: uv run pytest

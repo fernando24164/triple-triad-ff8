@@ -1,9 +1,11 @@
 import random
+from collections.abc import Collection
 
 from ..ai.base import cpu_choose
 from ..constants import BOARD_CELLS
 from ..data.cards import Element
 from ..models.board import Board
+from ..models.card import Card
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
 from .rules import resolve_captures
@@ -11,12 +13,12 @@ from .scoring import calculate_final_scores, calculate_scores
 
 
 def run_game(
-    player_hand,
-    cpu_hand,
-    rules,
-    ai_mode,
+    player_hand: list[Card],
+    cpu_hand: list[Card],
+    rules: Collection[str],
+    ai_mode: str,
     board_elements: list[Element | None] | None = None,
-):
+) -> str:
     """Run the full game loop until the board is full."""
     board = Board(elements=board_elements)
     first = random.choice(["P", "CPU"])
@@ -39,7 +41,6 @@ def run_game(
             display_hand(player_hand, "Your")
             display_hand(cpu_hand, "CPU", show=show_cpu)
 
-            # Pick card
             while True:
                 try:
                     ci = int(input(f"\n  Choose card (1-{len(player_hand)}): ")) - 1
@@ -49,7 +50,6 @@ def run_game(
                 except ValueError:
                     print("  ✗ Enter a number.")
 
-            # Pick position
             empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
             while True:
                 try:
@@ -67,13 +67,14 @@ def run_game(
 
         else:
             print("\n  CPU is thinking...")
-            ci, pos = cpu_choose(board, cpu_hand, rules, mode=ai_mode)
+            ci, cpu_pos = cpu_choose(board, cpu_hand, rules, mode=ai_mode)
+            assert cpu_pos is not None, "CPU had no valid move on a non-full board"
             card = cpu_hand.pop(ci)
             card.owner = "CPU"
-            board.place(pos, card)
-            print(f"  CPU placed [{card.name}] at position {pos + 1}")
+            board.place(cpu_pos, card)
+            print(f"  CPU placed [{card.name}] at position {cpu_pos + 1}")
+            pos = cpu_pos
 
-        # ── Captures ───────────────────────────────────────────────────────
         captures, events = resolve_captures(board, pos, card, rules)
         for evt in events:
             print(f"  *** {evt.upper()}! ***")
@@ -90,7 +91,6 @@ def run_game(
         turn = "CPU" if turn == "P" else "P"
         turn_number += 1
 
-    # ── Game over ──────────────────────────────────────────────────────────
     print("\n" + "═" * 62)
     print("  GAME OVER")
     print("═" * 62)

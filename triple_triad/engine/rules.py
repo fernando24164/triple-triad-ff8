@@ -1,4 +1,5 @@
-from typing import Any
+from collections.abc import Collection
+from typing import Any, cast
 
 from ..data.cards import Element
 from ..models.board import Board
@@ -13,7 +14,7 @@ def get_attacker_value(
     pos: int,
     board_elements: list[Element | None] | None = None,
 ) -> int:
-    base_value = getattr(card, direction)
+    base_value: int = cast(int, getattr(card, direction))
     if board_elements and pos < len(board_elements):
         cell_element = board_elements[pos]
         if cell_element and card.element == cell_element:
@@ -22,11 +23,11 @@ def get_attacker_value(
 
 
 def get_defender_value(card: Card, direction: str) -> int:
-    return getattr(card, OPPOSITE[direction])
+    return cast(int, getattr(card, OPPOSITE[direction]))
 
 
 def _evaluate_captures(
-    board: Board, pos: int, card: Card, owner: str | None, rules: list[str]
+    board: Board, pos: int, card: Card, owner: str | None, rules: Collection[str]
 ) -> dict[str, Any]:
     """Shared capture evaluation used by resolve_captures and simulate_capture.
 
@@ -81,7 +82,7 @@ def _evaluate_captures(
 
 
 def resolve_captures(
-    board: Board, pos: int, placed_card: Card, rules: list[str]
+    board: Board, pos: int, placed_card: Card, rules: Collection[str]
 ) -> tuple[list[tuple[int, Card]], list[str]]:
     """Apply basic capture logic (and Same/Plus if enabled).
 
@@ -103,7 +104,7 @@ def resolve_captures(
 
 
 def simulate_capture(
-    board: Board, pos: int, card: Card, owner: str | None, rules: list[str]
+    board: Board, pos: int, card: Card, owner: str | None, rules: Collection[str]
 ) -> int:
     """
     Calculate captures for a hypothetical move without modifying state.

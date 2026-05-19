@@ -1,4 +1,5 @@
 import random
+from typing import cast
 
 from ..constants import DECK_SIZE
 from ..data.cards import CARDS
@@ -29,7 +30,7 @@ DIFFICULTY_CONFIG = {
 }
 
 
-def build_starter_deck():
+def build_starter_deck() -> list[Card]:
     """Return a list of DECK_SIZE random low-level cards for the player."""
     low_cards = [name for name, data in CARDS.items() if data.level <= 3]
     chosen = random.sample(low_cards, min(DECK_SIZE, len(low_cards)))
@@ -42,10 +43,11 @@ def build_cpu_deck(difficulty: str = "medium") -> list[Card]:
     pool = [
         name
         for name, data in CARDS.items()
-        if cfg["cpu_min_level"] <= data.level <= cfg["cpu_max_level"]
+        if cast(int, cfg["cpu_min_level"])
+        <= data.level
+        <= cast(int, cfg["cpu_max_level"])
     ]
     if len(pool) < DECK_SIZE:
-        # Fallback: widen the pool slightly to always guarantee DECK_SIZE cards
         pool = sorted(CARDS.keys(), key=lambda n: CARDS[n].level)
     chosen = random.sample(pool, DECK_SIZE)
     return [Card(name) for name in chosen]
@@ -53,7 +55,9 @@ def build_cpu_deck(difficulty: str = "medium") -> list[Card]:
 
 def get_cpu_ai_mode(difficulty: str) -> str:
     """Return the AI mode string for this difficulty."""
-    return DIFFICULTY_CONFIG.get(difficulty, DIFFICULTY_CONFIG["medium"])["cpu_ai"]
+    return cast(
+        str, DIFFICULTY_CONFIG.get(difficulty, DIFFICULTY_CONFIG["medium"])["cpu_ai"]
+    )
 
 
 def build_random_deck() -> list[Card]:

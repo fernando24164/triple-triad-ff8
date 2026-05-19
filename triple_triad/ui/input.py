@@ -1,4 +1,8 @@
-def get_player_card_choice(hand):
+from ..models.board import Board
+from ..models.card import Card
+
+
+def get_player_card_choice(hand: list[Card]) -> int:
     """Prompt the player to choose a card from their hand. Returns the card index."""
     while True:
         try:
@@ -10,7 +14,7 @@ def get_player_card_choice(hand):
             print("  ✗ Enter a number.")
 
 
-def get_player_position_choice(board, board_cells):
+def get_player_position_choice(board: Board, board_cells: int) -> int:
     """Prompt the player to choose a position on the board. Returns the position."""
     empty = [i for i in range(board_cells) if board.is_empty(i)]
     while True:

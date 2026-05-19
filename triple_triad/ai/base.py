@@ -1,3 +1,5 @@
+from collections.abc import Collection
+
 from ..constants import BOARD_CELLS
 from ..models.board import Board
 from ..models.card import Card
@@ -6,7 +8,7 @@ from .random_ai import random_choice
 
 
 def cpu_choose(
-    board: Board, cpu_hand: list[Card], rules: list[str], mode: str = "greedy"
+    board: Board, cpu_hand: list[Card], rules: Collection[str], mode: str = "greedy"
 ) -> tuple[int, int | None]:
     """
     Choose a card and position for the CPU.

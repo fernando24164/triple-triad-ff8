@@ -269,11 +269,10 @@ def choose_board_ui() -> list[Element | None]:
     if sel is None or sel == 0:
         return [None] * BOARD_CELLS
 
-    elements = list(Element)
     board: list[Element | None] = [None] * BOARD_CELLS
     n = random.randint(0, 2)
     for pos in random.sample(range(BOARD_CELLS), n):
-        board[pos] = random.choice(elements)
+        board[pos] = Element(random.choice(list(Element)))
     return board
 
 
