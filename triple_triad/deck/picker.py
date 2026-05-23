@@ -154,14 +154,21 @@ class _DeckPicker:
         self.chosen_names: set[str] = set()
         self.page = 0
         self.cursor = 0
+        self._cached_view: list[str] | None = None
+
+    def _invalidate_cache(self) -> None:
+        self._cached_view = None
 
     @property
     def _view_names(self) -> list[str]:
+        if self._cached_view is not None:
+            return self._cached_view
         names = _filter_cards(self.all_names, self.level_range, self.element)
         if self.search_query:
             q = self.search_query.lower()
             names = [n for n in names if q in n.lower()]
-        return _sort_cards(names, self.sort_key)
+        self._cached_view = _sort_cards(names, self.sort_key)
+        return self._cached_view
 
     @property
     def _total_pages(self) -> int:
@@ -282,7 +289,7 @@ class _DeckPicker:
 
         help_text = (
             "↑/↓ move  •  Enter select  •  n/p page  •  u undo  •  s sort  •  "
-            "f filter  •  / search  •  r reset  •  d done  •  q quit"
+            "f level  •  / search  •  r reset  •  d done  •  q quit"
         )
         add(t.normal + t.dim + help_text + " " * max(0, t.width - len(help_text)))
 
@@ -330,33 +337,15 @@ class _DeckPicker:
         if idx is not None:
             self.sort_key = keys[idx]
             self.page = 0
+            self._invalidate_cache()
 
-    def _show_filter_menu(self) -> None:
-        items = [
-            "Change level range",
-            "Change element filter",
-            "Clear all filters",
-            "Back",
-        ]
-        idx = self._show_submenu("Filters", items)
-        if idx is None or idx == 3:
-            return
-        if idx == 0:
-            lr = _prompt_level_range()
-            if lr is not None:
-                self.level_range = lr
-                self.page = 0
-        elif idx == 1:
-            el = _prompt_element()
-            if el is not None:
-                self.element = el
-                self.page = 0
-        elif idx == 2:
-            self.level_range = None
+    def _show_lvl_filter(self) -> None:
+        lr = _prompt_level_range()
+        if lr is not None:
+            self.level_range = lr
             self.element = None
-            self.search_query = None
-            self.sort_key = "level"
             self.page = 0
+            self._invalidate_cache()
 
     def _show_search_prompt(self) -> None:
         t = self.term
@@ -387,8 +376,10 @@ class _DeckPicker:
         if query:
             self.search_query = query
             self.page = 0
+            self._invalidate_cache()
         else:
             self.search_query = None
+            self._invalidate_cache()
 
     def _handle_key(self, k: Any) -> str | None:
         view = self._view_names
@@ -449,10 +440,11 @@ class _DeckPicker:
             self.sort_key = "level"
             self.page = 0
             self.cursor = 0
+            self._invalidate_cache()
         elif str(k).lower() == "s":
             self._show_sort_menu()
         elif str(k).lower() == "f":
-            self._show_filter_menu()
+            self._show_lvl_filter()
         elif str(k) == "/":
             self._show_search_prompt()
         elif str(k).lower() == "q":
