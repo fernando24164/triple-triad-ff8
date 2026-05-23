@@ -13,6 +13,7 @@ from .deck.picker import choose_deck
 from .engine.game_loop import run_game
 from .engine.tournament import run_tournament
 from .synth.player import ChiptunePlayer
+from .tutorial.tutorial_engine import run_tutorial
 from .ui.cli import (
     choose_board_ui,
     choose_deck_mode_ui,
@@ -109,6 +110,8 @@ def main() -> None:
             if choice == "quit":
                 if quit_menu() == "exit":
                     break
+            elif choice == "tutorial":
+                run_tutorial()
             elif choice == "options":
                 result = options_menu(music_on)
                 if result == "toggle_music":

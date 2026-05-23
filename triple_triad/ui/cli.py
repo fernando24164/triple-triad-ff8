@@ -245,7 +245,7 @@ def multi_selector(
 
 
 def main_menu() -> str:
-    items = ["New Game", "Options", "Quit"]
+    items = ["New Game", "Tutorial", "Options", "Quit"]
     idx = 0
 
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
@@ -262,7 +262,8 @@ def main_menu() -> str:
                     + term.bold_cyan(line)
                 )
 
-            start_y = 2 + len(TITLE_ART) + 2
+            avail = term.height - (2 + len(TITLE_ART))
+            start_y = 2 + len(TITLE_ART) + (avail - len(items)) // 2
             for i, item in enumerate(items):
                 line = f"  {item}  "
                 x = _center_x(line)
@@ -291,7 +292,7 @@ def main_menu() -> str:
             elif k.name == "KEY_DOWN":
                 idx = (idx + 1) % len(items)
             elif k.name == "KEY_ENTER" or k == "\n":
-                return ["new_game", "options", "quit"][idx]
+                return ["new_game", "tutorial", "options", "quit"][idx]
             elif str(k).lower() == "q":
                 return "quit"
 
