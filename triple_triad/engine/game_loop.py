@@ -1,5 +1,8 @@
 import random
+import time
 from collections.abc import Collection
+
+from blessed import Terminal
 
 from ..ai.base import cpu_choose
 from ..constants import BOARD_CELLS
@@ -12,6 +15,66 @@ from .rules import resolve_captures
 from .scoring import calculate_final_scores, calculate_scores
 
 
+def _decide_first() -> str:
+    """Animate a bouncing selector between YOU and CPU, then reveal who goes first."""
+    term = Terminal()
+    first = random.choice(["P", "CPU"])
+    winner = 0 if first == "P" else 1
+
+    cur = random.randint(0, 1)
+    seq: list[int] = []
+    for _ in range(random.randint(4, 7)):
+        seq.append(cur)
+        cur = 1 - cur
+    seq.append(winner)
+
+    labels = ["  YOU  ", "  CPU  "]
+    gap = 8
+    total_w = len(labels[0]) + gap + len(labels[1])
+    base_x = max(0, (term.width - total_w) // 2)
+    cpu_x = base_x + len(labels[0]) + gap
+
+    with term.cbreak(), term.hidden_cursor():
+        for i, sel in enumerate(seq):
+            progress = i / max(1, len(seq) - 1)
+            delay = 0.04 + progress * 0.35
+
+            out = [term.clear + term.normal]
+
+            title = "Who goes first?"
+            out.append(
+                term.move_yx(5, max(0, (term.width - len(title)) // 2))
+                + term.bold_cyan(title)
+            )
+
+            for idx, label in enumerate(labels):
+                x = base_x if idx == 0 else cpu_x
+                if idx == sel:
+                    out.append(term.move_yx(8, x) + term.bold_black_on_cyan(label))
+                else:
+                    out.append(term.move_yx(8, x) + term.white(label))
+
+            arrow_x = base_x if sel == 0 else cpu_x
+            out.append(
+                term.move_yx(9, arrow_x + len(labels[sel]) // 2) + term.yellow("▲")
+            )
+
+            print("".join(out), end="", flush=True)
+            time.sleep(delay)
+
+        result = "You go first!" if first == "P" else "CPU goes first!"
+        print(
+            term.move_yx(11, max(0, (term.width - len(result)) // 2))
+            + term.bold_yellow(result),
+            end="",
+            flush=True,
+        )
+        time.sleep(1)
+
+    print(term.normal + term.clear, end="")
+    return first
+
+
 def run_game(
     player_hand: list[Card],
     cpu_hand: list[Card],
@@ -21,8 +84,7 @@ def run_game(
 ) -> str:
     """Run the full game loop until the board is full."""
     board = Board(elements=board_elements)
-    first = random.choice(["P", "CPU"])
-    print(f"\n  {'You go' if first == 'P' else 'CPU goes'} first!\n")
+    first = _decide_first()
 
     turn = first
     turn_number = 1
