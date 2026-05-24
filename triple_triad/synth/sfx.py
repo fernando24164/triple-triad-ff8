@@ -1,8 +1,5 @@
 import os
 
-import numpy as np
-import pygame
-
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 
 from .constants import SAMPLE_RATE

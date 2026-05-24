@@ -299,42 +299,40 @@ class _DeckPicker:
     def _show_submenu(self, title: str, items: list[str]) -> int | None:
         t = self.term
         idx = 0
-        with t.cbreak(), t.hidden_cursor():
-            while True:
-                out: list[Any] = [t.clear]
-                out.append(
-                    t.move_yx(3, max(0, (t.width - len(title)) // 2))
-                    + t.bold_cyan(title)
-                )
-                start_y = max(5, t.height // 2 - len(items) // 2)
-                for i, item in enumerate(items):
-                    line = f"  {item}  "
-                    x = max(0, (t.width - len(line)) // 2)
-                    if i == idx:
-                        out.append(
-                            t.move_yx(start_y + i, x) + t.bold_black_on_cyan(line)
-                        )
-                    else:
-                        out.append(t.move_yx(start_y + i, x) + t.white(line))
-                out.append(
-                    t.move_yx(t.height - 2, 2)
-                    + t.dim
-                    + "↑/↓ move  •  Enter select  •  q back"
-                )
-                print("".join(out), end="")
-                k = t.inkey()
-                if k.name == "KEY_UP":
-                    idx = (idx - 1) % len(items)
-                    play_cursor()
-                elif k.name == "KEY_DOWN":
-                    idx = (idx + 1) % len(items)
-                    play_cursor()
-                elif k.name == "KEY_ENTER" or k == "\n":
-                    play_confirm()
-                    return idx
-                elif str(k).lower() == "q":
-                    play_cancel()
-                    return None
+        while True:
+            out: list[Any] = [t.clear]
+            out.append(
+                t.move_yx(3, max(0, (t.width - len(title)) // 2)) + t.bold_cyan(title)
+            )
+            start_y = max(5, t.height // 2 - len(items) // 2)
+            for i, item in enumerate(items):
+                line = f"  {item}  "
+                x = max(0, (t.width - len(line)) // 2)
+                if i == idx:
+                    out.append(t.move_yx(start_y + i, x) + t.bold_black_on_cyan(line))
+                else:
+                    out.append(t.move_yx(start_y + i, x) + t.white(line))
+            out.append(
+                t.move_yx(t.height - 2, 2)
+                + t.dim
+                + "↑/↓ move  •  Enter select  •  q back"
+            )
+            print("".join(out), end="")
+            k = t.inkey()
+            if not k:
+                continue
+            if k.name == "KEY_UP":
+                idx = (idx - 1) % len(items)
+                play_cursor()
+            elif k.name == "KEY_DOWN":
+                idx = (idx + 1) % len(items)
+                play_cursor()
+            elif k.name == "KEY_ENTER" or k == "\n":
+                play_confirm()
+                return idx
+            elif str(k).lower() == "q":
+                play_cancel()
+                return None
 
     def _show_sort_menu(self) -> None:
         keys = ["level", "name", "top", "right", "bottom", "left", "element"]
@@ -454,7 +452,6 @@ class _DeckPicker:
             self._invalidate_cache()
         elif str(k).lower() == "s":
             self._show_sort_menu()
-            play_confirm()
         elif str(k).lower() == "f":
             self._show_lvl_filter()
             play_confirm()
