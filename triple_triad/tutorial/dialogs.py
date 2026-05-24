@@ -1,9 +1,9 @@
-"""Speech bubble / dialog box renderer for the Queen of Cards tutorial."""
-
 import time
 from typing import Any
 
 from blessed import Terminal
+
+from ..synth.sfx import play_cancel, play_confirm
 
 term = Terminal()
 
@@ -93,8 +93,10 @@ def show_dialog(
         if not k:
             continue
         if str(k).lower() == "q":
+            play_cancel()
             return False
         if k.name == "KEY_ENTER" or k == "\n":
+            play_confirm()
             return True
 
 

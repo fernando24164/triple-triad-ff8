@@ -1,5 +1,3 @@
-"""Dialog content for the Queen of Cards tutorial."""
-
 from typing import Any
 
 SPEAKER = "♕ Queen of Cards"

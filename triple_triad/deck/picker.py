@@ -6,6 +6,7 @@ from blessed import Terminal
 from ..constants import DECK_SIZE
 from ..data.cards import CARDS, Element
 from ..models.card import Card, stat_display
+from ..synth.sfx import play_cancel, play_confirm, play_cursor
 
 ELEMENT_NAMES = [e.value for e in Element]
 
@@ -324,11 +325,15 @@ class _DeckPicker:
                 k = t.inkey()
                 if k.name == "KEY_UP":
                     idx = (idx - 1) % len(items)
+                    play_cursor()
                 elif k.name == "KEY_DOWN":
                     idx = (idx + 1) % len(items)
+                    play_cursor()
                 elif k.name == "KEY_ENTER" or k == "\n":
+                    play_confirm()
                     return idx
                 elif str(k).lower() == "q":
+                    play_cancel()
                     return None
 
     def _show_sort_menu(self) -> None:
@@ -391,6 +396,7 @@ class _DeckPicker:
             elif self.page > 0:
                 self.page -= 1
                 self.cursor = cap - 1
+            play_cursor()
         elif k.name == "KEY_DOWN":
             page_count = len(self._page_slice(view))
             if self.cursor < page_count - 1:
@@ -398,6 +404,7 @@ class _DeckPicker:
             elif self.page < self._total_pages - 1:
                 self.page += 1
                 self.cursor = 0
+            play_cursor()
         elif k.name == "KEY_ENTER" or k == "\n":
             page_names = self._page_slice(view)
             if not page_names:
@@ -405,6 +412,7 @@ class _DeckPicker:
             name = page_names[self.cursor]
             if name in self.chosen_names:
                 return None
+            play_confirm()
             self.chosen.append(Card(name))
             self.chosen_names.add(name)
             if len(self.chosen) >= DECK_SIZE:
@@ -420,10 +428,12 @@ class _DeckPicker:
             if self.page < self._total_pages - 1:
                 self.page += 1
                 self.cursor = 0
+            play_cursor()
         elif str(k).lower() == "p":
             if self.page > 0:
                 self.page -= 1
                 self.cursor = 0
+            play_cursor()
         elif str(k).lower() == "u":
             if self.chosen:
                 removed = self.chosen.pop()
@@ -431,6 +441,7 @@ class _DeckPicker:
         elif str(k).lower() == "d":
             if len(self.chosen) == 0:
                 return None
+            play_confirm()
             _fill_remaining(self.chosen, self.chosen_names, self.all_names)
             return "break"
         elif str(k).lower() == "r":
@@ -443,11 +454,15 @@ class _DeckPicker:
             self._invalidate_cache()
         elif str(k).lower() == "s":
             self._show_sort_menu()
+            play_confirm()
         elif str(k).lower() == "f":
             self._show_lvl_filter()
+            play_confirm()
         elif str(k) == "/":
             self._show_search_prompt()
+            play_confirm()
         elif str(k).lower() == "q":
+            play_cancel()
             return "quit"
         return None
 

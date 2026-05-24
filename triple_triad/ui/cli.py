@@ -6,6 +6,7 @@ from blessed import Terminal
 
 from ..constants import BOARD_CELLS
 from ..data.cards import Element
+from ..synth.sfx import play_cancel, play_confirm, play_cursor
 
 term = Terminal()
 
@@ -123,11 +124,15 @@ class _MenuBase:
     def handle_key(self, k: Any) -> int | set[str] | None:
         if k.name == "KEY_UP":
             self.idx = (self.idx - 1) % self.item_count()
+            play_cursor()
         elif k.name == "KEY_DOWN":
             self.idx = (self.idx + 1) % self.item_count()
+            play_cursor()
         elif k.name == "KEY_ENTER" or k == "\n":
+            play_confirm()
             return self.on_enter()
         elif str(k).lower() == "q":
+            play_cancel()
             return self.on_quit()
         return None
 
@@ -289,11 +294,15 @@ def main_menu() -> str:
                 continue
             if k.name == "KEY_UP":
                 idx = (idx - 1) % len(items)
+                play_cursor()
             elif k.name == "KEY_DOWN":
                 idx = (idx + 1) % len(items)
+                play_cursor()
             elif k.name == "KEY_ENTER" or k == "\n":
+                play_confirm()
                 return ["new_game", "tutorial", "options", "quit"][idx]
             elif str(k).lower() == "q":
+                play_cancel()
                 return "quit"
 
 
@@ -379,4 +388,5 @@ def pause_message(message: str = "Press Enter to continue...") -> None:
         while True:
             k = term.inkey(timeout=None)
             if k.name == "KEY_ENTER" or k == "\n":
+                play_confirm()
                 break

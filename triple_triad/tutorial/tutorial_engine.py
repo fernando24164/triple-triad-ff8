@@ -1,6 +1,3 @@
-"""Tutorial engine: runs the tutorial as a sequence of dialog steps with
-interactive demos using the Queen of Cards character."""
-
 from typing import Any
 
 from blessed import Terminal
