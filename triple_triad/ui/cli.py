@@ -6,6 +6,7 @@ from blessed import Terminal
 
 from ..constants import BOARD_CELLS
 from ..data.cards import Element
+from ..models.card import Card
 from ..synth.sfx import play_cancel, play_confirm, play_cursor
 
 term = Terminal()
@@ -250,7 +251,7 @@ def multi_selector(
 
 
 def main_menu() -> str:
-    items = ["New Game", "Tutorial", "Options", "Quit"]
+    items = ["New Game", "Deck Manager", "Tutorial", "Options", "Quit"]
     idx = 0
 
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
@@ -300,7 +301,7 @@ def main_menu() -> str:
                 play_cursor()
             elif k.name == "KEY_ENTER" or k == "\n":
                 play_confirm()
-                return ["new_game", "tutorial", "options", "quit"][idx]
+                return ["new_game", "deck_manager", "tutorial", "options", "quit"][idx]
             elif str(k).lower() == "q":
                 play_cancel()
                 return "quit"
@@ -321,6 +322,56 @@ def options_menu(music_on: bool) -> str | None:
     if sel is None or sel == 1:
         return None
     return "toggle_music"
+
+
+def deck_manager_ui() -> None:
+    from ..deck.picker import choose_deck
+    from ..deck.shelf import delete_deck, list_decks, load_deck
+
+    while True:
+        items = ["Create a new deck", "View / Delete saved decks", "Back"]
+        sel = selector("Deck Manager", items)
+        if sel is None or sel == 2:
+            return
+
+        if sel == 0:
+            picked = choose_deck()
+            if picked:
+                prompt_save_deck_ui(picked)
+
+        elif sel == 1:
+            saved = list_decks()
+            if not saved:
+                print("\n  No saved decks found. Create one first.")
+                pause_message()
+                continue
+
+            view_items = [
+                f"{name} ({len(load_deck(name) or [])} cards)" for name in saved
+            ] + ["Back"]
+            sel2 = selector("Saved Decks — select to view", view_items)
+            if sel2 is None or sel2 >= len(saved):
+                continue
+
+            name = saved[sel2]
+            loaded = load_deck(name)
+            if loaded is None:
+                print(f"\n  ✗ Could not load '{name}'.")
+                pause_message()
+                continue
+
+            print(f"\n  ── {name} ──")
+            for c in loaded:
+                el = f"[{c.element}]" if c.element else ""
+                print(
+                    f"    {c.name}{el}  ▲{c.top} ▶{c.right} ▼{c.bottom} ◀{c.left}  Lv{c.level}"
+                )
+
+            confirm = input("\n  Delete this deck? (y/n): ").strip().lower()
+            if confirm.startswith("y"):
+                delete_deck(name)
+                print(f"  ✓ Deck '{name}' deleted.")
+            pause_message()
 
 
 def quit_menu() -> str:
@@ -375,11 +426,115 @@ def choose_deck_mode_ui() -> str:
         "Random starter deck (Lv 1-3)",
         "Random deck (any level)",
         "Use a preset deck",
+        "Load a saved deck",
     ]
     sel = selector("Deck Selection", items)
     if sel is None:
         return "2"  # safe default
-    return ["1", "2", "3", "4"][sel]
+    return ["1", "2", "3", "4", "5"][sel]
+
+
+def choose_saved_deck_ui() -> list[Card] | None:
+    from ..deck.shelf import delete_deck, list_decks, load_deck
+
+    saved = list_decks()
+    if not saved:
+        print("\n  No saved decks found. Build and save one via manual pick first.")
+        pause_message()
+        return None
+
+    print("\n  ── Saved Decks ──")
+    for i, name in enumerate(saved, 1):
+        deck = load_deck(name)
+        if deck:
+            summary = ", ".join(c.name for c in deck[:2])
+            summary += f" +{len(deck) - 2} more"
+            print(f"  [{i}] {name:<20} — {summary}")
+        else:
+            print(f"  [{i}] {name:<20} — (invalid)")
+
+    print("  [d] Delete a deck")
+    print("  [0] Back")
+
+    while True:
+        choice = input(f"\n  Choose a deck [0-{len(saved)}/d]: ").strip().lower()
+        if choice == "0":
+            return None
+        if choice == "d":
+            print("\n  ── Delete a Deck ──")
+            for i, name in enumerate(saved, 1):
+                print(f"  [{i}] {name}")
+            print("  [0] Cancel")
+            del_choice = input(f"  Choose deck to delete [0-{len(saved)}]: ").strip()
+            try:
+                idx = int(del_choice) - 1
+                if 0 <= idx < len(saved):
+                    confirm = input(f"  Delete '{saved[idx]}'? (y/n): ").strip().lower()
+                    if confirm.startswith("y"):
+                        delete_deck(saved[idx])
+                        print(f"  ✓ Deck '{saved[idx]}' deleted.")
+                        saved = list_decks()
+                        if not saved:
+                            print("  No decks remaining.")
+                            return None
+                        continue
+                    else:
+                        print("  Deletion cancelled.")
+            except ValueError:
+                pass
+            print("  ✗ Invalid choice.")
+            continue
+        try:
+            idx = int(choice) - 1
+            if 0 <= idx < len(saved):
+                deck = load_deck(saved[idx])
+                if deck is None:
+                    print(
+                        f"  ✗ Failed to load '{saved[idx]}' — missing or invalid cards."
+                    )
+                    continue
+                print(f"\n  ✓ Loaded: {saved[idx]}")
+                for c in deck:
+                    el = f"[{c.element}]" if c.element else ""
+                    print(
+                        f"    {c.name}{el}  ▲{c.top} ▶{c.right} ▼{c.bottom} ◀{c.left}  Lv{c.level}"
+                    )
+                return deck
+            print(f"  ✗ Enter a number between 0 and {len(saved)}, or 'd'.")
+        except ValueError:
+            print(f"  ✗ Enter a number between 0 and {len(saved)}, or 'd'.")
+
+
+def prompt_save_deck_ui(deck: list[Card]) -> None:
+    from ..deck.shelf import deck_exists, load_deck, save_deck, validate_name
+
+    choice = input("\n  Save this deck to shelf? (y/n): ").strip().lower()
+    if not choice.startswith("y"):
+        print("  Deck not saved.")
+        return
+
+    while True:
+        name = input("  Deck name: ").strip()
+        error = validate_name(name)
+        if error:
+            print(f"  ✗ {error}")
+            continue
+        if deck_exists(name):
+            existing = load_deck(name)
+            if existing:
+                existing_summary = ", ".join(c.name for c in existing[:3])
+                print(
+                    f"  Existing deck '{name}': {existing_summary}{' + more' if len(existing) > 3 else ''}"
+                )
+            overwrite = (
+                input(f"  Deck '{name}' exists. Overwrite? (y/n): ").strip().lower()
+            )
+            if not overwrite.startswith("y"):
+                print("  Deck not saved.")
+                return
+        save_deck(name, deck)
+        print(f"  ✓ Deck '{name}' saved!")
+        break
 
 
 def pause_message(message: str = "Press Enter to continue...") -> None:

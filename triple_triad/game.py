@@ -12,6 +12,7 @@ from .deck.deck_selector import choose_preset_deck
 from .deck.picker import choose_deck
 from .engine.game_loop import run_game
 from .engine.tournament import run_tournament
+from .models.card import Card
 from .synth.player import ChiptunePlayer
 from .tutorial.tutorial_engine import run_tutorial
 from .ui.cli import (
@@ -19,10 +20,13 @@ from .ui.cli import (
     choose_deck_mode_ui,
     choose_difficulty_ui,
     choose_rules_ui,
+    choose_saved_deck_ui,
+    deck_manager_ui,
     main_menu,
     new_game_menu,
     options_menu,
     pause_message,
+    prompt_save_deck_ui,
     quit_menu,
 )
 from .ui.display import print_banner, print_help
@@ -35,12 +39,22 @@ def play_single_game() -> None:
     board_elements = choose_board_ui()
     deck_mode = choose_deck_mode_ui()
 
+    player_hand: list[Card]
     if deck_mode == "1":
-        player_hand = choose_deck()
+        picked = choose_deck()
+        if not picked:
+            return
+        player_hand = picked
+        prompt_save_deck_ui(player_hand)
     elif deck_mode == "2":
         player_hand = build_starter_deck()
     elif deck_mode == "3":
         player_hand = build_random_deck()
+    elif deck_mode == "5":
+        loaded = choose_saved_deck_ui()
+        if loaded is None:
+            return
+        player_hand = loaded
     else:
         player_hand = choose_preset_deck()
 
@@ -112,6 +126,8 @@ def main() -> None:
                     break
             elif choice == "tutorial":
                 run_tutorial()
+            elif choice == "deck_manager":
+                deck_manager_ui()
             elif choice == "options":
                 result = options_menu(music_on)
                 if result == "toggle_music":

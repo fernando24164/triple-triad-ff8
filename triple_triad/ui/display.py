@@ -99,6 +99,16 @@ def print_help() -> None:
     [2] Random starter deck (low-level cards)
     [3] Random deck (any level)
     [4] Preset themed decks
+    [5] Load a saved deck
+
+  SAVED DECKS (SHELF)
+  ───────────────────
+  After picking cards manually (option 1), you can save
+  your deck to a local shelf file for reuse. Saved decks
+  are stored in:
+    Linux:   ~/.local/share/triple-triad/decks.json
+    macOS:   ~/Library/Application Support/triple-triad/decks.json
+    Windows: %APPDATA%/triple-triad/decks.json
 
   DURING YOUR TURN
   ────────────────
