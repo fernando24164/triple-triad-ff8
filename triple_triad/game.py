@@ -38,6 +38,8 @@ def play_single_game() -> None:
     rules = choose_rules_ui()
     board_elements = choose_board_ui()
     deck_mode = choose_deck_mode_ui()
+    if deck_mode is None:
+        return
 
     player_hand: list[Card]
     if deck_mode == "1":

@@ -132,9 +132,6 @@ class _MenuBase:
         elif k.name == "KEY_ENTER" or k == "\n":
             play_confirm()
             return self.on_enter()
-        elif str(k).lower() == "q":
-            play_cancel()
-            return self.on_quit()
         return None
 
     def run(self) -> int | set[str] | None:
@@ -147,6 +144,9 @@ class _MenuBase:
                 k = term.inkey(timeout=0.2)
                 if not k:
                     continue
+                if str(k).lower() == "q":
+                    play_cancel()
+                    return self.on_quit()
                 result = self.handle_key(k)
                 if result is not None:
                     return result
@@ -367,7 +367,9 @@ def deck_manager_ui() -> None:
                     f"    {c.name}{el}  ▲{c.top} ▶{c.right} ▼{c.bottom} ◀{c.left}  Lv{c.level}"
                 )
 
-            confirm = input("\n  Delete this deck? (y/n): ").strip().lower()
+            confirm = input("\n  Delete this deck? (y/n/q): ").strip().lower()
+            if confirm == "q":
+                continue
             if confirm.startswith("y"):
                 delete_deck(name)
                 print(f"  ✓ Deck '{name}' deleted.")
@@ -420,7 +422,7 @@ def choose_rules_ui() -> set[str]:
     return chosen or set()
 
 
-def choose_deck_mode_ui() -> str:
+def choose_deck_mode_ui() -> str | None:
     items = [
         "Choose your cards manually",
         "Random starter deck (Lv 1-3)",
@@ -430,7 +432,7 @@ def choose_deck_mode_ui() -> str:
     ]
     sel = selector("Deck Selection", items)
     if sel is None:
-        return "2"  # safe default
+        return None
     return ["1", "2", "3", "4", "5"][sel]
 
 
@@ -455,17 +457,23 @@ def choose_saved_deck_ui() -> list[Card] | None:
 
     print("  [d] Delete a deck")
     print("  [0] Back")
+    print("  [q] Back to menu")
 
     while True:
-        choice = input(f"\n  Choose a deck [0-{len(saved)}/d]: ").strip().lower()
-        if choice == "0":
+        choice = input(f"\n  Choose a deck [0-{len(saved)}/d/q]: ").strip().lower()
+        if choice == "0" or choice == "q":
             return None
         if choice == "d":
             print("\n  ── Delete a Deck ──")
             for i, name in enumerate(saved, 1):
                 print(f"  [{i}] {name}")
             print("  [0] Cancel")
-            del_choice = input(f"  Choose deck to delete [0-{len(saved)}]: ").strip()
+            print("  [q] Back")
+            del_choice = (
+                input(f"  Choose deck to delete [0-{len(saved)}/q]: ").strip().lower()
+            )
+            if del_choice == "q":
+                continue
             try:
                 idx = int(del_choice) - 1
                 if 0 <= idx < len(saved):
@@ -508,13 +516,16 @@ def choose_saved_deck_ui() -> list[Card] | None:
 def prompt_save_deck_ui(deck: list[Card]) -> None:
     from ..deck.shelf import deck_exists, load_deck, save_deck, validate_name
 
-    choice = input("\n  Save this deck to shelf? (y/n): ").strip().lower()
+    choice = input("\n  Save this deck to shelf? (y/n/q): ").strip().lower()
     if not choice.startswith("y"):
         print("  Deck not saved.")
         return
 
     while True:
-        name = input("  Deck name: ").strip()
+        name = input("  Deck name (or q to cancel): ").strip()
+        if name.lower() == "q":
+            print("  Deck not saved.")
+            return
         error = validate_name(name)
         if error:
             print(f"  ✗ {error}")
@@ -527,8 +538,11 @@ def prompt_save_deck_ui(deck: list[Card]) -> None:
                     f"  Existing deck '{name}': {existing_summary}{' + more' if len(existing) > 3 else ''}"
                 )
             overwrite = (
-                input(f"  Deck '{name}' exists. Overwrite? (y/n): ").strip().lower()
+                input(f"  Deck '{name}' exists. Overwrite? (y/n/q): ").strip().lower()
             )
+            if overwrite == "q":
+                print("  Deck not saved.")
+                return
             if not overwrite.startswith("y"):
                 print("  Deck not saved.")
                 return
