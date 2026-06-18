@@ -1,0 +1,30 @@
+version: '3.8'
+
+networks:
+  tt_test_network:
+    driver: bridge
+
+services:
+  test-host:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["--host-test", "--headless"]
+    networks:
+      - tt_test_network
+    environment:
+      - SDL_AUDIODRIVER=dummy
+      - SDL_VIDEODRIVER=dummy
+
+  test-guest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["--join-test", "test-host", "--headless"]
+    networks:
+      - tt_test_network
+    environment:
+      - SDL_AUDIODRIVER=dummy
+      - SDL_VIDEODRIVER=dummy
+    depends_on:
+      - test-host

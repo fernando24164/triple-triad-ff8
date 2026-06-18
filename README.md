@@ -152,6 +152,33 @@ uv run ruff check .
 
 ---
 
+## 🌐 Multiplayer (P2P)
+
+Triple Triad supports **direct peer-to-peer** multiplayer over TCP.
+
+### How it works
+
+1. **Host** starts a lobby on a chosen port (default `64000`).
+2. **Guest** connects using the host's IP address and port.
+3. The game synchronises rules, board elements, and decks before starting.
+
+### ⚠️ NAT / Firewall Limitations
+
+The current P2P implementation uses **direct TCP connections** and does **not** include NAT traversal (STUN/TURN/UPnP). This means:
+
+| Scenario | Works? |
+|----------|--------|
+| Both players on the same local network | ✅ |
+| Host has a public IP or port forwarding configured | ✅ |
+| Host is behind a strict NAT without port forwarding | ❌ |
+| Guest is behind symmetric NAT | ❌ |
+
+**Workarounds:**
+
+- **Port forwarding** — Configure your router to forward the chosen port (default `64000`) to the host machine.
+- **LAN play** — Both players on the same local network work without any configuration.
+- **VPN** — Use a VPN (e.g. Tailscale, ZeroTier, Hamachi) to create a virtual LAN.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Here's how to get started:

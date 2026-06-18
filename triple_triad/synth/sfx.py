@@ -122,3 +122,36 @@ def play_error() -> None:
         [(196.0, 0.15)], vol=0.18, duty=0.3, attack=0.005, decay=0.08, release=0.05
     )
     _play_buffer(buf)
+
+
+def play_network_join() -> None:
+    buf = _generate_sfx(
+        [(523.25, 0.08), (659.25, 0.08), (783.99, 0.12)],
+        vol=0.22,
+        attack=0.002,
+        decay=0.05,
+        release=0.04,
+    )
+    _play_buffer(buf)
+
+
+def play_network_turn_alert() -> None:
+    buf = _generate_sfx(
+        [(880.0, 0.06), (1108.73, 0.06), (880.0, 0.06)],
+        vol=0.18,
+        attack=0.001,
+        decay=0.03,
+        release=0.02,
+    )
+    _play_buffer(buf)
+
+
+def play_network_disconnect() -> None:
+    buf = _generate_sfx(
+        [(440.0, 0.12), (349.2, 0.12), (261.6, 0.15)],
+        vol=0.20,
+        attack=0.003,
+        decay=0.06,
+        release=0.06,
+    )
+    _play_buffer(buf)

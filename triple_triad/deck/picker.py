@@ -1,12 +1,11 @@
 import random
 from typing import Any
 
-from blessed import Terminal
-
 from ..constants import DECK_SIZE
 from ..data.cards import CARDS, Element
 from ..models.card import Card, stat_display
 from ..synth.sfx import play_cancel, play_confirm, play_cursor
+from ..ui.cli import term
 
 ELEMENT_NAMES = [e.value for e in Element]
 
@@ -145,7 +144,7 @@ class _DeckPicker:
     """Interactive card picker with keyboard navigation via blessed."""
 
     def __init__(self) -> None:
-        self.term = Terminal()
+        self.term = term
         self.all_names = sorted(CARDS.keys())
         self.level_range: tuple[int, int] | None = None
         self.element: str | None = None

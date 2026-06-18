@@ -1,0 +1,37 @@
+networks:
+  tt_play:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16
+
+services:
+  host:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tt-play-host
+    entrypoint: ["sleep", "infinity"]
+    networks:
+      tt_play:
+        ipv4_address: 172.29.0.10
+    environment:
+      - SDL_AUDIODRIVER=dummy
+      - SDL_VIDEODRIVER=dummy
+
+  guest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tt-play-guest
+    entrypoint: ["sleep", "infinity"]
+    ports:
+      - "5678:5678"
+    networks:
+      tt_play:
+        ipv4_address: 172.29.0.11
+    environment:
+      - SDL_AUDIODRIVER=dummy
+      - SDL_VIDEODRIVER=dummy
+    depends_on:
+      - host

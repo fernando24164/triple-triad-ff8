@@ -308,11 +308,11 @@ def main_menu() -> str:
 
 
 def new_game_menu() -> str | None:
-    items = ["Single Game", "Tournament", "Back"]
+    items = ["Single Game", "Tournament", "Multiplayer", "Back"]
     sel = selector("New Game", items)
-    if sel is None or sel == 2:
+    if sel is None or sel == 3:
         return None
-    return ["single", "tournament"][sel]
+    return ["single", "tournament", "multiplayer"][sel]
 
 
 def options_menu(music_on: bool) -> str | None:
