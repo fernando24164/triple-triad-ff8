@@ -1,12 +1,3 @@
-"""Network protocol definitions and message constructors for P2P multiplayer.
-
-All messages are JSON-encoded with a 4-byte big-endian length prefix:
-    [4 bytes: length][JSON payload]
-
-Standard packet format:
-    {"type": "<MESSAGE_TYPE>", "payload": {...}}
-"""
-
 from __future__ import annotations
 
 from typing import Any

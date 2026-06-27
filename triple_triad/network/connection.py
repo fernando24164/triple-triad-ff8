@@ -1,12 +1,3 @@
-"""P2P TCP connection with background receiver thread and heartbeat.
-
-Provides a clean stateful wrapper around TCP sockets with:
-- 4-byte big-endian length-prefixed JSON framing
-- Background daemon thread for receiving packets
-- Thread-safe queue.Queue for incoming events
-- Heartbeat ping/pong to detect dropped connections
-"""
-
 from __future__ import annotations
 
 import contextlib
