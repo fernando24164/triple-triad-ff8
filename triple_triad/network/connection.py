@@ -6,6 +6,7 @@ import queue
 import socket
 import threading
 import time
+from collections import deque
 from typing import Any
 
 from .framing import read_packet, send_packet
@@ -35,7 +36,7 @@ class P2PConnection:
         self._recv_thread: threading.Thread | None = None
         self._hb_thread: threading.Thread | None = None
         self._last_pong: float = 0.0
-        self._pending: list[dict[str, Any]] = []
+        self._pending: deque[dict[str, Any]] = deque()
         self.is_host = False
         self.connected = False
         self.remote_name: str = ""
@@ -173,7 +174,7 @@ class P2PConnection:
 
     def queue_get_nowait(self) -> dict[str, Any] | None:
         if self._pending:
-            return self._pending.pop(0)
+            return self._pending.popleft()
         try:
             return self.incoming.get_nowait()
         except queue.Empty:
@@ -199,14 +200,13 @@ class P2PConnection:
         """
         deadline = time.monotonic() + timeout if timeout is not None else None
 
-        # First drain any pending packets we already have.
-        rest: list[dict[str, Any]] = []
-        for p in self._pending:
+        # First drain any pending packets we already have, preserving order
+        # for the ones that don't match by rotating them to the back.
+        for _ in range(len(self._pending)):
+            p = self._pending.popleft()
             if p.get("type") in expected_types:
-                self._pending = rest + self._pending[len(rest) + 1 :]
                 return p
-            rest.append(p)
-        self._pending = rest
+            self._pending.append(p)
 
         while True:
             remaining: float | None = None
