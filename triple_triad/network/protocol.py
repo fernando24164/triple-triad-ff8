@@ -39,9 +39,6 @@ def parse_packet(data: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     return msg_type, payload
 
 
-# ── Packet constructors ──────────────────────────────────────────────────────
-
-
 def make_handshake(player_name: str, version: int = PROTOCOL_VERSION) -> dict[str, Any]:
     return make_packet(
         MessageType.HANDSHAKE,

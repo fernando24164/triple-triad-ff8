@@ -15,7 +15,8 @@ if TYPE_CHECKING:
 from ..data.cards import CARDS, Element
 from ..deck.builder import build_random_deck
 from ..models.card import Card
-from ..network.connection import P2PConnection, perform_handshake
+from ..network.connection import P2PConnection
+from ..network.handshake import perform_handshake
 from ..network.protocol import (
     DEFAULT_PORT,
     HANDSHAKE_TIMEOUT_S,

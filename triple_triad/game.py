@@ -17,7 +17,8 @@ from .deck.picker import choose_deck
 from .engine.game_loop import run_game
 from .engine.tournament import run_tournament
 from .models.card import Card
-from .network.connection import P2PConnection, perform_handshake
+from .network.connection import P2PConnection
+from .network.handshake import perform_handshake
 from .network.protocol import (
     DEFAULT_PORT,
     HANDSHAKE_TIMEOUT_S,

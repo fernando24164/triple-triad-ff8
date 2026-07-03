@@ -1,24 +1,19 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import logging
 import queue
 import socket
-import struct
 import threading
 import time
 from typing import Any
 
+from .framing import read_packet, send_packet
 from .protocol import (
-    HANDSHAKE_TIMEOUT_S,
     HEARTBEAT_INTERVAL_S,
     HEARTBEAT_TIMEOUT_S,
-    MAX_PACKET_SIZE,
-    PROTOCOL_VERSION,
     MessageType,
     make_disconnect,
-    make_handshake,
     make_heartbeat_ping,
     make_heartbeat_pong,
     make_packet,
@@ -45,34 +40,6 @@ class P2PConnection:
         self.connected = False
         self.remote_name: str = ""
         self._send_lock = threading.Lock()
-
-    # ── Socket framing ────────────────────────────────────────────────────────
-
-    @staticmethod
-    def send_packet(sock: socket.socket, data: dict[str, Any]) -> None:
-        payload = json.dumps(data, separators=(",", ":")).encode("utf-8")
-        header = struct.pack("!I", len(payload))
-        sock.sendall(header + payload)
-
-    @staticmethod
-    def read_packet(sock: socket.socket) -> dict[str, Any] | None:
-        header = _recv_exact(sock, 4)
-        if header is None:
-            return None
-        length = struct.unpack("!I", header)[0]
-        if length == 0 or length > MAX_PACKET_SIZE:
-            logger.warning("Receiver: invalid packet length %d", length)
-            return None
-        body = _recv_exact(sock, length)
-        if body is None:
-            return None
-        try:
-            return json.loads(body.decode("utf-8"))  # type: ignore[no-any-return]
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            logger.warning("Failed to decode packet body")
-            return None
-
-    # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     def host(self, port: int) -> None:
         self.is_host = True
@@ -138,7 +105,7 @@ class P2PConnection:
         if self.sock and self.connected:
             with self._send_lock:
                 try:
-                    self.send_packet(self.sock, data)
+                    send_packet(self.sock, data)
                 except (BrokenPipeError, OSError) as exc:
                     logger.warning("Send failed: %s", exc)
                     self.connected = False
@@ -150,13 +117,11 @@ class P2PConnection:
                 self.send(make_disconnect())
         self.stop()
 
-    # ── Background loops ──────────────────────────────────────────────────────
-
     def _receiver_loop(self) -> None:
         logger.debug("Receiver loop started (sock=%s)", self.sock is not None)
         while self._running and self.sock:
             try:
-                packet = self.read_packet(self.sock)
+                packet = read_packet(self.sock)
                 if packet is None:
                     if self._running:
                         logger.warning(
@@ -164,7 +129,7 @@ class P2PConnection:
                         )
                         self.incoming.put(make_packet(MessageType.CONNECTION_LOST))
                     break
-                msg_type, _ = _parse_type(packet)
+                msg_type, _ = parse_packet(packet)
                 if msg_type == MessageType.HEARTBEAT_PING:
                     self.send(make_heartbeat_pong())
                 elif msg_type == MessageType.HEARTBEAT_PONG:
@@ -191,8 +156,6 @@ class P2PConnection:
                 logger.warning("Heartbeat timeout (%.1fs)", elapsed)
                 self.incoming.put(make_packet(MessageType.CONNECTION_LOST))
                 break
-
-    # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _close_server_socket(self) -> None:
         """Close only the listening server socket (if any)."""
@@ -262,51 +225,3 @@ class P2PConnection:
             if packet.get("type") in expected_types:
                 return packet
             self._pending.append(packet)
-
-
-def _recv_exact(sock: socket.socket, n: int) -> bytes | None:
-    """Read exactly n bytes from socket, returning None on disconnect."""
-    buf = bytearray()
-    while len(buf) < n:
-        try:
-            chunk = sock.recv(n - len(buf))
-        except TimeoutError:
-            continue
-        except (OSError, ConnectionResetError):
-            return None
-        if not chunk:
-            return None
-        buf.extend(chunk)
-    return bytes(buf)
-
-
-def perform_handshake(
-    conn: P2PConnection,
-    timeout: float = HANDSHAKE_TIMEOUT_S,
-) -> dict[str, Any] | None:
-    """Start background, send handshake, wait for peer's handshake, validate version.
-
-    Returns the peer's handshake payload on success, None on failure
-    (timeout, connection lost, or version mismatch).
-    """
-    conn.start_background()
-    conn.send(make_handshake(conn.player_name))
-
-    packet = conn.queue_get_filtered(
-        {MessageType.HANDSHAKE, MessageType.CONNECTION_LOST},
-        timeout=timeout,
-    )
-    if packet is None:
-        return None
-
-    msg_type, payload = parse_packet(packet)
-    if msg_type == MessageType.CONNECTION_LOST:
-        return None
-    if payload.get("version") != PROTOCOL_VERSION:
-        return None
-
-    return payload
-
-
-def _parse_type(packet: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-    return packet.get("type", ""), packet.get("payload", {})
