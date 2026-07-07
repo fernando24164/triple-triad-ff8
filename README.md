@@ -1,5 +1,15 @@
 # Triple-triad
 
+<p align="center">
+  <img src="media/logo.jpeg" alt="Triple Triad Logo" width="300">
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/triple-triad-ff8/"><img src="https://img.shields.io/pypi/v/triple-triad-ff8?color=blue" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/triple-triad-ff8/"><img src="https://img.shields.io/pypi/pyversions/triple-triad-ff8" alt="Python versions"></a>
+  <img src="https://img.shields.io/badge/tests-passing-brightgreen" alt="Tests status">
+</p>
+
 A terminal-based Python implementation of the classic **Triple Triad** card game from *Final Fantasy VIII*, complete with chiptune background music, smart AI opponents, and support for official rules like Same, Plus, and Open.
 
 ---
