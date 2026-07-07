@@ -202,4 +202,4 @@ class TestGameLogic:
         """Test that AI mode matches difficulty setting."""
         assert get_cpu_ai_mode("easy") == "random"
         assert get_cpu_ai_mode("medium") == "greedy"
-        assert get_cpu_ai_mode("hard") == "greedy"
+        assert get_cpu_ai_mode("hard") == "minimax"

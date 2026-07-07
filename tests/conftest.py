@@ -115,3 +115,9 @@ def plus_rules():
 def all_rules():
     """Return rules with all optional rules enabled."""
     return {"Open", "Same", "Plus", "Random"}
+
+
+@pytest.fixture
+def open_rules():
+    """Return rules with only Open enabled (CPU hand visible)."""
+    return {"Open"}

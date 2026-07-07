@@ -11,6 +11,7 @@ from .deck.builder import (
     build_random_deck,
     build_starter_deck,
     get_cpu_ai_mode,
+    get_cpu_depth,
 )
 from .deck.deck_selector import choose_preset_deck
 from .deck.picker import choose_deck
@@ -53,6 +54,7 @@ def _setup_headless_env() -> None:
 def play_single_game() -> None:
     difficulty = choose_difficulty_ui()
     ai_mode = get_cpu_ai_mode(difficulty)
+    ai_depth = get_cpu_depth(difficulty)
     rules = choose_rules_ui()
     board_elements = choose_board_ui()
     deck_mode = choose_deck_mode_ui()
@@ -93,9 +95,10 @@ def play_single_game() -> None:
         )
 
     cfg = DIFFICULTY_CONFIG[difficulty]
+    ai_label = f"{ai_mode} d{ai_depth}" if ai_mode == "minimax" else ai_mode
     print(
         f"\n  -- CPU Deck  (Lv {cfg['cpu_min_level']}-{cfg['cpu_max_level']}, "
-        f"AI: {ai_mode}) --"
+        f"AI: {ai_label}) --"
     )
     for c in cpu_hand:
         el = f"[{c.element}]" if c.element else ""
@@ -103,15 +106,16 @@ def play_single_game() -> None:
             f"    {c.name}{el}  ^{c.top} >{c.right} v{c.bottom} <{c.left}  Lv{c.level}"
         )
 
-    run_game(player_hand, cpu_hand, rules, ai_mode, board_elements)
+    run_game(player_hand, cpu_hand, rules, ai_mode, board_elements, ai_depth=ai_depth)
     pause_message()
 
 
 def play_tournament() -> None:
     difficulty = choose_difficulty_ui()
     ai_mode = get_cpu_ai_mode(difficulty)
+    ai_depth = get_cpu_depth(difficulty)
     board_elements = choose_board_ui()
-    run_tournament(difficulty, ai_mode, board_elements)
+    run_tournament(difficulty, ai_mode, board_elements, ai_depth=ai_depth)
     pause_message()
 
 

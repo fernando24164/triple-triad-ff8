@@ -12,7 +12,10 @@ from ..ui.tournament_display import (
 
 
 def run_tournament(
-    difficulty: str, ai_mode: str, board_elements: list[Element | None]
+    difficulty: str,
+    ai_mode: str,
+    board_elements: list[Element | None],
+    ai_depth: int = 1,
 ) -> tuple[int, int, int]:
     """
     Run a 3-game tournament with random rules for each game.
@@ -21,6 +24,8 @@ def run_tournament(
         difficulty: The game difficulty level.
         ai_mode: The AI mode for the CPU.
         board_elements: The board elements configuration.
+        ai_depth: The minimax search depth for the CPU (used when ai_mode is
+            'minimax').
 
     Returns:
         A tuple of (wins, losses, draws) representing the player's record.
@@ -44,7 +49,9 @@ def run_tournament(
         for card in cpu_hand:
             card.owner = "CPU"
 
-        winner = run_game(player_hand, cpu_hand, rules, ai_mode, board_elements)
+        winner = run_game(
+            player_hand, cpu_hand, rules, ai_mode, board_elements, ai_depth=ai_depth
+        )
         if winner == "P":
             wins += 1
             result = "W"

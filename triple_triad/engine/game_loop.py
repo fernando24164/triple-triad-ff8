@@ -124,6 +124,7 @@ def run_game(
     rules: Collection[str],
     ai_mode: str,
     board_elements: list[Element | None] | None = None,
+    ai_depth: int = 1,
 ) -> str:
     """Run the full game loop until the board is full."""
     board = Board(elements=board_elements)
@@ -172,7 +173,14 @@ def run_game(
 
         else:
             print("\n  CPU is thinking...")
-            ci, cpu_pos = cpu_choose(board, cpu_hand, rules, mode=ai_mode)
+            ci, cpu_pos = cpu_choose(
+                board,
+                cpu_hand,
+                rules,
+                mode=ai_mode,
+                player_hand=player_hand,
+                depth=ai_depth,
+            )
             assert cpu_pos is not None, "CPU had no valid move on a non-full board"
             card = cpu_hand.pop(ci)
             card.owner = "CPU"

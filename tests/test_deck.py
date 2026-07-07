@@ -5,6 +5,7 @@ from triple_triad.deck.builder import (
     build_random_deck,
     build_starter_deck,
     get_cpu_ai_mode,
+    get_cpu_depth,
 )
 from triple_triad.deck.picker import _filter_cards, _sort_cards
 from triple_triad.deck.presets import DECK_PRESETS, build_preset_deck, list_presets
@@ -78,12 +79,20 @@ class TestDeck:
     def test_get_cpu_ai_mode_hard(self):
         """Test getting AI mode for hard difficulty."""
         mode = get_cpu_ai_mode("hard")
-        assert mode == "greedy"
+        assert mode == "minimax"
 
     def test_get_cpu_ai_mode_invalid(self):
         """Test getting AI mode for invalid difficulty defaults to medium."""
         mode = get_cpu_ai_mode("invalid")
         assert mode == "greedy"  # Medium difficulty uses greedy
+
+    def test_get_cpu_depth(self):
+        """Depth grows with difficulty; hard uses deep lookahead."""
+        assert get_cpu_depth("easy") == 0
+        assert get_cpu_depth("medium") == 1
+        assert get_cpu_depth("hard") >= 2
+        # Invalid difficulty falls back to medium's depth.
+        assert get_cpu_depth("invalid") == get_cpu_depth("medium")
 
     def test_difficulty_config_structure(self):
         """Test that difficulty config has correct structure."""
@@ -93,10 +102,12 @@ class TestDeck:
             assert "cpu_min_level" in cfg
             assert "cpu_max_level" in cfg
             assert "cpu_ai" in cfg
+            assert "cpu_depth" in cfg
             assert "description" in cfg
             assert cfg["player_max_level"] == 9
             assert 1 <= cfg["cpu_min_level"] <= cfg["cpu_max_level"] <= 10
-            assert cfg["cpu_ai"] in ["random", "greedy"]
+            assert cfg["cpu_ai"] in ["random", "greedy", "minimax"]
+            assert isinstance(cfg["cpu_depth"], int) and cfg["cpu_depth"] >= 0
 
     def test_filter_cards_by_level(self):
         """Test filtering cards by level range."""
