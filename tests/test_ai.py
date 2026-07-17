@@ -128,3 +128,59 @@ class TestAI:
         # With 10 runs, we should get at least 2 different results (very likely)
         # This is a probabilistic test, but with 5 cards and 9 positions, it's very likely
         assert len(results) >= 1  # At least one result
+
+    def test_greedy_choice_zero_randomness_is_deterministic(
+        self, empty_board, cpu_hand, basic_rules
+    ):
+        """randomness=0.0 must reproduce the classic single-best-move behavior."""
+        empty_positions = [i for i in range(9) if empty_board.is_empty(i)]
+        expected = greedy_choice(empty_board, cpu_hand, basic_rules, empty_positions)
+        for _ in range(20):
+            assert (
+                greedy_choice(
+                    empty_board, cpu_hand, basic_rules, empty_positions, randomness=0.0
+                )
+                == expected
+            )
+
+    def test_greedy_choice_randomness_never_skips_capture_for_zero(
+        self, empty_board, basic_rules
+    ):
+        """Even at max randomness, a capturing move beats a zero-capture move."""
+        player_card = Card("Geezard")  # T:1 R:4 B:1 L:5
+        player_card.owner = "P"
+        empty_board.place(4, player_card)
+
+        cpu_hand = [Card("Grat"), Card("Blobra")]
+        for c in cpu_hand:
+            c.owner = "CPU"
+
+        empty_positions = [i for i in range(9) if empty_board.is_empty(i)]
+        for _ in range(30):
+            card_idx, position = greedy_choice(
+                empty_board, cpu_hand, basic_rules, empty_positions, randomness=1.0
+            )
+            score = simulate_capture(
+                empty_board, position, cpu_hand[card_idx], "CPU", basic_rules
+            )
+            assert score >= 1
+
+    def test_greedy_choice_randomness_produces_variety(self, empty_board, basic_rules):
+        """With several equally-good captures available, higher randomness
+        should mix between them instead of always picking the same one."""
+        player_card = Card("Geezard")  # T:1 R:4 B:1 L:5
+        player_card.owner = "P"
+        empty_board.place(1, player_card)
+
+        cpu_hand = [Card("Funguar"), Card("Bite Bug")]  # each can capture it
+        for c in cpu_hand:
+            c.owner = "CPU"
+        empty_positions = [i for i in range(9) if empty_board.is_empty(i)]
+
+        results = {
+            greedy_choice(
+                empty_board, cpu_hand, basic_rules, empty_positions, randomness=1.0
+            )
+            for _ in range(50)
+        }
+        assert len(results) > 1

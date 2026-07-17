@@ -26,6 +26,7 @@ BOSSES = [
     "Seifer Almasy",
     "Edea Kramer",
     "NORG",
+    "Queen of the Cards"
 ]
 
 

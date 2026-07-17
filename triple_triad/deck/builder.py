@@ -11,7 +11,7 @@ DIFFICULTY_CONFIG = {
         "cpu_min_level": 1,
         "cpu_max_level": 3,  # CPU stuck with weak cards
         "cpu_ai": "random",  # CPU plays randomly
-        "cpu_depth": 0,  # no lookahead
+        "cpu_randomness": 0.0,  # unused: 'random' mode ignores this
         "description": "CPU uses weak cards (Lv 1-3) and plays randomly",
     },
     "medium": {
@@ -19,16 +19,16 @@ DIFFICULTY_CONFIG = {
         "cpu_min_level": 4,
         "cpu_max_level": 6,  # CPU uses mid-tier cards
         "cpu_ai": "greedy",  # CPU plays greedy (1-ply)
-        "cpu_depth": 1,
+        "cpu_randomness": 0.5,  # frequently strays from the optimal move
         "description": "CPU uses mid-tier cards (Lv 4-6) and plays smart",
     },
     "hard": {
         "player_max_level": 9,
         "cpu_min_level": 7,
         "cpu_max_level": 10,  # CPU uses top-tier cards
-        "cpu_ai": "minimax",  # CPU plays with lookahead
-        "cpu_depth": 6,  # deep search (adaptive; solves the endgame exactly)
-        "description": "CPU uses elite cards (Lv 7-10) and plays with lookahead",
+        "cpu_ai": "greedy",  # CPU plays greedy (1-ply)
+        "cpu_randomness": 0.15,  # mostly optimal, rarely unpredictable
+        "description": "CPU uses elite cards (Lv 7-10) and plays smart",
     },
 }
 
@@ -63,10 +63,13 @@ def get_cpu_ai_mode(difficulty: str) -> str:
     )
 
 
-def get_cpu_depth(difficulty: str) -> int:
-    """Return the minimax search depth for this difficulty (0 if unused)."""
+def get_cpu_randomness(difficulty: str) -> float:
+    """Return the greedy-AI randomness factor (0.0-1.0) for this difficulty."""
     return cast(
-        int, DIFFICULTY_CONFIG.get(difficulty, DIFFICULTY_CONFIG["medium"])["cpu_depth"]
+        float,
+        DIFFICULTY_CONFIG.get(difficulty, DIFFICULTY_CONFIG["medium"])[
+            "cpu_randomness"
+        ],
     )
 
 

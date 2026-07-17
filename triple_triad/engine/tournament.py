@@ -15,7 +15,7 @@ def run_tournament(
     difficulty: str,
     ai_mode: str,
     board_elements: list[Element | None],
-    ai_depth: int = 1,
+    ai_randomness: float = 0.0,
 ) -> tuple[int, int, int]:
     """
     Run a 3-game tournament with random rules for each game.
@@ -24,8 +24,7 @@ def run_tournament(
         difficulty: The game difficulty level.
         ai_mode: The AI mode for the CPU.
         board_elements: The board elements configuration.
-        ai_depth: The minimax search depth for the CPU (used when ai_mode is
-            'minimax').
+        ai_randomness: The greedy-AI randomness factor for the CPU.
 
     Returns:
         A tuple of (wins, losses, draws) representing the player's record.
@@ -50,7 +49,7 @@ def run_tournament(
             card.owner = "CPU"
 
         winner = run_game(
-            player_hand, cpu_hand, rules, ai_mode, board_elements, ai_depth=ai_depth
+            player_hand, cpu_hand, rules, ai_mode, board_elements, ai_randomness
         )
         if winner == "P":
             wins += 1
