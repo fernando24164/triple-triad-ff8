@@ -6,6 +6,21 @@ from ..models.board import Board
 from ..models.card import Card
 
 OPPOSITE = {"top": "bottom", "bottom": "top", "left": "right", "right": "left"}
+DIRECTIONS = ("top", "bottom", "left", "right")
+WALL_RANK = 10  # Same Wall: board edges count as rank A for the Same rule
+
+
+def _elemental_bonus(
+    card: Card, pos: int, board_elements: list[Element | None] | None
+) -> int:
+    """+1 if the card's element matches its cell, -1 if the cell has an
+    element and it doesn't match (including elementless cards), else 0."""
+    if not board_elements or pos >= len(board_elements):
+        return 0
+    cell_element = board_elements[pos]
+    if cell_element is None:
+        return 0
+    return 1 if card.element == cell_element else -1
 
 
 def get_attacker_value(
@@ -15,15 +30,17 @@ def get_attacker_value(
     board_elements: list[Element | None] | None = None,
 ) -> int:
     base_value: int = cast(int, getattr(card, direction))
-    if board_elements and pos < len(board_elements):
-        cell_element = board_elements[pos]
-        if cell_element and card.element == cell_element:
-            return base_value + 1
-    return base_value
+    return base_value + _elemental_bonus(card, pos, board_elements)
 
 
-def get_defender_value(card: Card, direction: str) -> int:
-    return cast(int, getattr(card, OPPOSITE[direction]))
+def get_defender_value(
+    card: Card,
+    direction: str,
+    pos: int,
+    board_elements: list[Element | None] | None = None,
+) -> int:
+    base_value: int = cast(int, getattr(card, OPPOSITE[direction]))
+    return base_value + _elemental_bonus(card, pos, board_elements)
 
 
 def _evaluate_captures(
@@ -49,7 +66,7 @@ def _evaluate_captures(
         if ncard is None or ncard.owner == owner:
             continue
         atk = get_attacker_value(card, direction, pos, board_elements)
-        dfn = get_defender_value(ncard, direction)
+        dfn = get_defender_value(ncard, direction, npos, board_elements)
 
         if atk > dfn:
             basic.append((npos, ncard))
@@ -60,12 +77,21 @@ def _evaluate_captures(
         if "Plus" in rules:
             plus_candidates.append((npos, ncard, atk + dfn))
 
+    # Same Wall: board edges count as rank A (10) toward the Same rule's
+    # 2+ match requirement, but a wall has no card to capture.
+    wall_matches = 0
+    if "Same" in rules and "Same Wall" in rules:
+        missing_directions = set(DIRECTIONS) - set(neighbors.keys())
+        for direction in missing_directions:
+            if get_attacker_value(card, direction, pos, board_elements) == WALL_RANK:
+                wall_matches += 1
+
     same: list[tuple[int, Card]] = []
     plus: list[tuple[int, Card]] = []
     events: list[str] = []
 
-    # Same rule: if 2+ neighbors have equal values
-    if "Same" in rules and len(same_candidates) >= 2:
+    # Same rule: if 2+ neighbors (plus matching walls) have equal values
+    if "Same" in rules and same_candidates and len(same_candidates) + wall_matches >= 2:
         events.append("Same")
         same = list(same_candidates)
 
@@ -81,10 +107,41 @@ def _evaluate_captures(
     return {"basic": basic, "same": same, "plus": plus, "events": events}
 
 
+def _cascade_combo(
+    board: Board,
+    seeds: list[tuple[int, Card]],
+    attacker_owner: str | None,
+    board_elements: list[Element | None] | None,
+) -> list[tuple[int, Card]]:
+    """Combo rule: cards flipped by Same/Plus (or Same Wall) chain-react
+    against their own neighbors using the basic (higher-value-wins) rule
+    only — Same/Plus are not re-evaluated during the chain."""
+    captured_positions = {p for p, _ in seeds}
+    queue = list(seeds)
+    extra: list[tuple[int, Card]] = []
+
+    while queue:
+        cpos, ccard = queue.pop(0)
+        for direction, (npos, ncard) in board.get_neighbors(cpos).items():
+            if ncard is None or npos in captured_positions:
+                continue
+            if ncard.owner == attacker_owner:
+                continue
+            atk = get_attacker_value(ccard, direction, cpos, board_elements)
+            dfn = get_defender_value(ncard, direction, npos, board_elements)
+            if atk > dfn:
+                captured_positions.add(npos)
+                entry = (npos, ncard)
+                extra.append(entry)
+                queue.append(entry)
+
+    return extra
+
+
 def resolve_captures(
     board: Board, pos: int, placed_card: Card, rules: Collection[str]
 ) -> tuple[list[tuple[int, Card]], list[str]]:
-    """Apply basic capture logic (and Same/Plus if enabled).
+    """Apply basic capture logic (and Same/Plus/Same Wall/Combo if enabled).
 
     Returns:
         tuple: (captures, events) where captures is a list of (pos, card)
@@ -100,7 +157,19 @@ def resolve_captures(
         if entry not in captures:
             captures.append(entry)
 
-    return captures, result["events"]
+    events: list[str] = list(result["events"])
+
+    # Combo: automatic side effect of Same/Plus — every card flipped this
+    # turn can chain-capture further neighbors via the basic rule.
+    if events:
+        board_elements = getattr(board, "elements", None)
+        extra = _cascade_combo(board, captures, placed_card.owner, board_elements)
+        new_extra = [entry for entry in extra if entry not in captures]
+        if new_extra:
+            captures.extend(new_extra)
+            events.append("Combo")
+
+    return captures, events
 
 
 def simulate_capture(
@@ -124,12 +193,17 @@ def simulate_capture(
     """
     result = _evaluate_captures(board, pos, card, owner, rules)
 
-    captured_positions: set[int] = {npos for npos, _ in result["basic"]}
-    count: int = len(captured_positions)
+    seeds: list[tuple[int, Card]] = list(result["basic"])
+    captured_positions: set[int] = {npos for npos, _ in seeds}
 
     for entry in result["same"] + result["plus"]:
         if entry[0] not in captured_positions:
-            count += 1
             captured_positions.add(entry[0])
+            seeds.append(entry)
 
-    return count
+    if result["events"]:
+        board_elements = getattr(board, "elements", None)
+        extra = _cascade_combo(board, seeds, owner, board_elements)
+        captured_positions.update(npos for npos, _ in extra)
+
+    return len(captured_positions)

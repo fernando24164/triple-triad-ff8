@@ -415,6 +415,7 @@ def choose_rules_ui() -> set[str]:
     opts = [
         ("Open", "Open — See opponent's hand"),
         ("Same", "Same — Equal values on 2+ sides"),
+        ("Same Wall", "Same Wall — Board edges count as rank A for Same"),
         ("Plus", "Plus — Equal sums on 2+ sides"),
         ("Random", "Random — Cards dealt randomly"),
     ]

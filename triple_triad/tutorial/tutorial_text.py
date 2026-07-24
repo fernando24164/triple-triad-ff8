@@ -68,6 +68,7 @@ STEPS: list[dict[str, Any]] = [
         "lines": [
             "Some board cells have elemental symbols on them.",
             "If you place a card whose element matches the cell, all its sides get +1 during comparisons!",
+            "A mismatched (or elementless) card on that cell gets -1 instead — even the opponent's cards!",
             "This can turn a losing match-up into a winning one.",
         ],
         "interactive": "element_demo",
@@ -76,7 +77,9 @@ STEPS: list[dict[str, Any]] = [
         "lines": [
             "There are a few optional rules you may encounter:",
             "  Same — If your placed card matches values on 2+ sides, capture ALL adjacent cards.",
+            "  Same Wall — Board edges count as a rank A side for the Same rule.",
             "  Plus — If the sums of your card + adjacent cards are equal on 2+ sides, capture them all.",
+            "  Combo — Cards flipped by Same/Plus chain-capture their own neighbors automatically.",
             "  Open — You can see the CPU's entire hand.",
             "  Random — Cards are dealt randomly from the full pool of 110+ cards.",
         ],
