@@ -7,8 +7,9 @@ from ..data.cards import Element
 from ..engine.rules import resolve_captures
 from ..models.board import Board
 from ..models.card import Card
+from ..synth.sfx import play_cancel, play_confirm, play_cursor
 from .dialogs import show_dialog
-from .tutorial_text import SPEAKER, STEPS
+from .tutorial_text import RULE_TOPIC_STEPS, SPEAKER, STEPS
 
 term = Terminal()
 
@@ -16,12 +17,21 @@ term = Terminal()
 def run_tutorial() -> None:
     """Run the full Queen of Cards tutorial."""
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
-        for step in STEPS:
+        # Show welcome step
+        ok = show_dialog(STEPS[0]["lines"], speaker=SPEAKER)
+        if not ok:
+            return
+
+        # Rule selection loop
+        if not _show_rule_selection():
+            return
+
+        # Remaining tutorial steps (goal, card stats, etc.)
+        for step in STEPS[1:]:
             print(term.clear)
             ok = show_dialog(step["lines"], speaker=SPEAKER)
             if not ok:
                 return
-
             handler = _INTERACTIVE.get(step["interactive"])
             if handler is not None:
                 ok = handler()
@@ -29,6 +39,311 @@ def run_tutorial() -> None:
                     return
 
         _show_goodbye()
+
+
+def _show_rule_selection() -> bool:
+    """Show a rule topic selection menu, loop until user skips or quits."""
+    topic_keys = list(RULE_TOPIC_STEPS.keys())
+
+    while True:
+        topic_labels = [RULE_TOPIC_STEPS[k]["lines"][0] for k in topic_keys]
+        topic_labels.append("Skip — continue without deep-dive")
+        idx = _selector_menu("Choose a Rule to Explore", topic_labels)
+
+        if idx is None:
+            return False
+
+        if idx >= len(topic_keys):
+            return True
+
+        topic = topic_keys[idx]
+        data = RULE_TOPIC_STEPS[topic]
+
+        print(term.clear)
+        ok = show_dialog(data["lines"], speaker=SPEAKER)
+        if not ok:
+            return False
+
+        handler = _INTERACTIVE.get(data["interactive"])
+        if handler is not None:
+            ok = handler()
+            if not ok:
+                return False
+
+
+# ── Rule selection menu ──────────────────────────────────────────────
+
+
+def _selector_menu(title: str, items: list[str]) -> int | None:
+    """Display a navigable selector menu (no fullscreen — outer context handles it).
+
+    Returns chosen index or None.
+    """
+    idx = 0
+    while True:
+        print(term.clear)
+        print(
+            term.move_yx(1, max(0, (term.width - term.length(title)) // 2))
+            + term.bold_cyan(title)
+        )
+        start_y = max(4, term.height // 2 - len(items) // 2)
+        for i, item in enumerate(items):
+            line = f"  {item}  "
+            x = max(0, (term.width - len(line)) // 2)
+            y = start_y + i
+            if i == idx:
+                print(term.move_yx(y, x) + term.bold_black_on_cyan(line))
+            else:
+                print(term.move_yx(y, x) + term.white(line))
+        print(
+            term.move_yx(term.height - 2, 2)
+            + term.dim
+            + "↑/↓ move • Enter select • q to cancel"
+        )
+        k = term.inkey(timeout=0.1)
+        if not k:
+            continue
+        if str(k).lower() == "q":
+            play_cancel()
+            return None
+        if k.name == "KEY_UP":
+            idx = (idx - 1) % len(items)
+            play_cursor()
+        elif k.name == "KEY_DOWN":
+            idx = (idx + 1) % len(items)
+            play_cursor()
+        elif k.name == "KEY_ENTER" or k == "\n":
+            play_confirm()
+            return idx
+
+
+# ── Deep-dive interactive demos ──────────────────────────────────────
+
+
+def _demo_same() -> bool:
+    """Demonstrate the Same rule."""
+    # Mesmerize (bottom=3) at pos 1, Thrustaevis (right=3) at pos 3
+    cpu1 = Card("Mesmerize")
+    cpu1.owner = "CPU"
+    cpu2 = Card("Thrustaevis")
+    cpu2.owner = "CPU"
+    board = Board()
+    board.place(1, cpu1)
+    board.place(3, cpu2)
+
+    player = Card("Belhelmel")
+    player.owner = "P"
+
+    _draw_demo_frame("Same Rule")
+    _draw_board_demo(board)
+    _draw_demo_text(
+        "Mesmerize bottom=3 — Thrustaevis right=3",
+        y=4,
+    )
+    _draw_demo_text("Place Same card with top=3 & left=3 at pos 5!", y=5)
+    _draw_demo_text("Press 5 to place Belhelmel at the center!", y=7)
+
+    key = _wait_for_specific_key(4, board)  # pos 5 = index 4
+    if key is None:
+        return False
+
+    board.place(4, player)
+    captures, events = resolve_captures(board, 4, player, ["Same"])
+    for _, c in captures:
+        c.owner = player.owner
+
+    print(term.clear)
+    _draw_demo_frame("Same Rule")
+    _draw_board_demo(board)
+
+    if "Same" in events:
+        _draw_demo_text(
+            f"Same triggered! {len(captures)} cards captured!",
+            y=5,
+        )
+    else:
+        _draw_demo_text("Same did not trigger. Check values.", y=5)
+
+    show_dialog(
+        [
+            "Same Rule: If 2+ sides of your placed card match the",
+            "touching opponent values exactly, capture ALL adjacent!",
+        ],
+        speaker=SPEAKER,
+    )
+    return True
+
+
+def _demo_same_wall() -> bool:
+    """Demonstrate Same Wall (board edges count as rank A)."""
+    cpu = Card("Gayla")
+    cpu.owner = "CPU"
+    board = Board()
+    board.place(4, cpu)
+
+    player = Card("Bahamut")
+    player.owner = "P"
+
+    _draw_demo_frame("Same Wall")
+    _draw_board_demo(board)
+    _draw_demo_text("Gayla [CPU] is at the center (pos 5).", y=4)
+    _draw_demo_text("Your Bahamut top=10 matches the board edge (rank A)!", y=5)
+    _draw_demo_text("And bottom=2 matches Gayla top=2 — that's 2 matches.", y=6)
+    _draw_demo_text("Press 2 to place Bahamut at the top edge!", y=8)
+
+    key = _wait_for_specific_key(1, board)  # pos 2 = index 1
+    if key is None:
+        return False
+
+    board.place(1, player)
+    captures, events = resolve_captures(board, 1, player, {"Same", "Same Wall"})
+    for _, c in captures:
+        c.owner = player.owner
+
+    print(term.clear)
+    _draw_demo_frame("Same Wall")
+    _draw_board_demo(board)
+
+    if "Same" in events:
+        _draw_demo_text(
+            f"Same Wall triggered via edge + match! {len(captures)} captured!",
+            y=5,
+        )
+    else:
+        _draw_demo_text("Same did not trigger.", y=5)
+
+    show_dialog(
+        [
+            "Same Wall: Board edges count as rank A (10) toward",
+            "the Same rule's 2+ match requirement. Very powerful",
+            "on corner and edge cells!",
+        ],
+        speaker=SPEAKER,
+    )
+    return True
+
+
+def _demo_plus() -> bool:
+    """Demonstrate the Plus rule."""
+    opp1 = Card("Grat")
+    opp1.owner = "CPU"
+    opp2 = Card("Red Bat")
+    opp2.owner = "CPU"
+    board = Board()
+    board.place(1, opp1)
+    board.place(3, opp2)
+
+    player = Card("Gayla")
+    player.owner = "P"
+
+    _draw_demo_frame("Plus Rule")
+    _draw_board_demo(board)
+    _draw_demo_text("Gayla  [T:2  R:1  B:4  L:4]", y=4)
+    _draw_demo_text(
+        "Top(2) + Grat bottom(3) = 5",
+        y=5,
+    )
+    _draw_demo_text(
+        "Left(4) + Red Bat right(1) = 5",
+        y=6,
+    )
+    _draw_demo_text("Equal sums on 2 sides → Plus triggers!", y=7)
+    _draw_demo_text("Press 5 to place Gayla at the center!", y=9)
+
+    key = _wait_for_specific_key(4, board)
+    if key is None:
+        return False
+
+    board.place(4, player)
+    captures, events = resolve_captures(board, 4, player, ["Plus"])
+    for _, c in captures:
+        c.owner = player.owner
+
+    print(term.clear)
+    _draw_demo_frame("Plus Rule")
+    _draw_board_demo(board)
+
+    if "Plus" in events:
+        _draw_demo_text(
+            f"Plus triggered! {len(captures)} cards captured!",
+            y=5,
+        )
+    else:
+        _draw_demo_text("Plus did not trigger. Check sums.", y=5)
+
+    show_dialog(
+        [
+            "Plus Rule: If the sums of your card's value + adjacent",
+            "opponent's value are equal on 2+ sides, capture them all!",
+        ],
+        speaker=SPEAKER,
+    )
+    return True
+
+
+def _demo_combo() -> bool:
+    """Demonstrate the Combo chain reaction."""
+    board = Board()
+    opp1 = Card("Mesmerize")
+    opp1.owner = "CPU"
+    opp2 = Card("Thrustaevis")
+    opp2.owner = "CPU"
+    opp3 = Card("Grat")
+    opp3.owner = "CPU"
+    opp4 = Card("Geezard")
+    opp4.owner = "CPU"
+    board.place(1, opp1)
+    board.place(3, opp2)
+    board.place(0, opp3)
+    board.place(6, opp4)
+
+    player = Card("Belhelmel")
+    player.owner = "P"
+
+    _draw_demo_frame("Combo Rule")
+    _draw_board_demo(board)
+    _draw_demo_text(
+        "Belhelmel top=3 matches Mesmerize bottom=3",
+        y=4,
+    )
+    _draw_demo_text(
+        "Belhelmel left=3 matches Thrustaevis right=3",
+        y=5,
+    )
+    _draw_demo_text("Same triggers — then Combo chain-captures!", y=6)
+    _draw_demo_text("Press 5 to place Belhelmel at center!", y=8)
+
+    key = _wait_for_specific_key(4, board)
+    if key is None:
+        return False
+
+    board.place(4, player)
+    captures, events = resolve_captures(board, 4, player, ["Same"])
+    for _, c in captures:
+        c.owner = player.owner
+
+    print(term.clear)
+    _draw_demo_frame("Combo Rule")
+    _draw_board_demo(board)
+
+    combo_label = "Combo" in events
+    if cap := (len(captures) if combo_label else 0):
+        _draw_demo_text(
+            f"Same + Combo! {cap} cards captured in chain!",
+            y=5,
+        )
+    else:
+        _draw_demo_text("Same triggered but no chain reaction.", y=5)
+
+    show_dialog(
+        [
+            "Combo: When Same/Plus triggers, every flipped card",
+            "automatically chain-captures its neighbors via the",
+            "basic (higher-value-wins) rule. Can wipe the board!",
+        ],
+        speaker=SPEAKER,
+    )
+    return True
 
 
 def _show_goodbye() -> None:
@@ -203,6 +518,10 @@ _INTERACTIVE: dict[str, Any] = {
     "place_demo": _demo_place_card,
     "capture_demo": _demo_capture,
     "element_demo": _demo_element,
+    "same_demo": _demo_same,
+    "same_wall_demo": _demo_same_wall,
+    "plus_demo": _demo_plus,
+    "combo_demo": _demo_combo,
 }
 
 

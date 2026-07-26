@@ -1,6 +1,3 @@
-import time
-from typing import Any
-
 from blessed import Terminal
 
 from ..synth.sfx import play_cancel, play_confirm
@@ -63,6 +60,7 @@ def show_dialog(
 
     typed_chars = 0
     total_chars = sum(len(line) for line in wrapped)
+    skip = False
 
     header = f" {speaker} "
     bar = "─" * (width - 2 - len(header))
@@ -70,6 +68,16 @@ def show_dialog(
     _draw_box(box_x, box_y, width, box_h, header, bar)
     _clear_text_area(box_x, text_start_y, inner_w, len(wrapped))
     for i, wline in enumerate(wrapped):
+        if skip:
+            y = text_start_y + i
+            print(
+                term.move_yx(y, box_x + 2)
+                + term.white(wline.ljust(inner_w))
+                + term.normal,
+                end="",
+                flush=True,
+            )
+            continue
         y = text_start_y + i
         line_to_print = ""
         for ch in wline:
@@ -84,12 +92,20 @@ def show_dialog(
             typed_chars += 1
             progress = typed_chars / total_chars
             delay = max(0.005, 0.03 - progress * 0.02)
-            time.sleep(delay)
+            k = term.inkey(timeout=delay)
+            if k:
+                if str(k).lower() == "q":
+                    play_cancel()
+                    return False
+                if k.name == "KEY_ENTER" or k == "\n":
+                    play_confirm()
+                    skip = True
+                    break
 
     _show_prompt(box_x, box_y, box_h, width)
 
     while True:
-        k: Any = term.inkey(timeout=0.1)
+        k = term.inkey(timeout=0.1)
         if not k:
             continue
         if str(k).lower() == "q":
