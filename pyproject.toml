@@ -17,9 +17,9 @@ classifiers = [
 ]
 urls = { "Homepage" = "https://github.com/fernando24164/triple-triad-ff8" }
 dependencies = [
-    "blessed>=1.38.0",
-    "numpy>=2.4.4",
-    "pygame>=2.6.1",
+    "blessed>=1.47.0",
+    "numpy>=2.5.1",
+    "pygame-ce>=2.5.7",
 ]
 
 [project.scripts]
@@ -34,10 +34,10 @@ packages = ["triple_triad"]
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
-    "ruff>=0.15.9",
-    "pre-commit>=4.2.0",
-    "mypy>=2.1.0",
+    "pytest>=9.1.1",
+    "ruff>=0.16.0",
+    "pre-commit>=4.6.0",
+    "mypy>=2.2.0",
 ]
 
 [tool.ruff]

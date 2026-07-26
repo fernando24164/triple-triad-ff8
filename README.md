@@ -10,19 +10,15 @@
   <img src="https://img.shields.io/badge/tests-passing-brightgreen" alt="Tests status">
 </p>
 
-A terminal-based Python implementation of the classic **Triple Triad** card game from *Final Fantasy VIII*, complete with chiptune background music, smart AI opponents, and support for official rules like Same, Plus, and Open.
+A terminal-based Python implementation of the classic **Triple Triad** card game from *Final Fantasy VIII*, complete card collection with the clasical rules
 
 ---
 
 ## ✨ Features
 
-- **Authentic gameplay** — 110 cards from FFVIII
-- **3 difficulty levels** — Easy, Medium, and Hard CPU opponents with distinct AI strategies
-- **Optional rules** — Open, Same, Plus, and Random capture mechanics
-- **Chiptune music** — Retro-style background music generated with NumPy and played through Pygame
+- **110 cards from FFVIII**
+- **Chiptune music** — Retro-style background music generated with NumPy and played through pygame-ce
 - **Interactive deck builder** — Browse, filter, and sort all cards before picking your hand
-- **Deck presets** — Themed decks (Fire Power, Ice Wall, Thunder Rush, and more)
-- **Terminal rendering** — ANSI-colored board with card ownership indicators
 
 ---
 
@@ -60,7 +56,7 @@ Triple Triad is a 2-player card game played on a 3×3 grid. Each player has 5 ca
 
 - **Python 3.13+**
 - **NumPy** (for audio synthesis)
-- **Pygame** (for audio playback — optional, game runs silently without it)
+- **pygame-ce** (for audio playback — optional, game runs silently without it)
 
 ### Installation from PyPI
 
@@ -123,9 +119,8 @@ This displays a comprehensive guide covering game rules, card mechanics, and gam
 
 The game includes a built-in chiptune soundtrack synthesized entirely in software:
 
-- **5 channels**: melody, harmony, pad, bass, and percussion
 - **Generated with NumPy** — no audio files required
-- **Played through Pygame** — if Pygame is unavailable, the game runs silently
+- **Played through pygame-ce** — if pygame-ce is unavailable, the game runs silently
 
 ---
 
@@ -174,14 +169,12 @@ Triple Triad supports **direct peer-to-peer** multiplayer over TCP.
 
 ### ⚠️ NAT / Firewall Limitations
 
-The current P2P implementation uses **direct TCP connections** and does **not** include NAT traversal (STUN/TURN/UPnP). This means:
+The current P2P implementation uses **direct TCP connections** 
 
 | Scenario | Works? |
 |----------|--------|
 | Both players on the same local network | ✅ |
 | Host has a public IP or port forwarding configured | ✅ |
-| Host is behind a strict NAT without port forwarding | ❌ |
-| Guest is behind symmetric NAT | ❌ |
 
 **Workarounds:**
 
