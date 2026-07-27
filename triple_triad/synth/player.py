@@ -25,6 +25,7 @@ class ChiptunePlayer:
     def __init__(self) -> None:
         self._sound: pygame.mixer.Sound | None = None
         self._is_playing = False
+        self._volume = 1.0
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
@@ -63,6 +64,15 @@ class ChiptunePlayer:
     def is_playing(self) -> bool:
         return self._is_playing
 
+    def set_volume(self, volume: float) -> None:
+        """Set playback volume (0.0-1.0). Applies immediately if already playing."""
+        self._volume = max(0.0, min(1.0, volume))
+        if not HAS_AUDIO:
+            return
+        with self._lock:
+            if self._sound is not None:
+                self._sound.set_volume(self._volume)
+
     def _ensure_sound(self) -> None:
         """Generate the music buffer once and create a pygame Sound."""
         if self._sound is not None:
@@ -82,6 +92,7 @@ class ChiptunePlayer:
             )
 
         self._sound = pygame.sndarray.make_sound(stereo)
+        self._sound.set_volume(self._volume)
 
     def _play_loop(self) -> None:
         """Background thread: loop music until stop() is called."""

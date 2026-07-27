@@ -24,6 +24,7 @@ from .network.protocol import (
     DEFAULT_PORT,
     HANDSHAKE_TIMEOUT_S,
 )
+from .synth.constants import DEFAULT_MUSIC_VOLUME_IDX, MUSIC_VOLUME_LEVELS
 from .synth.player import ChiptunePlayer
 from .tutorial.tutorial_engine import run_tutorial
 from .ui.cli import (
@@ -335,8 +336,9 @@ def main() -> None:
     print_banner()
 
     music_player = ChiptunePlayer()
-    music_on = not args.no_music and not args.headless
-    if music_on:
+    volume_idx = DEFAULT_MUSIC_VOLUME_IDX
+    music_player.set_volume(MUSIC_VOLUME_LEVELS[volume_idx][1])
+    if not args.no_music and not args.headless:
         music_player.start()
 
     try:
@@ -350,14 +352,7 @@ def main() -> None:
             elif choice == "deck_manager":
                 deck_manager_ui()
             elif choice == "options":
-                result = options_menu(music_on)
-                if result == "toggle_music":
-                    if music_on:
-                        music_player.stop()
-                        music_on = False
-                    else:
-                        music_player.start()
-                        music_on = True
+                volume_idx = options_menu(music_player, volume_idx)
             elif choice == "new_game":
                 game_type = new_game_menu()
                 if game_type == "single":

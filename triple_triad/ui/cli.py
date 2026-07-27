@@ -7,6 +7,7 @@ from blessed import Terminal
 from ..constants import BOARD_CELLS
 from ..data.cards import Element
 from ..models.card import Card
+from ..synth.constants import MUSIC_VOLUME_LEVELS
 from ..synth.sfx import play_cancel, play_confirm, play_cursor
 
 term = Terminal()
@@ -315,13 +316,66 @@ def new_game_menu() -> str | None:
     return ["single", "tournament", "multiplayer"][sel]
 
 
-def options_menu(music_on: bool) -> str | None:
-    music_label = "Mute Music" if music_on else "Start Music"
-    items = [music_label, "Back"]
-    sel = selector("Options", items)
-    if sel is None or sel == 1:
-        return None
-    return "toggle_music"
+def options_menu(music_player: Any, volume_idx: int) -> int:
+    """Interactive options screen: toggle music and adjust its intensity.
+
+    Music on/off and volume changes are applied live to ``music_player`` as
+    the user adjusts them (←/→ steps through the volume levels). Returns the
+    resulting volume index so callers can carry it into the next visit.
+    """
+    idx = 0
+    help_text = "↑/↓ move • ←/→ adjust volume • Enter select • q back"
+
+    with term.fullscreen(), term.cbreak(), term.hidden_cursor():
+        while True:
+            music_on = music_player.is_playing()
+            vol_name, _ = MUSIC_VOLUME_LEVELS[volume_idx]
+            items = [
+                "Mute Music" if music_on else "Start Music",
+                f"Music Volume:  ◀ {vol_name} ▶",
+                "Back",
+            ]
+
+            _draw_frame("Options")
+            start_y = max(5, term.height // 2 - len(items) // 2)
+            for i, item in enumerate(items):
+                line = f"  {item}  "
+                x = _center_x(line)
+                if i == idx:
+                    print(term.move_yx(start_y + i, x) + term.bold_black_on_cyan(line))
+                else:
+                    print(term.move_yx(start_y + i, x) + term.white(line))
+            print(term.move_yx(term.height - 2, 2) + term.dim + help_text)
+
+            k = term.inkey(timeout=0.2)
+            if not k:
+                continue
+
+            if k.name == "KEY_UP":
+                idx = (idx - 1) % len(items)
+                play_cursor()
+            elif k.name == "KEY_DOWN":
+                idx = (idx + 1) % len(items)
+                play_cursor()
+            elif idx == 1 and k.name in ("KEY_LEFT", "KEY_RIGHT"):
+                step = -1 if k.name == "KEY_LEFT" else 1
+                new_idx = volume_idx + step
+                if 0 <= new_idx < len(MUSIC_VOLUME_LEVELS):
+                    volume_idx = new_idx
+                    music_player.set_volume(MUSIC_VOLUME_LEVELS[volume_idx][1])
+                    play_cursor()
+            elif k.name == "KEY_ENTER" or k == "\n":
+                play_confirm()
+                if idx == 0:
+                    if music_on:
+                        music_player.stop()
+                    else:
+                        music_player.start()
+                elif idx == 2:
+                    return volume_idx
+            elif str(k).lower() == "q":
+                play_cancel()
+                return volume_idx
 
 
 def deck_manager_ui() -> None:
