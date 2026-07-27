@@ -32,6 +32,12 @@ def _draw_frame(title: str, subtitle: str = "") -> None:
         print(term.move_yx(3, _center_x(subtitle)) + term.dim + subtitle)
 
 
+def _clear_row(y: int) -> str:
+    """Escape sequence to blank a single row without touching the rest of
+    the screen — avoids the full-screen clear+repaint flash on redraw."""
+    return term.move_yx(y, 0) + term.clear_eol
+
+
 def _screen_border() -> None:
     w, h = term.width, term.height
     c = term.cyan
@@ -137,11 +143,14 @@ class _MenuBase:
 
     def run(self) -> int | set[str] | None:
         with term.fullscreen(), term.cbreak(), term.hidden_cursor():
-            while True:
-                self.draw()
-                self.draw_items()
-                print(term.move_yx(term.height - 2, 2) + term.dim + self.help_text)
+            # Frame + help text are static for the life of this menu, so they
+            # only need to be painted once — only draw_items() (below) runs
+            # on every keypress, to avoid a full-screen clear/flash per move.
+            self.draw()
+            self.draw_items()
+            print(term.move_yx(term.height - 2, 2) + term.dim + self.help_text)
 
+            while True:
                 k = term.inkey(timeout=0.2)
                 if not k:
                     continue
@@ -151,6 +160,7 @@ class _MenuBase:
                 result = self.handle_key(k)
                 if result is not None:
                     return result
+                self.draw_items()
 
 
 class _SelectorMenu(_MenuBase):
@@ -169,13 +179,14 @@ class _SelectorMenu(_MenuBase):
 
     def draw_items(self) -> None:
         start_y = max(5, term.height // 2 - len(self.items) // 2)
+        out = []
         for i, item in enumerate(self.items):
             line = f"  {item}  "
             x = _center_x(line)
-            if i == self.idx:
-                print(term.move_yx(start_y + i, x) + term.bold_black_on_cyan(line))
-            else:
-                print(term.move_yx(start_y + i, x) + term.white(line))
+            y = start_y + i
+            style = term.bold_black_on_cyan if i == self.idx else term.white
+            out.append(_clear_row(y) + term.move_yx(y, x) + style(line))
+        print("".join(out), end="", flush=True)
 
     def on_enter(self) -> int:
         return self.idx
@@ -201,14 +212,15 @@ class _MultiSelectorMenu(_MenuBase):
 
     def draw_items(self) -> None:
         start_y = max(5, term.height // 2 - len(self.options) // 2)
+        out = []
         for i, (opt_id, label) in enumerate(self.options):
             mark = "✓" if opt_id in self.selected else " "
             line = f"[{mark}] {label}"
             x = _center_x(line)
-            if i == self.idx:
-                print(term.move_yx(start_y + i, x) + term.bold_black_on_cyan(line))
-            else:
-                print(term.move_yx(start_y + i, x) + term.white(line))
+            y = start_y + i
+            style = term.bold_black_on_cyan if i == self.idx else term.white
+            out.append(_clear_row(y) + term.move_yx(y, x) + style(line))
+        print("".join(out), end="", flush=True)
 
     def handle_key(self, k: Any) -> set[str] | None:
         if k == " ":
@@ -255,10 +267,15 @@ def main_menu() -> str:
     items = ["New Game", "Deck Manager", "Tutorial", "Options", "Quit"]
     idx = 0
 
+    avail_start_y: int = 0
+
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
         _animate_title()
 
-        while True:
+        def draw_frame() -> None:
+            # Border, title art, and help text never change during this menu's
+            # lifetime — painted once so navigation never needs a full clear.
+            nonlocal avail_start_y
             print(term.clear)
             _screen_border()
 
@@ -270,18 +287,7 @@ def main_menu() -> str:
                 )
 
             avail = term.height - (2 + len(TITLE_ART))
-            start_y = 2 + len(TITLE_ART) + (avail - len(items)) // 2
-            for i, item in enumerate(items):
-                line = f"  {item}  "
-                x = _center_x(line)
-                if i == idx:
-                    print(
-                        term.normal
-                        + term.move_yx(start_y + i, x)
-                        + term.bold_black_on_cyan(line)
-                    )
-                else:
-                    print(term.normal + term.move_yx(start_y + i, x) + term.white(line))
+            avail_start_y = 2 + len(TITLE_ART) + (avail - len(items)) // 2
 
             help_text = "↑/↓ move • Enter select"
             print(
@@ -291,15 +297,30 @@ def main_menu() -> str:
                 + help_text
             )
 
+        def draw_items() -> None:
+            out = []
+            for i, item in enumerate(items):
+                line = f"  {item}  "
+                x = _center_x(line)
+                y = avail_start_y + i
+                style = term.bold_black_on_cyan if i == idx else term.white
+                out.append(term.normal + _clear_row(y) + term.move_yx(y, x) + style(line))
+            print("".join(out), end="", flush=True)
+
+        draw_frame()
+        draw_items()
+        while True:
             k = term.inkey(timeout=0.15)
             if not k:
                 continue
             if k.name == "KEY_UP":
                 idx = (idx - 1) % len(items)
                 play_cursor()
+                draw_items()
             elif k.name == "KEY_DOWN":
                 idx = (idx + 1) % len(items)
                 play_cursor()
+                draw_items()
             elif k.name == "KEY_ENTER" or k == "\n":
                 play_confirm()
                 return ["new_game", "deck_manager", "tutorial", "options", "quit"][idx]
@@ -325,9 +346,19 @@ def options_menu(music_player: Any, volume_idx: int) -> int:
     """
     idx = 0
     help_text = "↑/↓ move • ←/→ adjust volume • Enter select • q back"
+    start_y = 0
 
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
-        while True:
+
+        def draw_frame() -> None:
+            # Header and help text are static; only draw_items() (below)
+            # needs to repaint on each key, so a move never re-clears them.
+            nonlocal start_y
+            _draw_frame("Options")
+            start_y = max(5, term.height // 2 - 3 // 2)
+            print(term.move_yx(term.height - 2, 2) + term.dim + help_text)
+
+        def draw_items() -> None:
             music_on = music_player.is_playing()
             vol_name, _ = MUSIC_VOLUME_LEVELS[volume_idx]
             items = [
@@ -335,28 +366,30 @@ def options_menu(music_player: Any, volume_idx: int) -> int:
                 f"Music Volume:  ◀ {vol_name} ▶",
                 "Back",
             ]
-
-            _draw_frame("Options")
-            start_y = max(5, term.height // 2 - len(items) // 2)
+            out = []
             for i, item in enumerate(items):
                 line = f"  {item}  "
                 x = _center_x(line)
-                if i == idx:
-                    print(term.move_yx(start_y + i, x) + term.bold_black_on_cyan(line))
-                else:
-                    print(term.move_yx(start_y + i, x) + term.white(line))
-            print(term.move_yx(term.height - 2, 2) + term.dim + help_text)
+                y = start_y + i
+                style = term.bold_black_on_cyan if i == idx else term.white
+                out.append(_clear_row(y) + term.move_yx(y, x) + style(line))
+            print("".join(out), end="", flush=True)
 
+        draw_frame()
+        draw_items()
+        while True:
             k = term.inkey(timeout=0.2)
             if not k:
                 continue
 
             if k.name == "KEY_UP":
-                idx = (idx - 1) % len(items)
+                idx = (idx - 1) % 3
                 play_cursor()
+                draw_items()
             elif k.name == "KEY_DOWN":
-                idx = (idx + 1) % len(items)
+                idx = (idx + 1) % 3
                 play_cursor()
+                draw_items()
             elif idx == 1 and k.name in ("KEY_LEFT", "KEY_RIGHT"):
                 step = -1 if k.name == "KEY_LEFT" else 1
                 new_idx = volume_idx + step
@@ -364,13 +397,15 @@ def options_menu(music_player: Any, volume_idx: int) -> int:
                     volume_idx = new_idx
                     music_player.set_volume(MUSIC_VOLUME_LEVELS[volume_idx][1])
                     play_cursor()
+                    draw_items()
             elif k.name == "KEY_ENTER" or k == "\n":
                 play_confirm()
                 if idx == 0:
-                    if music_on:
+                    if music_player.is_playing():
                         music_player.stop()
                     else:
                         music_player.start()
+                    draw_items()
                 elif idx == 2:
                     return volume_idx
             elif str(k).lower() == "q":
