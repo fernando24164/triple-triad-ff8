@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 import time
 from collections.abc import Collection
+from contextlib import nullcontext
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -23,6 +24,7 @@ from ..network.protocol import (
     parse_packet,
 )
 from ..synth.sfx import play_capture_lose, play_capture_win
+from ..ui.capture_fx import animate_captures
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
 from .rules import resolve_captures
@@ -109,14 +111,39 @@ def _decide_first() -> str:
     return first
 
 
-def _display_board_text(
-    board: Board, turn: str, turn_number: int, p_score: int, c_score: int
-) -> None:
-    print("\n" + "=" * 62)
-    print(f"  Turn {turn_number}  |  {'YOUR TURN' if turn == 'P' else 'OPPONENT TURN'}")
-    print("=" * 62)
-    print(board.display())
-    print(f"\n  Score - You: {p_score}  Opponent: {c_score}")
+def _render_turn_screen(
+    term: Terminal | None,
+    use_screen: bool,
+    board: Board,
+    turn_label: str,
+    turn_number: int,
+    p_score: int,
+    c_score: int,
+    score_labels: tuple[str, str] = ("You", "CPU"),
+    sep: str = "═",
+    note: str | None = None,
+) -> int:
+    """Draw one turn's screen — clearing first if a persistent (fullscreen)
+    terminal is in use, so the board updates in place instead of scrolling.
+
+    Returns the number of lines from the board's top border down to the
+    resulting (blank) cursor line, for use as capture_fx's ``cursor_row``.
+    """
+    if use_screen and term is not None:
+        print(term.clear, end="")
+    bar = sep * 62
+    print("\n" + bar)
+    print(f"  Turn {turn_number}  |  {turn_label}")
+    print(bar)
+    board_text = board.display()
+    print(board_text)
+    you_label, opp_label = score_labels
+    print(f"\n  Score — {you_label}: {p_score}  {opp_label}: {c_score}")
+    lines = board_text.count("\n") + 1 + 2
+    if note is not None:
+        print(f"\n  {note}")
+        lines += 2
+    return lines
 
 
 def run_game(
@@ -129,99 +156,126 @@ def run_game(
 ) -> str:
     """Run the full game loop until the board is full."""
     board = Board(elements=board_elements)
+    term = _get_terminal()
+    use_screen = term is not None and term.does_styling
     first = _decide_first()
 
     turn = first
     turn_number = 1
 
-    while any(board.is_empty(i) for i in range(BOARD_CELLS)):
+    screen = term.fullscreen() if (use_screen and term is not None) else nullcontext()
+    with screen:
+        while any(board.is_empty(i) for i in range(BOARD_CELLS)):
+            p_score, c_score = calculate_scores(board, player_hand, cpu_hand)
+            turn_label = "YOUR TURN" if turn == "P" else "CPU TURN"
+            _render_turn_screen(
+                term, use_screen, board, turn_label, turn_number, p_score, c_score
+            )
+
+            if turn == "P":
+                show_cpu = "Open" in rules
+                display_hand(player_hand, "Your")
+                display_hand(cpu_hand, "CPU", show=show_cpu)
+
+                while True:
+                    try:
+                        ci = int(input(f"\n  Choose card (1-{len(player_hand)}): ")) - 1
+                        if 0 <= ci < len(player_hand):
+                            break
+                        print(f"  ✗ Enter a number between 1 and {len(player_hand)}.")
+                    except ValueError:
+                        print("  ✗ Enter a number.")
+
+                empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
+                while True:
+                    try:
+                        pos = int(input(f"  Choose position (1-{BOARD_CELLS}): ")) - 1
+                        if pos in empty:
+                            break
+                        print("  ✗ Position taken or invalid.")
+                    except ValueError:
+                        print("  ✗ Enter a number.")
+
+                card = player_hand.pop(ci)
+                card.owner = "P"
+                board.place(pos, card)
+                move_note = f"You placed [{card.name}] at position {pos + 1}"
+
+            else:
+                print("\n  CPU is thinking...")
+                ci, cpu_pos = cpu_choose(
+                    board, cpu_hand, rules, mode=ai_mode, randomness=ai_randomness
+                )
+                assert cpu_pos is not None, "CPU had no valid move on a non-full board"
+                card = cpu_hand.pop(ci)
+                card.owner = "CPU"
+                board.place(cpu_pos, card)
+                pos = cpu_pos
+                move_note = f"CPU placed [{card.name}] at position {pos + 1}"
+
+            captures, events = resolve_captures(board, pos, card, rules)
+
+            # Redraw cleanly with the placed card visible (pre-capture) —
+            # this becomes the animation's anchor.
+            cursor_row = _render_turn_screen(
+                term,
+                use_screen,
+                board,
+                turn_label,
+                turn_number,
+                p_score,
+                c_score,
+                note=move_note,
+            )
+
+            if captures:
+                old_owners = {cpos: ccard.owner for cpos, ccard in captures}
+                if use_screen:
+                    animate_captures(term, cursor_row, captures, card.owner)
+                else:
+                    for _, ccard in captures:
+                        ccard.owner = card.owner
+                play_capture_win() if card.owner == "P" else play_capture_lose()
+            for evt in events:
+                print(f"  *** {evt.upper()}! ***")
+            for cap_pos, ncard in captures:
+                old_owner = old_owners[cap_pos]
+                ncard.owner = card.owner
+                attacker_label = "You" if card.owner == "P" else "CPU"
+                defender_label = "CPU" if old_owner == "CPU" else "You"
+                print(
+                    f"  ⚔  [{card.name}] captured [{ncard.name}]! "
+                    f"({defender_label} → {attacker_label})"
+                )
+
+            if use_screen:
+                time.sleep(0.9)
+
+            turn = "CPU" if turn == "P" else "P"
+            turn_number += 1
+
+        if use_screen and term is not None:
+            print(term.clear, end="")
         print("\n" + "═" * 62)
-        print(f"  Turn {turn_number}  |  {'YOUR TURN' if turn == 'P' else 'CPU TURN'}")
+        print("  GAME OVER")
         print("═" * 62)
         print(board.display())
 
-        p_score, c_score = calculate_scores(board, player_hand, cpu_hand)
-        print(f"\n  Score — You: {p_score}  CPU: {c_score}")
+        p_final, c_final = calculate_final_scores(board)
+        print(f"\n  Final Score — You: {p_final}  CPU: {c_final}")
 
-        if turn == "P":
-            show_cpu = "Open" in rules
-            display_hand(player_hand, "Your")
-            display_hand(cpu_hand, "CPU", show=show_cpu)
-
-            while True:
-                try:
-                    ci = int(input(f"\n  Choose card (1-{len(player_hand)}): ")) - 1
-                    if 0 <= ci < len(player_hand):
-                        break
-                    print(f"  ✗ Enter a number between 1 and {len(player_hand)}.")
-                except ValueError:
-                    print("  ✗ Enter a number.")
-
-            empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
-            while True:
-                try:
-                    pos = int(input(f"  Choose position (1-{BOARD_CELLS}): ")) - 1
-                    if pos in empty:
-                        break
-                    print("  ✗ Position taken or invalid.")
-                except ValueError:
-                    print("  ✗ Enter a number.")
-
-            card = player_hand.pop(ci)
-            card.owner = "P"
-            board.place(pos, card)
-            print(f"\n  You placed [{card.name}] at position {pos + 1}")
-
+        if p_final > c_final:
+            print("\n  🏆  YOU WIN!  Congratulations!")
+            pause_message()
+            return "P"
+        elif c_final > p_final:
+            print("\n  💀  CPU WINS!  Better luck next time!")
+            pause_message()
+            return "CPU"
         else:
-            print("\n  CPU is thinking...")
-            ci, cpu_pos = cpu_choose(
-                board, cpu_hand, rules, mode=ai_mode, randomness=ai_randomness
-            )
-            assert cpu_pos is not None, "CPU had no valid move on a non-full board"
-            card = cpu_hand.pop(ci)
-            card.owner = "CPU"
-            board.place(cpu_pos, card)
-            print(f"  CPU placed [{card.name}] at position {cpu_pos + 1}")
-            pos = cpu_pos
-
-        captures, events = resolve_captures(board, pos, card, rules)
-        if captures:
-            play_capture_win() if card.owner == "P" else play_capture_lose()
-        for evt in events:
-            print(f"  *** {evt.upper()}! ***")
-        for _, ncard in captures:
-            old_owner = ncard.owner
-            ncard.owner = card.owner
-            attacker_label = "You" if card.owner == "P" else "CPU"
-            defender_label = "CPU" if old_owner == "CPU" else "You"
-            print(
-                f"  ⚔  [{card.name}] captured [{ncard.name}]! "
-                f"({defender_label} → {attacker_label})"
-            )
-
-        turn = "CPU" if turn == "P" else "P"
-        turn_number += 1
-
-    print("\n" + "═" * 62)
-    print("  GAME OVER")
-    print("═" * 62)
-    print(board.display())
-
-    p_final, c_final = calculate_final_scores(board)
-    print(f"\n  Final Score — You: {p_final}  CPU: {c_final}")
-
-    if p_final > c_final:
-        print("\n  🏆  YOU WIN!  Congratulations!")
-        pause_message()
-        return "P"
-    elif c_final > p_final:
-        print("\n  💀  CPU WINS!  Better luck next time!")
-        pause_message()
-        return "CPU"
-    else:
-        print("\n  🤝  IT'S A DRAW!")
-        pause_message()
-        return "Draw"
+            print("\n  🤝  IT'S A DRAW!")
+            pause_message()
+            return "Draw"
 
 
 # ── P2P Game Loop ────────────────────────────────────────────────────────────
@@ -256,128 +310,165 @@ def run_p2p_game(
     turn = first_turn
     turn_number = 1
     term = _get_terminal() if not headless else None
+    use_screen = not headless and term is not None and term.does_styling
+    score_labels = ("You", "Opponent")
 
-    while any(board.is_empty(i) for i in range(BOARD_CELLS)):
-        p_score, c_score = calculate_scores(board, player_hand, opponent_hand)
+    screen = term.fullscreen() if (use_screen and term is not None) else nullcontext()
+    with screen:
+        while any(board.is_empty(i) for i in range(BOARD_CELLS)):
+            p_score, c_score = calculate_scores(board, player_hand, opponent_hand)
+            turn_label = "YOUR TURN" if turn == "P" else "OPPONENT TURN"
 
-        if not headless and term:
-            _display_board_text(board, turn, turn_number, p_score, c_score)
+            if not headless and term:
+                _render_turn_screen(
+                    term,
+                    use_screen,
+                    board,
+                    turn_label,
+                    turn_number,
+                    p_score,
+                    c_score,
+                    score_labels=score_labels,
+                    sep="=",
+                )
 
-        is_local_turn = (turn == "P" and local_role == "P1") or (
-            turn == "CPU" and local_role == "P2"
-        )
+            is_local_turn = (turn == "P" and local_role == "P1") or (
+                turn == "CPU" and local_role == "P2"
+            )
 
-        pos = -1
-        card = None
+            pos = -1
+            card = None
+            move_note = ""
 
-        if is_local_turn:
-            if headless:
-                ci, cpu_pos = cpu_choose(board, player_hand, rules, mode="greedy")
-                assert cpu_pos is not None
-                pos = cpu_pos
-                card = player_hand.pop(ci)
-                card.owner = "P"
-                board.place(pos, card)
-                if not headless and term:
-                    print(f"\n  You placed [{card.name}] at position {pos + 1}")
-                conn.send(make_move(ci, pos))
+            if is_local_turn:
+                if headless:
+                    ci, cpu_pos = cpu_choose(board, player_hand, rules, mode="greedy")
+                    assert cpu_pos is not None
+                    pos = cpu_pos
+                    card = player_hand.pop(ci)
+                    card.owner = "P"
+                    board.place(pos, card)
+                    conn.send(make_move(ci, pos))
+                else:
+                    card, pos = _get_local_move_interactive(
+                        board, player_hand, opponent_hand, rules, term, local_role
+                    )
+                    ci_index = player_hand.index(card)
+                    player_hand.pop(ci_index)
+                    card.owner = "P"
+                    board.place(pos, card)
+                    conn.send(make_move(ci_index, pos))
+                move_note = f"You placed [{card.name}] at position {pos + 1}"
             else:
-                card, pos = _get_local_move_interactive(
-                    board, player_hand, opponent_hand, rules, term, local_role
+                if not headless and term:
+                    print("\n  Opponent is thinking...")
+                    display_hand(player_hand, "Your", show="Open" in rules)
+                    display_hand(opponent_hand, "Opponent", show=True)
+
+                packet = _wait_for_move(conn, term, headless)
+                if packet is None:
+                    if not headless and term:
+                        print("\n  Opponent took too long!")
+                    return "P1_WIN" if local_role == "P1" else "P2_WIN"
+
+                msg_type, payload = parse_packet(packet)
+                if msg_type == MessageType.FORFEIT:
+                    if not headless and term:
+                        reason = payload.get("reason", "")
+                        print(f"\n  Opponent forfeited! {reason}")
+                    return "P1_WIN" if local_role == "P1" else "P2_WIN"
+
+                if msg_type in (MessageType.DISCONNECT, MessageType.CONNECTION_LOST):
+                    if not headless and term:
+                        print("\n  Opponent disconnected!")
+                    return "P1_WIN" if local_role == "P1" else "P2_WIN"
+
+                opp_ci = payload["card_idx"]
+                opp_pos = payload["position"]
+
+                if opp_ci < 0 or opp_ci >= len(opponent_hand):
+                    conn.send(make_forfeit("Invalid card index"))
+                    return "P1_WIN" if local_role == "P1" else "P2_WIN"
+
+                if opp_pos < 0 or opp_pos >= BOARD_CELLS or not board.is_empty(opp_pos):
+                    conn.send(make_forfeit("Invalid position"))
+                    return "P1_WIN" if local_role == "P1" else "P2_WIN"
+
+                opp_card = opponent_hand.pop(opp_ci)
+                opp_card.owner = "CPU"
+                board.place(opp_pos, opp_card)
+                card = opp_card
+                pos = opp_pos
+                move_note = f"Opponent placed [{card.name}] at position {pos + 1}"
+
+            assert card is not None and pos >= 0
+            captures, events = resolve_captures(board, pos, card, rules)
+            if not headless and term:
+                cursor_row = _render_turn_screen(
+                    term,
+                    use_screen,
+                    board,
+                    turn_label,
+                    turn_number,
+                    p_score,
+                    c_score,
+                    score_labels=score_labels,
+                    sep="=",
+                    note=move_note,
                 )
-                ci_index = player_hand.index(card)
-                player_hand.pop(ci_index)
-                card.owner = "P"
-                board.place(pos, card)
-                if term:
-                    print(f"\n  You placed [{card.name}] at position {pos + 1}")
-                conn.send(make_move(ci_index, pos))
-        else:
-            if not headless and term:
-                print("\n  Opponent is thinking...")
-                display_hand(player_hand, "Your", show="Open" in rules)
-                display_hand(opponent_hand, "Opponent", show=True)
+                if captures:
+                    old_owners = {cpos: ccard.owner for cpos, ccard in captures}
+                    if use_screen:
+                        animate_captures(term, cursor_row, captures, card.owner)
+                    else:
+                        for _, ccard in captures:
+                            ccard.owner = card.owner
+                    play_capture_win() if card.owner == "P" else play_capture_lose()
+                for evt in events:
+                    print(f"  *** {evt.upper()}! ***")
+                for cap_pos, ncard in captures:
+                    old_owner = old_owners[cap_pos]
+                    ncard.owner = card.owner
+                    attacker_label = "You" if card.owner == "P" else "Opponent"
+                    defender_label = "Opponent" if old_owner == "CPU" else "You"
+                    print(
+                        f"  [{card.name}] captured [{ncard.name}]! "
+                        f"({defender_label} -> {attacker_label})"
+                    )
+                if use_screen:
+                    time.sleep(0.9)
+            else:
+                for _, ccard in captures:
+                    ccard.owner = card.owner
 
-            packet = _wait_for_move(conn, term, headless)
-            if packet is None:
-                if not headless and term:
-                    print("\n  Opponent took too long!")
-                return "P1_WIN" if local_role == "P1" else "P2_WIN"
+            turn = "CPU" if turn == "P" else "P"
+            turn_number += 1
 
-            msg_type, payload = parse_packet(packet)
-            if msg_type == MessageType.FORFEIT:
-                if not headless and term:
-                    reason = payload.get("reason", "")
-                    print(f"\n  Opponent forfeited! {reason}")
-                return "P1_WIN" if local_role == "P1" else "P2_WIN"
+        p_final, c_final = calculate_final_scores(board)
 
-            if msg_type in (MessageType.DISCONNECT, MessageType.CONNECTION_LOST):
-                if not headless and term:
-                    print("\n  Opponent disconnected!")
-                return "P1_WIN" if local_role == "P1" else "P2_WIN"
-
-            opp_ci = payload["card_idx"]
-            opp_pos = payload["position"]
-
-            if opp_ci < 0 or opp_ci >= len(opponent_hand):
-                conn.send(make_forfeit("Invalid card index"))
-                return "P1_WIN" if local_role == "P1" else "P2_WIN"
-
-            if opp_pos < 0 or opp_pos >= BOARD_CELLS or not board.is_empty(opp_pos):
-                conn.send(make_forfeit("Invalid position"))
-                return "P1_WIN" if local_role == "P1" else "P2_WIN"
-
-            opp_card = opponent_hand.pop(opp_ci)
-            opp_card.owner = "CPU"
-            board.place(opp_pos, opp_card)
-            card = opp_card
-            pos = opp_pos
-            if not headless and term:
-                print(f"  Opponent placed [{card.name}] at position {pos + 1}")
-
-        assert card is not None and pos >= 0
-        captures, events = resolve_captures(board, pos, card, rules)
         if not headless and term:
-            if captures:
-                play_capture_win() if card.owner == "P" else play_capture_lose()
-            for evt in events:
-                print(f"  *** {evt.upper()}! ***")
-            for _, ncard in captures:
-                old_owner = ncard.owner
-                ncard.owner = card.owner
-                attacker_label = "You" if card.owner == "P" else "Opponent"
-                defender_label = "Opponent" if old_owner == "CPU" else "You"
-                print(
-                    f"  [{card.name}] captured [{ncard.name}]! "
-                    f"({defender_label} -> {attacker_label})"
-                )
+            if use_screen:
+                print(term.clear, end="")
+            print("\n" + "=" * 62)
+            print("  GAME OVER")
+            print("=" * 62)
+            print(board.display())
+            print(f"\n  Final Score - You: {p_final}  Opponent: {c_final}")
 
-        turn = "CPU" if turn == "P" else "P"
-        turn_number += 1
+        if p_final > c_final:
+            result = "P1_WIN" if local_role == "P1" else "P2_WIN"
+            label = "YOU WIN!"
+        elif c_final > p_final:
+            result = "P2_WIN" if local_role == "P1" else "P1_WIN"
+            label = "You lost. Better luck next time!"
+        else:
+            result = "DRAW"
+            label = "It's a draw!"
 
-    p_final, c_final = calculate_final_scores(board)
-
-    if not headless and term:
-        print("\n" + "=" * 62)
-        print("  GAME OVER")
-        print("=" * 62)
-        print(board.display())
-        print(f"\n  Final Score - You: {p_final}  Opponent: {c_final}")
-
-    if p_final > c_final:
-        result = "P1_WIN" if local_role == "P1" else "P2_WIN"
-        label = "YOU WIN!"
-    elif c_final > p_final:
-        result = "P2_WIN" if local_role == "P1" else "P1_WIN"
-        label = "You lost. Better luck next time!"
-    else:
-        result = "DRAW"
-        label = "It's a draw!"
-
-    if not headless and term:
-        print(f"\n  {label}")
-        pause_message()
-    return result
+        if not headless and term:
+            print(f"\n  {label}")
+            pause_message()
+        return result
 
 
 def _get_local_move_interactive(
