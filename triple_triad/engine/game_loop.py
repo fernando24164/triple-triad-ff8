@@ -49,9 +49,10 @@ def _get_terminal() -> Terminal | None:
         return None
 
 
-def _decide_first() -> str:
-    """Animate a bouncing selector between YOU and CPU, then reveal who goes first."""
-    term = _get_terminal()
+def _decide_first(term: Terminal | None) -> str:
+    """Animate a bouncing selector between YOU and CPU, then reveal who goes
+    first. Draws within the caller's already-active fullscreen session
+    (pass None to skip the animation and just pick randomly)."""
     if term is None:
         return random.choice(["P", "CPU"])
     first = random.choice(["P", "CPU"])
@@ -107,7 +108,6 @@ def _decide_first() -> str:
         )
         time.sleep(1)
 
-    print(term.normal + term.clear, end="")
     return first
 
 
@@ -158,13 +158,14 @@ def run_game(
     board = Board(elements=board_elements)
     term = _get_terminal()
     use_screen = term is not None and term.does_styling
-    first = _decide_first()
-
-    turn = first
-    turn_number = 1
 
     screen = term.fullscreen() if (use_screen and term is not None) else nullcontext()
     with screen:
+        first = _decide_first(term if use_screen else None)
+
+        turn = first
+        turn_number = 1
+
         while any(board.is_empty(i) for i in range(BOARD_CELLS)):
             p_score, c_score = calculate_scores(board, player_hand, cpu_hand)
             turn_label = "YOUR TURN" if turn == "P" else "CPU TURN"
@@ -177,9 +178,26 @@ def run_game(
                 display_hand(player_hand, "Your")
                 display_hand(cpu_hand, "CPU", show=show_cpu)
 
+                def _redraw(
+                    turn_label: str = turn_label,
+                    turn_number: int = turn_number,
+                    p_score: int = p_score,
+                    c_score: int = c_score,
+                    show_cpu: bool = show_cpu,
+                ) -> None:
+                    _render_turn_screen(
+                        term, use_screen, board, turn_label, turn_number, p_score, c_score
+                    )
+                    display_hand(player_hand, "Your")
+                    display_hand(cpu_hand, "CPU", show=show_cpu)
+
                 while True:
+                    raw = input(f"\n  Choose card (1-{len(player_hand)}) [r=redraw]: ")
+                    if raw.strip().lower() == "r":
+                        _redraw()
+                        continue
                     try:
-                        ci = int(input(f"\n  Choose card (1-{len(player_hand)}): ")) - 1
+                        ci = int(raw) - 1
                         if 0 <= ci < len(player_hand):
                             break
                         print(f"  ✗ Enter a number between 1 and {len(player_hand)}.")
@@ -188,8 +206,12 @@ def run_game(
 
                 empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
                 while True:
+                    raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw]: ")
+                    if raw.strip().lower() == "r":
+                        _redraw()
+                        continue
                     try:
-                        pos = int(input(f"  Choose position (1-{BOARD_CELLS}): ")) - 1
+                        pos = int(raw) - 1
                         if pos in empty:
                             break
                         print("  ✗ Position taken or invalid.")
@@ -351,7 +373,18 @@ def run_p2p_game(
                     conn.send(make_move(ci, pos))
                 else:
                     card, pos = _get_local_move_interactive(
-                        board, player_hand, opponent_hand, rules, term, local_role
+                        board,
+                        player_hand,
+                        opponent_hand,
+                        rules,
+                        term,
+                        local_role,
+                        use_screen,
+                        turn_label,
+                        turn_number,
+                        p_score,
+                        c_score,
+                        score_labels,
                     )
                     ci_index = player_hand.index(card)
                     player_hand.pop(ci_index)
@@ -478,15 +511,40 @@ def _get_local_move_interactive(
     rules: Collection[str],
     term: Terminal | None,
     local_role: str,
+    use_screen: bool,
+    turn_label: str,
+    turn_number: int,
+    p_score: int,
+    c_score: int,
+    score_labels: tuple[str, str],
 ) -> tuple[Card, int]:
     """Get a move from the local player via keyboard input."""
     show_opp = "Open" in rules
     display_hand(player_hand, "Your")
     display_hand(opponent_hand, "Opponent", show=show_opp)
 
+    def _redraw() -> None:
+        _render_turn_screen(
+            term,
+            use_screen,
+            board,
+            turn_label,
+            turn_number,
+            p_score,
+            c_score,
+            score_labels=score_labels,
+            sep="=",
+        )
+        display_hand(player_hand, "Your")
+        display_hand(opponent_hand, "Opponent", show=show_opp)
+
     while True:
+        raw = input(f"\n  Choose card (1-{len(player_hand)}) [r=redraw]: ")
+        if raw.strip().lower() == "r":
+            _redraw()
+            continue
         try:
-            ci = int(input(f"\n  Choose card (1-{len(player_hand)}): ")) - 1
+            ci = int(raw) - 1
             if 0 <= ci < len(player_hand):
                 break
             print(f"  Enter a number between 1 and {len(player_hand)}.")
@@ -495,8 +553,12 @@ def _get_local_move_interactive(
 
     empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
     while True:
+        raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw]: ")
+        if raw.strip().lower() == "r":
+            _redraw()
+            continue
         try:
-            pos = int(input(f"  Choose position (1-{BOARD_CELLS}): ")) - 1
+            pos = int(raw) - 1
             if pos in empty:
                 break
             print("  Position taken or invalid.")
