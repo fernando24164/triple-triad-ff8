@@ -111,6 +111,12 @@ def _decide_first(term: Terminal | None) -> str:
     return first
 
 
+def _hand_block_lines(hand_size: int) -> int:
+    """Line count of one ``display_hand`` call: blank+label, separator,
+    one line per card, separator."""
+    return hand_size + 4
+
+
 def _render_turn_screen(
     term: Terminal | None,
     use_screen: bool,
@@ -122,28 +128,57 @@ def _render_turn_screen(
     score_labels: tuple[str, str] = ("You", "CPU"),
     sep: str = "═",
     note: str | None = None,
-) -> int:
+    extra_lines: int = 0,
+) -> tuple[int, int]:
     """Draw one turn's screen — clearing first if a persistent (fullscreen)
     terminal is in use, so the board updates in place instead of scrolling.
+    Padded with blank lines on top so the block sits vertically centered in
+    the terminal; ``extra_lines`` should count whatever the caller prints
+    immediately after this returns (e.g. hand listings), so the padding
+    accounts for the full block, not just the header/board/score. Header,
+    score, and note lines are each centered horizontally on their own; the
+    board is centered as a whole block (every row shares one left offset so
+    its grid lines stay aligned).
 
-    Returns the number of lines from the board's top border down to the
-    resulting (blank) cursor line, for use as capture_fx's ``cursor_row``.
+    Returns ``(cursor_row, col_offset)``: ``cursor_row`` is the number of
+    lines from the board's top border down to the resulting (blank) cursor
+    line, and ``col_offset`` is how many columns the board was shifted
+    right — both are what capture_fx needs to place its flip animation.
     """
     if use_screen and term is not None:
         print(term.clear, end="")
+
+    def _center(text: str) -> str:
+        if not (use_screen and term is not None):
+            return text
+        hpad = max(0, (term.width - len(text)) // 2)
+        return " " * hpad + text
+
     bar = sep * 62
-    print("\n" + bar)
-    print(f"  Turn {turn_number}  |  {turn_label}")
-    print(bar)
     board_text = board.display()
+    own_lines = 6 + board_text.count("\n") + 1 + (2 if note is not None else 0)
+    col_offset = 0
+    if use_screen and term is not None:
+        vpad = max(0, (term.height - (own_lines + extra_lines)) // 2)
+        print("\n" * vpad, end="")
+        col_offset = max(0, (term.width - Board.total_width()) // 2)
+
+    print()
+    print(_center(bar))
+    print(_center(f"  Turn {turn_number}  |  {turn_label}"))
+    print(_center(bar))
+    if col_offset:
+        board_text = "\n".join(" " * col_offset + line for line in board_text.split("\n"))
     print(board_text)
     you_label, opp_label = score_labels
-    print(f"\n  Score — {you_label}: {p_score}  {opp_label}: {c_score}")
+    print()
+    print(_center(f"  Score — {you_label}: {p_score}  {opp_label}: {c_score}"))
     lines = board_text.count("\n") + 1 + 2
     if note is not None:
-        print(f"\n  {note}")
+        print()
+        print(_center(f"  {note}"))
         lines += 2
-    return lines
+    return lines, col_offset
 
 
 def run_game(
@@ -169,14 +204,26 @@ def run_game(
         while any(board.is_empty(i) for i in range(BOARD_CELLS)):
             p_score, c_score = calculate_scores(board, player_hand, cpu_hand)
             turn_label = "YOUR TURN" if turn == "P" else "CPU TURN"
+            choose_extra = (
+                _hand_block_lines(len(player_hand)) + _hand_block_lines(len(cpu_hand))
+                if turn == "P"
+                else 2  # "\n  CPU is thinking..."
+            )
             _render_turn_screen(
-                term, use_screen, board, turn_label, turn_number, p_score, c_score
+                term,
+                use_screen,
+                board,
+                turn_label,
+                turn_number,
+                p_score,
+                c_score,
+                extra_lines=choose_extra,
             )
 
             if turn == "P":
                 show_cpu = "Open" in rules
-                display_hand(player_hand, "Your")
-                display_hand(cpu_hand, "CPU", show=show_cpu)
+                display_hand(player_hand, "Your", term=term)
+                display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
 
                 def _redraw(
                     turn_label: str = turn_label,
@@ -184,12 +231,20 @@ def run_game(
                     p_score: int = p_score,
                     c_score: int = c_score,
                     show_cpu: bool = show_cpu,
+                    extra: int = choose_extra,
                 ) -> None:
                     _render_turn_screen(
-                        term, use_screen, board, turn_label, turn_number, p_score, c_score
+                        term,
+                        use_screen,
+                        board,
+                        turn_label,
+                        turn_number,
+                        p_score,
+                        c_score,
+                        extra_lines=extra,
                     )
-                    display_hand(player_hand, "Your")
-                    display_hand(cpu_hand, "CPU", show=show_cpu)
+                    display_hand(player_hand, "Your", term=term)
+                    display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
 
                 while True:
                     raw = input(f"\n  Choose card (1-{len(player_hand)}) [r=redraw]: ")
@@ -239,7 +294,7 @@ def run_game(
 
             # Redraw cleanly with the placed card visible (pre-capture) —
             # this becomes the animation's anchor.
-            cursor_row = _render_turn_screen(
+            cursor_row, col_offset = _render_turn_screen(
                 term,
                 use_screen,
                 board,
@@ -253,7 +308,7 @@ def run_game(
             if captures:
                 old_owners = {cpos: ccard.owner for cpos, ccard in captures}
                 if use_screen:
-                    animate_captures(term, cursor_row, captures, card.owner)
+                    animate_captures(term, cursor_row, captures, card.owner, col_offset)
                     # Wipe the "CAPTURED!" banner left behind by the animation.
                     _render_turn_screen(
                         term,
@@ -352,6 +407,14 @@ def run_p2p_game(
             p_score, c_score = calculate_scores(board, player_hand, opponent_hand)
             turn_label = "YOUR TURN" if turn == "P" else "OPPONENT TURN"
 
+            is_local_turn = (turn == "P" and local_role == "P1") or (
+                turn == "CPU" and local_role == "P2"
+            )
+            hands_extra = _hand_block_lines(len(player_hand)) + _hand_block_lines(
+                len(opponent_hand)
+            )
+            choose_extra = hands_extra if is_local_turn else hands_extra + 2
+
             if not headless and term:
                 _render_turn_screen(
                     term,
@@ -363,11 +426,8 @@ def run_p2p_game(
                     c_score,
                     score_labels=score_labels,
                     sep="=",
+                    extra_lines=choose_extra,
                 )
-
-            is_local_turn = (turn == "P" and local_role == "P1") or (
-                turn == "CPU" and local_role == "P2"
-            )
 
             pos = -1
             card = None
@@ -406,8 +466,8 @@ def run_p2p_game(
             else:
                 if not headless and term:
                     print("\n  Opponent is thinking...")
-                    display_hand(player_hand, "Your", show="Open" in rules)
-                    display_hand(opponent_hand, "Opponent", show=True)
+                    display_hand(player_hand, "Your", show="Open" in rules, term=term)
+                    display_hand(opponent_hand, "Opponent", show=True, term=term)
 
                 packet = _wait_for_move(conn, term, headless)
                 if packet is None:
@@ -448,7 +508,7 @@ def run_p2p_game(
             assert card is not None and pos >= 0
             captures, events = resolve_captures(board, pos, card, rules)
             if not headless and term:
-                cursor_row = _render_turn_screen(
+                cursor_row, col_offset = _render_turn_screen(
                     term,
                     use_screen,
                     board,
@@ -463,7 +523,7 @@ def run_p2p_game(
                 if captures:
                     old_owners = {cpos: ccard.owner for cpos, ccard in captures}
                     if use_screen:
-                        animate_captures(term, cursor_row, captures, card.owner)
+                        animate_captures(term, cursor_row, captures, card.owner, col_offset)
                         # Wipe the "CAPTURED!" banner left behind by the animation.
                         _render_turn_screen(
                             term,
@@ -544,10 +604,11 @@ def _get_local_move_interactive(
 ) -> tuple[Card, int]:
     """Get a move from the local player via keyboard input."""
     show_opp = "Open" in rules
-    display_hand(player_hand, "Your")
-    display_hand(opponent_hand, "Opponent", show=show_opp)
+    display_hand(player_hand, "Your", term=term)
+    display_hand(opponent_hand, "Opponent", show=show_opp, term=term)
 
     def _redraw() -> None:
+        extra = _hand_block_lines(len(player_hand)) + _hand_block_lines(len(opponent_hand))
         _render_turn_screen(
             term,
             use_screen,
@@ -558,9 +619,10 @@ def _get_local_move_interactive(
             c_score,
             score_labels=score_labels,
             sep="=",
+            extra_lines=extra,
         )
-        display_hand(player_hand, "Your")
-        display_hand(opponent_hand, "Opponent", show=show_opp)
+        display_hand(player_hand, "Your", term=term)
+        display_hand(opponent_hand, "Opponent", show=show_opp, term=term)
 
     while True:
         raw = input(f"\n  Choose card (1-{len(player_hand)}) [r=redraw]: ")

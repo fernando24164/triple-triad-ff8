@@ -1,13 +1,23 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from ..models.card import Card, stat_display
 
+if TYPE_CHECKING:
+    from blessed import Terminal
 
-def display_hand(hand: list[Card], label: str, show: bool = True) -> None:
-    print(f"\n  {label}'s Hand:")
-    print("  " + "─" * 60)
+
+def display_hand(
+    hand: list[Card], label: str, show: bool = True, term: Terminal | None = None
+) -> None:
+    """Print a hand listing, horizontally centered as one block when
+    ``term`` is a styled (fullscreen-capable) terminal."""
+    lines = [f"  {label}'s Hand:", "  " + "─" * 60]
     if show:
         for i, card in enumerate(hand, 1):
             el = f"[{card.element}]" if card.element else ""
-            print(
+            lines.append(
                 f"  [{i}] {card.name}{el}  "
                 f"T:{stat_display(card.top)} R:{stat_display(card.right)} "
                 f"B:{stat_display(card.bottom)} L:{stat_display(card.left)}  "
@@ -15,8 +25,16 @@ def display_hand(hand: list[Card], label: str, show: bool = True) -> None:
             )
     else:
         for i in range(len(hand)):
-            print(f"  [{i + 1}] ???")
-    print("  " + "─" * 60)
+            lines.append(f"  [{i + 1}] ???")
+    lines.append("  " + "─" * 60)
+
+    pad = 0
+    if term is not None and term.does_styling:
+        pad = max(0, (term.width - max(len(line) for line in lines)) // 2)
+
+    print()
+    for line in lines:
+        print(" " * pad + line)
 
 
 def print_banner() -> None:

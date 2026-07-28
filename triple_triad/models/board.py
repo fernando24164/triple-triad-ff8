@@ -15,6 +15,11 @@ class Board:
         self.cells = [None] * BOARD_CELLS  # Card or None
         self.elements = elements if elements is not None else [None] * BOARD_CELLS
 
+    @classmethod
+    def total_width(cls) -> int:
+        """Visible width (chars) of one line from ``display()``."""
+        return GRID_SIZE * (cls.CELL_W + 1) + 1
+
     def place(self, pos: int, card: Card) -> None:
         self.cells[pos] = card
 

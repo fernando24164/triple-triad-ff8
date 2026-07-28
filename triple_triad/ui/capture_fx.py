@@ -53,11 +53,18 @@ def _place(term: Terminal, cursor_row: int, row: int, col: int, content: str) ->
 def _paint(
     term: Terminal,
     cursor_row: int,
+    col_offset: int,
     captures: list[tuple[int, Card]],
     content_at: Callable[[Card, int], str],
 ) -> None:
     frame = "".join(
-        _place(term, cursor_row, _cell_origin(pos)[0] + r, _cell_origin(pos)[1], content_at(card, r))
+        _place(
+            term,
+            cursor_row,
+            _cell_origin(pos)[0] + r,
+            _cell_origin(pos)[1] + col_offset,
+            content_at(card, r),
+        )
         for pos, card in captures
         for r in range(4)
     )
@@ -88,6 +95,7 @@ def animate_captures(
     cursor_row: int,
     captures: list[tuple[int, Card]],
     new_owner: str | None,
+    col_offset: int = 0,
 ) -> None:
     """Flip captured cards in place with a color-flash effect, then apply
     the ownership change and pop up a center-screen "CAPTURED!" banner.
@@ -106,6 +114,9 @@ def animate_captures(
             board row 0.
         captures: (pos, card) pairs being captured this turn.
         new_owner: Owner ('P' or 'CPU') the captured cards are flipping to.
+        col_offset: Columns the board was shifted right for horizontal
+            centering — added to every cell's column so the flip lands on
+            the actual on-screen board instead of column 0.
     """
     if term is None or not term.does_styling or not captures:
         for _, ncard in captures:
@@ -116,18 +127,18 @@ def animate_captures(
     thin = _FLASH + f"{'│':^{Board.CELL_W}}" + _RESET
 
     # Beat 1: card shrinks edge-on (flip in profile), flashed bright white.
-    _paint(term, cursor_row, captures, lambda _card, _r: squeeze)
+    _paint(term, cursor_row, col_offset, captures, lambda _card, _r: squeeze)
     time.sleep(0.22)
 
     # Beat 2: card thins to a sliver — the card is now edge-on to the viewer.
-    _paint(term, cursor_row, captures, lambda _card, _r: thin)
+    _paint(term, cursor_row, col_offset, captures, lambda _card, _r: thin)
     time.sleep(0.18)
 
     for _, ncard in captures:
         ncard.owner = new_owner
 
     # Beat 3: reveal the card in its new owner's color (the flip's payoff).
-    _paint(term, cursor_row, captures, lambda card, r: _ROW_RENDERERS[r](card))
+    _paint(term, cursor_row, col_offset, captures, lambda card, r: _ROW_RENDERERS[r](card))
     time.sleep(0.2)
 
     # Beat 4: a casino-style "CAPTURED!" banner pops up center-screen.
