@@ -254,6 +254,17 @@ def run_game(
                 old_owners = {cpos: ccard.owner for cpos, ccard in captures}
                 if use_screen:
                     animate_captures(term, cursor_row, captures, card.owner)
+                    # Wipe the "CAPTURED!" banner left behind by the animation.
+                    _render_turn_screen(
+                        term,
+                        use_screen,
+                        board,
+                        turn_label,
+                        turn_number,
+                        p_score,
+                        c_score,
+                        note=move_note,
+                    )
                 else:
                     for _, ccard in captures:
                         ccard.owner = card.owner
@@ -453,6 +464,19 @@ def run_p2p_game(
                     old_owners = {cpos: ccard.owner for cpos, ccard in captures}
                     if use_screen:
                         animate_captures(term, cursor_row, captures, card.owner)
+                        # Wipe the "CAPTURED!" banner left behind by the animation.
+                        _render_turn_screen(
+                            term,
+                            use_screen,
+                            board,
+                            turn_label,
+                            turn_number,
+                            p_score,
+                            c_score,
+                            score_labels=score_labels,
+                            sep="=",
+                            note=move_note,
+                        )
                     else:
                         for _, ccard in captures:
                             ccard.owner = card.owner

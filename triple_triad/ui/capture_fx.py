@@ -7,12 +7,17 @@ from typing import TYPE_CHECKING
 from ..constants import GRID_SIZE
 from ..models.board import Board
 from ..models.card import Card
+from ..synth.sfx import play_capture_banner
 
 if TYPE_CHECKING:
     from blessed import Terminal
 
 _FLASH = "\033[97;1m"  # bold bright white
+_GREEN = "\033[92;1m"  # bold bright green — player capture
+_RED = "\033[91;1m"  # bold bright red — CPU/opponent capture
 _RESET = "\033[0m"
+
+_BANNER_TEXT = "★  CAPTURED!  ★"
 
 _ROW_RENDERERS = (
     Board._render_row1,
@@ -59,6 +64,25 @@ def _paint(
     print(frame, end="", flush=True)
 
 
+def _flash_banner(term: Terminal, new_owner: str | None) -> None:
+    """Casino-style 'CAPTURED!' banner: pops up center-screen with a
+    whoosh sound and a few blinking-light color flashes. Left on screen
+    afterward — the caller is expected to redraw over it."""
+    owner_color = _GREEN if new_owner == "P" else _RED
+    row = term.height // 2
+    col = max(0, (term.width - len(_BANNER_TEXT)) // 2)
+
+    play_capture_banner()
+
+    for color in (_FLASH, owner_color, _FLASH, owner_color):
+        print(
+            term.move_yx(row, col) + color + _BANNER_TEXT + _RESET,
+            end="",
+            flush=True,
+        )
+        time.sleep(0.11)
+
+
 def animate_captures(
     term: Terminal | None,
     cursor_row: int,
@@ -66,11 +90,14 @@ def animate_captures(
     new_owner: str | None,
 ) -> None:
     """Flip captured cards in place with a color-flash effect, then apply
-    the ownership change. Falls back to a silent ownership swap when no
-    interactive terminal is available.
+    the ownership change and pop up a center-screen "CAPTURED!" banner.
+    Falls back to a silent ownership swap when no interactive terminal is
+    available.
 
-    Slowed down (~1s total) and staged over three visually distinct beats
-    so the flip reads clearly instead of flickering past unnoticed.
+    Staged over four visually distinct beats (~1.4s total) so the flip and
+    banner read clearly instead of flickering past unnoticed. The banner is
+    left on screen when this returns — the caller should redraw the turn
+    screen afterward to clear it.
 
     Args:
         term: Active blessed Terminal, or None.
@@ -101,4 +128,7 @@ def animate_captures(
 
     # Beat 3: reveal the card in its new owner's color (the flip's payoff).
     _paint(term, cursor_row, captures, lambda card, r: _ROW_RENDERERS[r](card))
-    time.sleep(0.35)
+    time.sleep(0.2)
+
+    # Beat 4: a casino-style "CAPTURED!" banner pops up center-screen.
+    _flash_banner(term, new_owner)

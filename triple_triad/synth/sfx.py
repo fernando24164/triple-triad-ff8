@@ -147,6 +147,17 @@ def play_capture_lose() -> None:
     _play_buffer(buf)
 
 
+def play_capture_banner() -> None:
+    """Quick ascending sweep — the 'whoosh' of the CAPTURED! banner popping in."""
+    notes = [
+        (freq, 0.02) for freq in (300.0, 380.0, 460.0, 560.0, 680.0, 820.0, 980.0, 1160.0)
+    ]
+    buf = _generate_sfx(
+        notes, vol=0.16, duty=0.4, attack=0.001, decay=0.008, release=0.008
+    )
+    _play_buffer(buf)
+
+
 def play_network_join() -> None:
     buf = _generate_sfx(
         [(523.25, 0.08), (659.25, 0.08), (783.99, 0.12)],
