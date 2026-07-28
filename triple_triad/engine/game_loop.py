@@ -22,6 +22,7 @@ from ..network.protocol import (
     make_move,
     parse_packet,
 )
+from ..synth.sfx import play_capture_lose, play_capture_win
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
 from .rules import resolve_captures
@@ -184,6 +185,8 @@ def run_game(
             pos = cpu_pos
 
         captures, events = resolve_captures(board, pos, card, rules)
+        if captures:
+            play_capture_win() if card.owner == "P" else play_capture_lose()
         for evt in events:
             print(f"  *** {evt.upper()}! ***")
         for _, ncard in captures:
@@ -335,6 +338,8 @@ def run_p2p_game(
         assert card is not None and pos >= 0
         captures, events = resolve_captures(board, pos, card, rules)
         if not headless and term:
+            if captures:
+                play_capture_win() if card.owner == "P" else play_capture_lose()
             for evt in events:
                 print(f"  *** {evt.upper()}! ***")
             for _, ncard in captures:

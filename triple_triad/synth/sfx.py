@@ -124,6 +124,29 @@ def play_error() -> None:
     _play_buffer(buf)
 
 
+def play_capture_win() -> None:
+    buf = _generate_sfx(
+        [(523.25, 0.05), (659.25, 0.05), (783.99, 0.05), (1046.5, 0.14)],
+        vol=0.28,
+        attack=0.001,
+        decay=0.02,
+        release=0.04,
+    )
+    _play_buffer(buf)
+
+
+def play_capture_lose() -> None:
+    buf = _generate_sfx(
+        [(311.13, 0.08), (261.63, 0.08), (196.00, 0.16)],
+        vol=0.2,
+        duty=0.35,
+        attack=0.003,
+        decay=0.05,
+        release=0.05,
+    )
+    _play_buffer(buf)
+
+
 def play_network_join() -> None:
     buf = _generate_sfx(
         [(523.25, 0.08), (659.25, 0.08), (783.99, 0.12)],
