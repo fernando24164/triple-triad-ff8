@@ -31,6 +31,7 @@ _FONT: dict[str, tuple[str, str, str, str, str]] = {
     "R": ("#### ", "#   #", "#### ", "#  # ", "#   #"),
     "E": ("#####", "#    ", "#### ", "#    ", "#####"),
     "D": ("#### ", "#   #", "#   #", "#   #", "#### "),
+    "F": ("#####", "#    ", "#### ", "#    ", "#    "),
     "V": ("#   #", "#   #", "#   #", " # # ", "  #  "),
     "I": ("###", " # ", " # ", " # ", "###"),
     "O": (" ### ", "#   #", "#   #", "#   #", " ### "),
@@ -157,6 +158,17 @@ def show_victory_banner(term: Terminal | None) -> None:
     if term is None or not term.does_styling:
         return
     _show_banner(term, "VICTORY!", _GREEN)
+
+
+def show_defeat_banner(term: Terminal | None) -> None:
+    """ASCII-art 'DEFEAT!' banner for a match loss: materializes and
+    dissolves center-screen the same way the capture banner does. No-op
+    when no interactive terminal is available. The caller should redraw
+    the game-over screen afterward to clear any leftover banner artifacts.
+    """
+    if term is None or not term.does_styling:
+        return
+    _show_banner(term, "DEFEAT!", _RED)
 
 
 def animate_captures(

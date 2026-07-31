@@ -23,8 +23,13 @@ from ..network.protocol import (
     make_move,
     parse_packet,
 )
-from ..synth.sfx import play_capture_lose, play_capture_win, play_victory_fanfare
-from ..ui.capture_fx import animate_captures, show_victory_banner
+from ..synth.sfx import (
+    play_capture_lose,
+    play_capture_win,
+    play_defeat_theme,
+    play_victory_fanfare,
+)
+from ..ui.capture_fx import animate_captures, show_defeat_banner, show_victory_banner
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
 from .rules import resolve_captures
@@ -409,6 +414,12 @@ def run_game(
             pause_message()
             return "P"
         elif c_final > p_final:
+            play_defeat_theme()
+            if use_screen:
+                show_defeat_banner(term)
+                _render_game_over_screen(
+                    term, use_screen, board, p_final, c_final, result_text=result_text
+                )
             pause_message()
             return "CPU"
         else:
@@ -638,6 +649,19 @@ def run_p2p_game(
                 play_victory_fanfare()
                 if use_screen:
                     show_victory_banner(term)
+                    _render_game_over_screen(
+                        term,
+                        use_screen,
+                        board,
+                        p_final,
+                        c_final,
+                        score_labels=("You", "Opponent"),
+                        result_text=label,
+                    )
+            elif label == "You lost. Better luck next time!":
+                play_defeat_theme()
+                if use_screen:
+                    show_defeat_banner(term)
                     _render_game_over_screen(
                         term,
                         use_screen,

@@ -1,7 +1,7 @@
 import numpy as np
 
 from .constants import HARMONY_MAP, NOTE_FREQ, SAMPLE_RATE
-from .melodies import victory_fanfare
+from .melodies import defeat_theme, victory_fanfare
 from .melodies.background_music import BASS, CHORDS, MELODY, PERC
 
 
@@ -178,4 +178,25 @@ def generate_fanfare_buffer() -> np.ndarray:
     peak = np.max(np.abs(mixed))
     if peak > 0:
         mixed = mixed / peak * 0.9
+    return mixed
+
+
+def generate_defeat_buffer() -> np.ndarray:
+    """Mix the short somber 'Game Over' sting into one float64 buffer."""
+    melody = _render_melody(defeat_theme.MELODY)
+    harmony = _render_harmony(defeat_theme.MELODY)
+    pad = _render_pad(defeat_theme.CHORDS)
+    bass = _render_bass(defeat_theme.BASS)
+
+    length = min(len(melody), len(harmony), len(pad), len(bass))
+    mixed: np.ndarray = (
+        melody[:length] * 1.0
+        + harmony[:length] * 1.0
+        + pad[:length] * 1.0
+        + bass[:length] * 1.0
+    )
+
+    peak = np.max(np.abs(mixed))
+    if peak > 0:
+        mixed = mixed / peak * 0.75
     return mixed

@@ -3,7 +3,7 @@ import os
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 
 from .constants import SAMPLE_RATE
-from .wave_generators import generate_fanfare_buffer
+from .wave_generators import generate_defeat_buffer, generate_fanfare_buffer
 
 try:
     import numpy as np
@@ -162,6 +162,12 @@ def play_capture_banner() -> None:
 def play_victory_fanfare() -> None:
     """Triumphant multi-channel chiptune fanfare for a match win."""
     buf = generate_fanfare_buffer()
+    _play_buffer(buf)
+
+
+def play_defeat_theme() -> None:
+    """Somber multi-channel chiptune sting (<=4s) for a match loss."""
+    buf = generate_defeat_buffer()
     _play_buffer(buf)
 
 
