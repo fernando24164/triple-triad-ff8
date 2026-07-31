@@ -17,7 +17,23 @@ _GREEN = "\033[92;1m"  # bold bright green — player capture
 _RED = "\033[91;1m"  # bold bright red — CPU/opponent capture
 _RESET = "\033[0m"
 
-_BANNER_TEXT = "★  CAPTURED!  ★"
+_BANNER_WORD = "CAPTURED!"
+
+# 5-row block-letter font. '#' marks a filled cell; swapping it for a
+# lighter shade character at render time is what drives the materialize
+# and dissolve effects without needing a separate glyph set.
+_FONT: dict[str, tuple[str, str, str, str, str]] = {
+    "C": (" ####", "#    ", "#    ", "#    ", " ####"),
+    "A": (" ### ", "#   #", "#####", "#   #", "#   #"),
+    "P": ("#### ", "#   #", "#### ", "#    ", "#    "),
+    "T": ("#####", "  #  ", "  #  ", "  #  ", "  #  "),
+    "U": ("#   #", "#   #", "#   #", "#   #", " ### "),
+    "R": ("#### ", "#   #", "#### ", "#  # ", "#   #"),
+    "E": ("#####", "#    ", "#### ", "#    ", "#####"),
+    "D": ("#### ", "#   #", "#   #", "#   #", "#### "),
+    "!": (" # ", " # ", " # ", "   ", " # "),
+    " ": ("   ", "   ", "   ", "   ", "   "),
+}
 
 _ROW_RENDERERS = (
     Board._render_row1,
@@ -71,23 +87,56 @@ def _paint(
     print(frame, end="", flush=True)
 
 
+def _build_art(word: str, pixel: str) -> list[str]:
+    """Render `word` as 5-row block-letter ASCII art, filling every lit
+    cell with `pixel`. Letters are separated by a single blank column."""
+    glyphs = [_FONT.get(ch, _FONT[" "]) for ch in word.upper()]
+    return [
+        " ".join(
+            "".join(pixel if c == "#" else " " for c in glyph[row]) for glyph in glyphs
+        )
+        for row in range(5)
+    ]
+
+
+def _paint_art(term: Terminal, row: int, col: int, lines: list[str], color: str) -> None:
+    visible = max(0, term.width - col)
+    frame = "".join(
+        term.move_yx(row + i, col) + color + line[:visible] + _RESET
+        for i, line in enumerate(lines)
+    )
+    print(frame, end="", flush=True)
+
+
 def _flash_banner(term: Terminal, new_owner: str | None) -> None:
-    """Casino-style 'CAPTURED!' banner: pops up center-screen with a
-    whoosh sound and a few blinking-light color flashes. Left on screen
-    afterward — the caller is expected to redraw over it."""
+    """Casino-style 'CAPTURED!' banner, rendered as block-letter ASCII art:
+    materializes center-screen out of faint dust with a whoosh sound,
+    flickers a couple of times for a pop, then dissolves back out. Nothing
+    is left on screen when this returns — the caller's redraw afterward is
+    just a safety net."""
     owner_color = _GREEN if new_owner == "P" else _RED
-    row = term.height // 2
-    col = max(0, (term.width - len(_BANNER_TEXT)) // 2)
+    solid = _build_art(_BANNER_WORD, "█")
+    width = len(solid[0])
+    col = max(0, (term.width - width) // 2)
+    row = max(0, min(term.height - 5, term.height // 2 - 2))
 
     play_capture_banner()
 
+    # Materialize: faint dust condenses into the full shape, white easing
+    # into the capturing side's color.
+    for shade, color in (("░", _FLASH), ("▒", _FLASH), ("▓", owner_color)):
+        _paint_art(term, row, col, _build_art(_BANNER_WORD, shade), color)
+        time.sleep(0.07)
+
+    # Pop: a couple of bright/color flickers on the fully-formed banner.
     for color in (_FLASH, owner_color, _FLASH, owner_color):
-        print(
-            term.move_yx(row, col) + color + _BANNER_TEXT + _RESET,
-            end="",
-            flush=True,
-        )
+        _paint_art(term, row, col, solid, color)
         time.sleep(0.11)
+
+    # Dissolve: the shape thins back down to nothing.
+    for shade in ("▓", "▒", "░", " "):
+        _paint_art(term, row, col, _build_art(_BANNER_WORD, shade), owner_color)
+        time.sleep(0.07)
 
 
 def animate_captures(
@@ -98,14 +147,14 @@ def animate_captures(
     col_offset: int = 0,
 ) -> None:
     """Flip captured cards in place with a color-flash effect, then apply
-    the ownership change and pop up a center-screen "CAPTURED!" banner.
-    Falls back to a silent ownership swap when no interactive terminal is
-    available.
+    the ownership change and pop up a center-screen ASCII-art "CAPTURED!"
+    banner. Falls back to a silent ownership swap when no interactive
+    terminal is available.
 
-    Staged over four visually distinct beats (~1.4s total) so the flip and
-    banner read clearly instead of flickering past unnoticed. The banner is
-    left on screen when this returns — the caller should redraw the turn
-    screen afterward to clear it.
+    Staged over four visually distinct beats (~1.5s total) so the flip and
+    banner read clearly instead of flickering past unnoticed. The banner
+    materializes and dissolves on its own, so nothing is left on screen
+    when this returns — the caller's redraw afterward is just a safety net.
 
     Args:
         term: Active blessed Terminal, or None.
@@ -141,5 +190,6 @@ def animate_captures(
     _paint(term, cursor_row, col_offset, captures, lambda card, r: _ROW_RENDERERS[r](card))
     time.sleep(0.2)
 
-    # Beat 4: a casino-style "CAPTURED!" banner pops up center-screen.
+    # Beat 4: an ASCII-art "CAPTURED!" banner materializes, flickers, and
+    # dissolves center-screen.
     _flash_banner(term, new_owner)
