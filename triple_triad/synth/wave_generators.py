@@ -1,6 +1,7 @@
 import numpy as np
 
 from .constants import HARMONY_MAP, NOTE_FREQ, SAMPLE_RATE
+from .melodies import victory_fanfare
 from .melodies.background_music import BASS, CHORDS, MELODY, PERC
 
 
@@ -154,4 +155,27 @@ def generate_music_buffer() -> np.ndarray:
     peak = np.max(np.abs(mixed))
     if peak > 0:
         mixed = mixed / peak * 0.8
+    return mixed
+
+
+def generate_fanfare_buffer() -> np.ndarray:
+    """Mix the short triumphant 'You Win!' fanfare into one float64 buffer."""
+    melody = _render_melody(victory_fanfare.MELODY)
+    harmony = _render_harmony(victory_fanfare.MELODY)
+    pad = _render_pad(victory_fanfare.CHORDS)
+    bass = _render_bass(victory_fanfare.BASS)
+    perc = _render_perc(victory_fanfare.PERC)
+
+    length = min(len(melody), len(harmony), len(pad), len(bass), len(perc))
+    mixed: np.ndarray = (
+        melody[:length] * 1.0
+        + harmony[:length] * 1.0
+        + pad[:length] * 1.0
+        + bass[:length] * 1.0
+        + perc[:length] * 1.0
+    )
+
+    peak = np.max(np.abs(mixed))
+    if peak > 0:
+        mixed = mixed / peak * 0.9
     return mixed

@@ -3,6 +3,7 @@ import os
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 
 from .constants import SAMPLE_RATE
+from .wave_generators import generate_fanfare_buffer
 
 try:
     import numpy as np
@@ -155,6 +156,12 @@ def play_capture_banner() -> None:
     buf = _generate_sfx(
         notes, vol=0.16, duty=0.4, attack=0.001, decay=0.008, release=0.008
     )
+    _play_buffer(buf)
+
+
+def play_victory_fanfare() -> None:
+    """Triumphant multi-channel chiptune fanfare for a match win."""
+    buf = generate_fanfare_buffer()
     _play_buffer(buf)
 
 

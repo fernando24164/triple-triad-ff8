@@ -23,7 +23,7 @@ from ..network.protocol import (
     make_move,
     parse_packet,
 )
-from ..synth.sfx import play_capture_lose, play_capture_win
+from ..synth.sfx import play_capture_lose, play_capture_win, play_victory_fanfare
 from ..ui.capture_fx import animate_captures
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
@@ -353,6 +353,7 @@ def run_game(
         print(f"\n  Final Score — You: {p_final}  CPU: {c_final}")
 
         if p_final > c_final:
+            play_victory_fanfare()
             print("\n  🏆  YOU WIN!  Congratulations!")
             pause_message()
             return "P"
@@ -583,6 +584,8 @@ def run_p2p_game(
             label = "It's a draw!"
 
         if not headless and term:
+            if label == "YOU WIN!":
+                play_victory_fanfare()
             print(f"\n  {label}")
             pause_message()
         return result
