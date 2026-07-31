@@ -24,7 +24,7 @@ from ..network.protocol import (
     parse_packet,
 )
 from ..synth.sfx import play_capture_lose, play_capture_win, play_victory_fanfare
-from ..ui.capture_fx import animate_captures
+from ..ui.capture_fx import animate_captures, show_victory_banner
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
 from .rules import resolve_captures
@@ -179,6 +179,52 @@ def _render_turn_screen(
         print(_center(f"  {note}"))
         lines += 2
     return lines, col_offset
+
+
+def _render_game_over_screen(
+    term: Terminal | None,
+    use_screen: bool,
+    board: Board,
+    p_score: int,
+    c_score: int,
+    score_labels: tuple[str, str] = ("You", "CPU"),
+    sep: str = "═",
+    result_text: str | None = None,
+) -> None:
+    """Draw the final board, score, and win/lose/draw result, centered the
+    same way ``_render_turn_screen`` centers every other screen in the
+    game."""
+    if use_screen and term is not None:
+        print(term.clear, end="")
+
+    def _center(text: str) -> str:
+        if not (use_screen and term is not None):
+            return text
+        hpad = max(0, (term.width - len(text)) // 2)
+        return " " * hpad + text
+
+    bar = sep * 62
+    board_text = board.display()
+    own_lines = 6 + board_text.count("\n") + 1 + (2 if result_text is not None else 0)
+    col_offset = 0
+    if use_screen and term is not None:
+        vpad = max(0, (term.height - own_lines) // 2)
+        print("\n" * vpad, end="")
+        col_offset = max(0, (term.width - Board.total_width()) // 2)
+
+    print()
+    print(_center(bar))
+    print(_center("  GAME OVER"))
+    print(_center(bar))
+    if col_offset:
+        board_text = "\n".join(" " * col_offset + line for line in board_text.split("\n"))
+    print(board_text)
+    you_label, opp_label = score_labels
+    print()
+    print(_center(f"  Final Score — {you_label}: {p_score}  {opp_label}: {c_score}"))
+    if result_text is not None:
+        print()
+        print(_center(f"  {result_text}"))
 
 
 def run_game(
@@ -342,27 +388,30 @@ def run_game(
             turn = "CPU" if turn == "P" else "P"
             turn_number += 1
 
-        if use_screen and term is not None:
-            print(term.clear, end="")
-        print("\n" + "═" * 62)
-        print("  GAME OVER")
-        print("═" * 62)
-        print(board.display())
-
         p_final, c_final = calculate_final_scores(board)
-        print(f"\n  Final Score — You: {p_final}  CPU: {c_final}")
+
+        if p_final > c_final:
+            result_text = "🏆  YOU WIN!  Congratulations!"
+        elif c_final > p_final:
+            result_text = "💀  CPU WINS!  Better luck next time!"
+        else:
+            result_text = "🤝  IT'S A DRAW!"
+
+        _render_game_over_screen(term, use_screen, board, p_final, c_final, result_text=result_text)
 
         if p_final > c_final:
             play_victory_fanfare()
-            print("\n  🏆  YOU WIN!  Congratulations!")
+            if use_screen:
+                show_victory_banner(term)
+                _render_game_over_screen(
+                    term, use_screen, board, p_final, c_final, result_text=result_text
+                )
             pause_message()
             return "P"
         elif c_final > p_final:
-            print("\n  💀  CPU WINS!  Better luck next time!")
             pause_message()
             return "CPU"
         else:
-            print("\n  🤝  IT'S A DRAW!")
             pause_message()
             return "Draw"
 
@@ -564,15 +613,6 @@ def run_p2p_game(
 
         p_final, c_final = calculate_final_scores(board)
 
-        if not headless and term:
-            if use_screen:
-                print(term.clear, end="")
-            print("\n" + "=" * 62)
-            print("  GAME OVER")
-            print("=" * 62)
-            print(board.display())
-            print(f"\n  Final Score - You: {p_final}  Opponent: {c_final}")
-
         if p_final > c_final:
             result = "P1_WIN" if local_role == "P1" else "P2_WIN"
             label = "YOU WIN!"
@@ -584,9 +624,29 @@ def run_p2p_game(
             label = "It's a draw!"
 
         if not headless and term:
+            _render_game_over_screen(
+                term,
+                use_screen,
+                board,
+                p_final,
+                c_final,
+                score_labels=("You", "Opponent"),
+                result_text=label,
+            )
+
             if label == "YOU WIN!":
                 play_victory_fanfare()
-            print(f"\n  {label}")
+                if use_screen:
+                    show_victory_banner(term)
+                    _render_game_over_screen(
+                        term,
+                        use_screen,
+                        board,
+                        p_final,
+                        c_final,
+                        score_labels=("You", "Opponent"),
+                        result_text=label,
+                    )
             pause_message()
         return result
 

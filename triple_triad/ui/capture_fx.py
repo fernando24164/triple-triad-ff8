@@ -31,6 +31,10 @@ _FONT: dict[str, tuple[str, str, str, str, str]] = {
     "R": ("#### ", "#   #", "#### ", "#  # ", "#   #"),
     "E": ("#####", "#    ", "#### ", "#    ", "#####"),
     "D": ("#### ", "#   #", "#   #", "#   #", "#### "),
+    "V": ("#   #", "#   #", "#   #", " # # ", "  #  "),
+    "I": ("###", " # ", " # ", " # ", "###"),
+    "O": (" ### ", "#   #", "#   #", "#   #", " ### "),
+    "Y": ("#   #", " # # ", "  #  ", "  #  ", "  #  "),
     "!": (" # ", " # ", " # ", "   ", " # "),
     " ": ("   ", "   ", "   ", "   ", "   "),
 }
@@ -108,35 +112,51 @@ def _paint_art(term: Terminal, row: int, col: int, lines: list[str], color: str)
     print(frame, end="", flush=True)
 
 
-def _flash_banner(term: Terminal, new_owner: str | None) -> None:
-    """Casino-style 'CAPTURED!' banner, rendered as block-letter ASCII art:
-    materializes center-screen out of faint dust with a whoosh sound,
-    flickers a couple of times for a pop, then dissolves back out. Nothing
-    is left on screen when this returns — the caller's redraw afterward is
-    just a safety net."""
-    owner_color = _GREEN if new_owner == "P" else _RED
-    solid = _build_art(_BANNER_WORD, "█")
+def _show_banner(term: Terminal, word: str, color: str) -> None:
+    """Generic ASCII-art banner effect, shared by the capture and victory
+    banners: materializes center-screen out of faint dust, flickers a
+    couple of times for a pop, then dissolves back out. Nothing is left on
+    screen when this returns — the caller's redraw afterward is just a
+    safety net."""
+    solid = _build_art(word, "█")
     width = len(solid[0])
     col = max(0, (term.width - width) // 2)
     row = max(0, min(term.height - 5, term.height // 2 - 2))
 
-    play_capture_banner()
-
     # Materialize: faint dust condenses into the full shape, white easing
-    # into the capturing side's color.
-    for shade, color in (("░", _FLASH), ("▒", _FLASH), ("▓", owner_color)):
-        _paint_art(term, row, col, _build_art(_BANNER_WORD, shade), color)
+    # into the banner's color.
+    for shade, c in (("░", _FLASH), ("▒", _FLASH), ("▓", color)):
+        _paint_art(term, row, col, _build_art(word, shade), c)
         time.sleep(0.07)
 
     # Pop: a couple of bright/color flickers on the fully-formed banner.
-    for color in (_FLASH, owner_color, _FLASH, owner_color):
-        _paint_art(term, row, col, solid, color)
+    for c in (_FLASH, color, _FLASH, color):
+        _paint_art(term, row, col, solid, c)
         time.sleep(0.11)
 
     # Dissolve: the shape thins back down to nothing.
     for shade in ("▓", "▒", "░", " "):
-        _paint_art(term, row, col, _build_art(_BANNER_WORD, shade), owner_color)
+        _paint_art(term, row, col, _build_art(word, shade), color)
         time.sleep(0.07)
+
+
+def _flash_banner(term: Terminal, new_owner: str | None) -> None:
+    """Casino-style 'CAPTURED!' banner with a whoosh sound, rendered as
+    block-letter ASCII art via `_show_banner`."""
+    owner_color = _GREEN if new_owner == "P" else _RED
+    play_capture_banner()
+    _show_banner(term, _BANNER_WORD, owner_color)
+
+
+def show_victory_banner(term: Terminal | None) -> None:
+    """ASCII-art 'VICTORY!' banner for a player match win: materializes and
+    dissolves center-screen the same way the capture banner does. No-op
+    when no interactive terminal is available. The caller should redraw
+    the game-over screen afterward to clear any leftover banner artifacts.
+    """
+    if term is None or not term.does_styling:
+        return
+    _show_banner(term, "VICTORY!", _GREEN)
 
 
 def animate_captures(
