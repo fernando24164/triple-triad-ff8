@@ -41,6 +41,8 @@ _FONT: dict[str, tuple[str, str, str, str, str]] = {
     "N": ("#   #", "##  #", "# # #", "#  ##", "#   #"),
     "L": ("#    ", "#    ", "#    ", "#    ", "#####"),
     "S": (" ####", "#    ", " ### ", "    #", "#### "),
+    "M": ("#   #", "## ##", "# # #", "#   #", "#   #"),
+    "B": ("#### ", "#   #", "#### ", "#   #", "#### "),
     "!": (" # ", " # ", " # ", "   ", " # "),
     " ": ("   ", "   ", "   ", "   ", "   "),
 }
@@ -187,12 +189,25 @@ def show_draw_banner(term: Terminal | None) -> None:
     _show_banner(term, "DRAW!", _YELLOW)
 
 
+def show_rule_banner(term: Terminal | None, rule_name: str, owner: str | None) -> None:
+    """ASCII-art banner announcing a special capture rule (Same, Plus,
+    Combo, ...) that triggered beyond the basic value comparison:
+    materializes and dissolves center-screen the same way the capture
+    banner does, in the capturing side's color. No-op when no interactive
+    terminal is available."""
+    if term is None or not term.does_styling:
+        return
+    color = _GREEN if owner == "P" else _RED
+    _show_banner(term, f"{rule_name.upper()}!", color)
+
+
 def animate_captures(
     term: Terminal | None,
     cursor_row: int,
     captures: list[tuple[int, Card]],
     new_owner: str | None,
     col_offset: int = 0,
+    events: list[str] | None = None,
 ) -> None:
     """Flip captured cards in place with a color-flash effect, then apply
     the ownership change and pop up a center-screen ASCII-art "CAPTURED!"
@@ -214,6 +229,9 @@ def animate_captures(
         col_offset: Columns the board was shifted right for horizontal
             centering — added to every cell's column so the flip lands on
             the actual on-screen board instead of column 0.
+        events: Special rule names that triggered this capture (e.g.
+            ["Same", "Combo"]), beyond the basic value comparison. Each
+            gets its own banner, shown before the "CAPTURED!" banner.
     """
     if term is None or not term.does_styling or not captures:
         for _, ncard in captures:
@@ -237,6 +255,12 @@ def animate_captures(
     # Beat 3: reveal the card in its new owner's color (the flip's payoff).
     _paint(term, cursor_row, col_offset, captures, lambda card, r: _ROW_RENDERERS[r](card))
     time.sleep(0.2)
+
+    # Beat 3.5: announce each special rule that triggered this capture
+    # (Same, Plus, Combo, ...), one banner per rule, before the generic
+    # "CAPTURED!" banner.
+    for rule_name in events or ():
+        show_rule_banner(term, rule_name, new_owner)
 
     # Beat 4: an ASCII-art "CAPTURED!" banner materializes, flickers, and
     # dissolves center-screen.

@@ -406,7 +406,9 @@ def run_game(
             if captures:
                 old_owners = {cpos: ccard.owner for cpos, ccard in captures}
                 if use_screen:
-                    animate_captures(term, cursor_row, captures, card.owner, col_offset)
+                    animate_captures(
+                        term, cursor_row, captures, card.owner, col_offset, events
+                    )
                     # Wipe the "CAPTURED!" banner left behind by the animation.
                     _render_turn_screen(
                         term,
@@ -422,8 +424,11 @@ def run_game(
                     for _, ccard in captures:
                         ccard.owner = card.owner
                 play_capture_win() if card.owner == "P" else play_capture_lose()
-            for evt in events:
-                print(f"  *** {evt.upper()}! ***")
+            if not use_screen:
+                # In screen mode this is already announced by the ASCII
+                # rule banner(s) animate_captures just showed.
+                for evt in events:
+                    print(f"  *** {evt.upper()}! ***")
             for cap_pos, ncard in captures:
                 old_owner = old_owners[cap_pos]
                 ncard.owner = card.owner
@@ -639,7 +644,9 @@ def run_p2p_game(
                 if captures:
                     old_owners = {cpos: ccard.owner for cpos, ccard in captures}
                     if use_screen:
-                        animate_captures(term, cursor_row, captures, card.owner, col_offset)
+                        animate_captures(
+                            term, cursor_row, captures, card.owner, col_offset, events
+                        )
                         # Wipe the "CAPTURED!" banner left behind by the animation.
                         _render_turn_screen(
                             term,
@@ -657,8 +664,11 @@ def run_p2p_game(
                         for _, ccard in captures:
                             ccard.owner = card.owner
                     play_capture_win() if card.owner == "P" else play_capture_lose()
-                for evt in events:
-                    print(f"  *** {evt.upper()}! ***")
+                if not use_screen:
+                    # In screen mode this is already announced by the ASCII
+                    # rule banner(s) animate_captures just showed.
+                    for evt in events:
+                        print(f"  *** {evt.upper()}! ***")
                 for cap_pos, ncard in captures:
                     old_owner = old_owners[cap_pos]
                     ncard.owner = card.owner

@@ -1,8 +1,8 @@
 SAMPLE_RATE = 44100  # CD quality
 
 MUSIC_VOLUME_LEVELS: list[tuple[str, float]] = [
-    ("Low", 0.35),
-    ("Medium", 0.65),
+    ("Low", 0.25),
+    ("Medium", 0.50),
     ("High", 1.0),
 ]
 DEFAULT_MUSIC_VOLUME_IDX = 1  # Medium
