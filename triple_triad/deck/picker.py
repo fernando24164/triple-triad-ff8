@@ -3,19 +3,10 @@ from collections.abc import Callable
 from typing import Any
 
 from ..constants import DECK_SIZE
-from ..data.cards import CARDS, Element
+from ..data.cards import CARDS
 from ..models.card import Card, stat_display
 from ..synth.sfx import play_cancel, play_confirm, play_cursor
 from ..ui.cli import term
-
-ELEMENT_NAMES = [e.value for e in Element]
-
-LEVEL_RANGES = {
-    "1": ("Beginner", 1, 3),
-    "2": ("Intermediate", 4, 6),
-    "3": ("Advanced", 7, 10),
-    "4": ("All", 1, 10),
-}
 
 PAGE_SIZE = 15
 
@@ -72,83 +63,12 @@ def _fill_remaining(
         chosen_names.add(name)
 
 
-def _prompt_level_range() -> tuple[int, int] | None:
-    print("\n  ── Level Range ──")
-    for key, (label, lo, hi) in LEVEL_RANGES.items():
-        print(f"  [{key}] {label} (Lv {lo}-{hi})")
-    print("  [0] Cancel")
-    while True:
-        choice = input("  Choose range [0-4]: ").strip()
-        if choice == "0":
-            return None
-        if choice in LEVEL_RANGES:
-            _, lo, hi = LEVEL_RANGES[choice]
-            return (lo, hi)
-        print("  ✗ Enter 0, 1, 2, 3, or 4.")
-
-
-def _prompt_element() -> str | None:
-    print("\n  ── Element Filter ──")
-    for i, el in enumerate(ELEMENT_NAMES, 1):
-        print(f"  [{i}] {el}")
-    print("  [0] Any element (no filter)")
-    print("  [c] Cancel")
-    while True:
-        choice = input("  Choose element [0-8/c]: ").strip().lower()
-        if choice == "c":
-            return None
-        if choice == "0":
-            return None
-        try:
-            idx = int(choice) - 1
-            if 0 <= idx < len(ELEMENT_NAMES):
-                return ELEMENT_NAMES[idx]
-        except ValueError:
-            pass
-        print(
-            f"  ✗ Enter a number between 0 and {len(ELEMENT_NAMES)}, or 'c' to cancel."
-        )
-
-
-def _prompt_filters(
-    current_level_range: tuple[int, int] | None,
-    current_element: str | None,
-) -> tuple[tuple[int, int] | None, str | None]:
-    print("\n  ── Current Filters ──")
-    lr_label = (
-        f"Level {current_level_range[0]}-{current_level_range[1]}"
-        if current_level_range
-        else "Any"
-    )
-    el_label = current_element if current_element else "Any"
-    print(f"  Level range: {lr_label}")
-    print(f"  Element:     {el_label}")
-    print("\n  [1] Change level range")
-    print("  [2] Change element filter")
-    print("  [3] Clear all filters")
-    print("  [0] Back to card selection")
-    while True:
-        choice = input("  Choice [0-3]: ").strip()
-        if choice == "0":
-            return current_level_range, current_element
-        if choice == "1":
-            new_lr = _prompt_level_range()
-            return _prompt_filters(new_lr, current_element)
-        if choice == "2":
-            new_el = _prompt_element()
-            return _prompt_filters(current_level_range, new_el)
-        if choice == "3":
-            return None, None
-        print("  ✗ Enter 0, 1, 2, or 3.")
-
-
 class _DeckPicker:
     """Interactive card picker with keyboard navigation via blessed."""
 
     def __init__(self) -> None:
         self.term = term
         self.all_names = sorted(CARDS.keys())
-        self.level_range: tuple[int, int] | None = None
         self.element: str | None = None
         self.sort_key = "level"
         self.sort_reverse = False
@@ -166,7 +86,7 @@ class _DeckPicker:
     def _view_names(self) -> list[str]:
         if self._cached_view is not None:
             return self._cached_view
-        names = _filter_cards(self.all_names, self.level_range, self.element)
+        names = _filter_cards(self.all_names, element=self.element)
         if self.search_query:
             q = self.search_query.lower()
             names = [n for n in names if q in n.lower()]
@@ -227,8 +147,6 @@ class _DeckPicker:
         add(t.bold_cyan(title) + t.normal + " " * pad + t.dim + info)
 
         filters: list[str] = []
-        if self.level_range:
-            filters.append(f"Level {self.level_range[0]}-{self.level_range[1]}")
         if self.element:
             filters.append(f"Element: {self.element}")
         if self.search_query:
@@ -296,7 +214,7 @@ class _DeckPicker:
 
         help_text = (
             "↑/↓ move  •  Enter select  •  n/p page  •  u undo  •  s sort  •  "
-            "f level  •  / search  •  r reset  •  d done  •  q quit"
+            "/ search  •  r reset  •  d done  •  q quit"
         )
         add(t.normal + t.dim + help_text + " " * max(0, t.width - len(help_text)))
 
@@ -363,14 +281,6 @@ class _DeckPicker:
         self.sort_reverse = dir_idx == 1
         self.page = 0
         self._invalidate_cache()
-
-    def _show_lvl_filter(self) -> None:
-        lr = _prompt_level_range()
-        if lr is not None:
-            self.level_range = lr
-            self.element = None
-            self.page = 0
-            self._invalidate_cache()
 
     def _show_search_prompt(self) -> None:
         t = self.term
@@ -465,7 +375,6 @@ class _DeckPicker:
             _fill_remaining(self.chosen, self.chosen_names, self.all_names)
             return "break"
         elif str(k).lower() == "r":
-            self.level_range = None
             self.element = None
             self.search_query = None
             self.sort_key = "level"
@@ -475,9 +384,6 @@ class _DeckPicker:
             self._invalidate_cache()
         elif str(k).lower() == "s":
             self._show_sort_menu()
-        elif str(k).lower() == "f":
-            self._show_lvl_filter()
-            play_confirm()
         elif str(k) == "/":
             self._show_search_prompt()
             play_confirm()
