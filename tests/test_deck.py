@@ -157,9 +157,16 @@ class TestDeck:
         assert sorted_names == sorted(all_names)
 
     def test_sort_cards_by_stat(self):
-        """Test sorting cards by a stat (top)."""
+        """Test sorting cards by a stat (top), ascending by default."""
         all_names = list(CARDS.keys())
         sorted_names = _sort_cards(all_names, "top")
+        tops = [CARDS[n].top for n in sorted_names]
+        assert tops == sorted(tops)
+
+    def test_sort_cards_by_stat_reverse(self):
+        """Test sorting cards by a stat (top), descending when requested."""
+        all_names = list(CARDS.keys())
+        sorted_names = _sort_cards(all_names, "top", reverse=True)
         tops = [CARDS[n].top for n in sorted_names]
         assert tops == sorted(tops, reverse=True)
 

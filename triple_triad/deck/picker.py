@@ -1,4 +1,5 @@
 import random
+from collections.abc import Callable
 from typing import Any
 
 from ..constants import DECK_SIZE
@@ -41,19 +42,20 @@ def _filter_cards(
 def _sort_cards(
     names: list[str],
     sort_key: str = "level",
+    reverse: bool = False,
 ) -> list[str]:
-    """Sort card names by the given key."""
-    key_funcs = {
-        "level": lambda n: (CARDS[n].level, n),
+    """Sort card names by the given key and direction."""
+    key_funcs: dict[str, Callable[[str], int | str]] = {
+        "level": lambda n: CARDS[n].level,
         "name": lambda n: n,
-        "top": lambda n: (-CARDS[n].top, n),
-        "right": lambda n: (-CARDS[n].right, n),
-        "bottom": lambda n: (-CARDS[n].bottom, n),
-        "left": lambda n: (-CARDS[n].left, n),
-        "element": lambda n: (CARDS[n].element or "", n),
+        "top": lambda n: CARDS[n].top,
+        "right": lambda n: CARDS[n].right,
+        "bottom": lambda n: CARDS[n].bottom,
+        "left": lambda n: CARDS[n].left,
+        "element": lambda n: CARDS[n].element or "",
     }
     func = key_funcs.get(sort_key, key_funcs["level"])
-    return sorted(names, key=func)
+    return sorted(names, key=lambda n: (func(n), n), reverse=reverse)
 
 
 def _fill_remaining(
@@ -149,6 +151,7 @@ class _DeckPicker:
         self.level_range: tuple[int, int] | None = None
         self.element: str | None = None
         self.sort_key = "level"
+        self.sort_reverse = False
         self.search_query: str | None = None
         self.chosen: list[Card] = []
         self.chosen_names: set[str] = set()
@@ -167,7 +170,7 @@ class _DeckPicker:
         if self.search_query:
             q = self.search_query.lower()
             names = [n for n in names if q in n.lower()]
-        self._cached_view = _sort_cards(names, self.sort_key)
+        self._cached_view = _sort_cards(names, self.sort_key, self.sort_reverse)
         return self._cached_view
 
     @property
@@ -210,7 +213,10 @@ class _DeckPicker:
         lines: list[Any] = []
 
         def add(line: str = "") -> None:
-            lines.append(line)
+            # Clear to end of line instead of a full-screen clear on every
+            # redraw — a full `t.clear` on every keypress (including every
+            # card selection) was both slower and caused visible flicker.
+            lines.append(line + t.clear_eol)
 
         def add_sep() -> None:
             add(t.cyan("  " + "─" * (t.width - 4)))
@@ -227,8 +233,9 @@ class _DeckPicker:
             filters.append(f"Element: {self.element}")
         if self.search_query:
             filters.append(f"Search: '{self.search_query}'")
-        if self.sort_key != "level":
-            filters.append(f"Sort: {self.sort_key}")
+        if self.sort_key != "level" or self.sort_reverse:
+            direction = "desc" if self.sort_reverse else "asc"
+            filters.append(f"Sort: {self.sort_key} ({direction})")
         add(
             t.cyan(
                 f"  Filters: {' | '.join(filters)}"
@@ -284,8 +291,8 @@ class _DeckPicker:
                 add(t.white(line))
 
         fill = t.height - len(lines) - 1
-        if fill > 0:
-            add("\n" * fill)
+        for _ in range(max(0, fill)):
+            add("")
 
         help_text = (
             "↑/↓ move  •  Enter select  •  n/p page  •  u undo  •  s sort  •  "
@@ -293,11 +300,11 @@ class _DeckPicker:
         )
         add(t.normal + t.dim + help_text + " " * max(0, t.width - len(help_text)))
 
-        print(t.home + t.clear + "\n".join(lines), end="")
+        print(t.home + "\n".join(lines), end="", flush=True)
 
-    def _show_submenu(self, title: str, items: list[str]) -> int | None:
+    def _show_submenu(self, title: str, items: list[str], start_idx: int = 0) -> int | None:
         t = self.term
-        idx = 0
+        idx = start_idx if 0 <= start_idx < len(items) else 0
         while True:
             out: list[Any] = [t.clear]
             out.append(
@@ -316,7 +323,7 @@ class _DeckPicker:
                 + t.dim
                 + "↑/↓ move  •  Enter select  •  q back"
             )
-            print("".join(out), end="")
+            print("".join(out), end="", flush=True)
             k = t.inkey()
             if not k:
                 continue
@@ -336,10 +343,26 @@ class _DeckPicker:
     def _show_sort_menu(self) -> None:
         keys = ["level", "name", "top", "right", "bottom", "left", "element"]
         idx = self._show_submenu("Sort by", [k.capitalize() for k in keys])
-        if idx is not None:
-            self.sort_key = keys[idx]
-            self.page = 0
-            self._invalidate_cache()
+        if idx is None:
+            return
+        new_key = keys[idx]
+
+        # Stat columns have traditionally shown the highest value first —
+        # default the direction prompt to match, so pressing Enter alone
+        # keeps that familiar behavior.
+        default_desc = new_key in ("top", "right", "bottom", "left")
+        dir_idx = self._show_submenu(
+            "Sort direction",
+            ["Ascending", "Descending"],
+            start_idx=1 if default_desc else 0,
+        )
+        if dir_idx is None:
+            return
+
+        self.sort_key = new_key
+        self.sort_reverse = dir_idx == 1
+        self.page = 0
+        self._invalidate_cache()
 
     def _show_lvl_filter(self) -> None:
         lr = _prompt_level_range()
@@ -446,6 +469,7 @@ class _DeckPicker:
             self.element = None
             self.search_query = None
             self.sort_key = "level"
+            self.sort_reverse = False
             self.page = 0
             self.cursor = 0
             self._invalidate_cache()
@@ -465,6 +489,7 @@ class _DeckPicker:
     def run(self) -> list[Card]:
         t = self.term
         with t.fullscreen(), t.cbreak(), t.hidden_cursor():
+            print(t.clear, end="")  # once, on entry — _draw() no longer clears per frame
             while len(self.chosen) < DECK_SIZE:
                 self._clamp_page()
                 self._clamp_cursor()
