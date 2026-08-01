@@ -99,34 +99,50 @@ def _decide_first(term: Terminal | None) -> str:
     total_w = len(labels[0]) + gap + len(labels[1])
     base_x = max(0, (term.width - total_w) // 2)
     cpu_x = base_x + len(labels[0]) + gap
+    arrow_offset = len(labels[0]) // 2
+    positions = (base_x, cpu_x)
 
     with term.cbreak(), term.hidden_cursor():
+        # Clear and draw the static title once — clearing every frame in
+        # the loop below is what caused the whole screen to flash/blink.
+        print(term.clear + term.normal, end="")
+        title = "Who goes first?"
+        print(
+            term.move_yx(5, max(0, (term.width - len(title)) // 2))
+            + term.bold_cyan(title),
+            end="",
+            flush=True,
+        )
+
+        # The labels never change appearance during the bounce — only the
+        # arrow below moves — so draw them once. Toggling a background
+        # color on and off every frame (as fast as 40ms early on) is what
+        # read as strobing rather than motion.
+        for idx, label in enumerate(labels):
+            print(term.move_yx(8, positions[idx]) + term.bold_white(label), end="")
+
         for i, sel in enumerate(seq):
             progress = i / max(1, len(seq) - 1)
-            delay = 0.04 + progress * 0.35
+            delay = 0.1 + progress * 0.3  # kept slow enough to read as a hop
 
-            out = [term.clear + term.normal]
-
-            title = "Who goes first?"
-            out.append(
-                term.move_yx(5, max(0, (term.width - len(title)) // 2))
-                + term.bold_cyan(title)
-            )
-
-            for idx, label in enumerate(labels):
-                x = base_x if idx == 0 else cpu_x
-                if idx == sel:
-                    out.append(term.move_yx(8, x) + term.bold_black_on_cyan(label))
-                else:
-                    out.append(term.move_yx(8, x) + term.white(label))
-
-            arrow_x = base_x if sel == 0 else cpu_x
-            out.append(
-                term.move_yx(9, arrow_x + len(labels[sel]) // 2) + term.yellow("▲")
-            )
+            out = []
+            # Overwrite both possible arrow slots every frame — a blank at
+            # the unselected one, the arrow at the selected one — so the
+            # old arrow never lingers without needing a full clear.
+            for idx, x in enumerate(positions):
+                glyph = term.yellow("▲") if idx == sel else " "
+                out.append(term.move_yx(9, x + arrow_offset) + glyph)
 
             print("".join(out), end="", flush=True)
             time.sleep(delay)
+
+        # Reveal: highlight the winning side once, as the payoff.
+        print(
+            term.move_yx(8, positions[winner])
+            + term.bold_black_on_cyan(labels[winner]),
+            end="",
+            flush=True,
+        )
 
         result = "You go first!" if first == "P" else "CPU goes first!"
         print(
@@ -356,6 +372,12 @@ def run_game(
 
             else:
                 print("\n  CPU is thinking...")
+                if use_screen:
+                    # The AI move is computed instantly, so without this
+                    # pause the "CPU TURN" screen would flash off again
+                    # before it's even visible — this also gives the
+                    # "thinking" message a moment to actually be read.
+                    time.sleep(0.5)
                 ci, cpu_pos = cpu_choose(
                     board, cpu_hand, rules, mode=ai_mode, randomness=ai_randomness
                 )

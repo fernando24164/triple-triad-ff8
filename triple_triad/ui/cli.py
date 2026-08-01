@@ -52,37 +52,50 @@ def _screen_border() -> None:
 
 
 def _animate_title() -> None:
+    """Drop the title art into place, then settle with a small bounce.
+    Clears once up front and draws the static border once — every frame
+    after that only erases the title's previous row positions and repaints
+    it at the new ones, so the screen doesn't flash on every frame."""
     title_h = len(TITLE_ART)
     final_y = 2
     start_y = -title_h - 2
     frames = 30
 
-    for i in range(frames + 1):
-        t = i / frames
-        eased = 1 - (1 - t) * (1 - t) * (1 - t)
-        y = int(start_y + (final_y - start_y) * eased)
+    print(term.clear, end="")
+    _screen_border()
 
-        print(term.clear)
-        _screen_border()
+    prev_y: int | None = None
+
+    def paint(y: int) -> None:
+        nonlocal prev_y
+        out = []
+        if prev_y is not None:
+            for row, line in enumerate(TITLE_ART):
+                screen_y = prev_y + row
+                if 0 <= screen_y < term.height:
+                    out.append(
+                        term.move_yx(screen_y, _center_x(line)) + " " * len(line)
+                    )
         for row, line in enumerate(TITLE_ART):
             screen_y = y + row
             if 0 <= screen_y < term.height:
-                print(
+                out.append(
                     term.normal
                     + term.move_yx(screen_y, _center_x(line))
                     + term.bold_cyan(line)
                 )
+        print("".join(out), end="", flush=True)
+        prev_y = y
+
+    for i in range(frames + 1):
+        t = i / frames
+        eased = 1 - (1 - t) * (1 - t) * (1 - t)
+        y = int(start_y + (final_y - start_y) * eased)
+        paint(y)
         time.sleep(0.025)
 
     for extra, delay in ((3, 0.06), (2, 0.05), (1, 0.04), (0, 0)):
-        print(term.clear)
-        _screen_border()
-        for row, line in enumerate(TITLE_ART):
-            print(
-                term.normal
-                + term.move_yx(final_y + extra + row, _center_x(line))
-                + term.bold_cyan(line)
-            )
+        paint(final_y + extra)
         time.sleep(delay)
 
 
@@ -273,19 +286,12 @@ def main_menu() -> str:
         _animate_title()
 
         def draw_frame() -> None:
-            # Border, title art, and help text never change during this menu's
-            # lifetime — painted once so navigation never needs a full clear.
+            # Border and title art never change during this menu's lifetime,
+            # and _animate_title() already left them painted at their final
+            # position — re-clearing and redrawing them here just caused a
+            # visible flash right as the title-drop animation finished. Only
+            # the help text (not drawn by the animation) still needs adding.
             nonlocal avail_start_y
-            print(term.clear)
-            _screen_border()
-
-            for row, line in enumerate(TITLE_ART):
-                print(
-                    term.normal
-                    + term.move_yx(2 + row, _center_x(line))
-                    + term.bold_cyan(line)
-                )
-
             avail = term.height - (2 + len(TITLE_ART))
             avail_start_y = 2 + len(TITLE_ART) + (avail - len(items)) // 2
 
@@ -294,7 +300,9 @@ def main_menu() -> str:
                 term.normal
                 + term.move_yx(term.height - 2, _center_x(help_text))
                 + term.dim
-                + help_text
+                + help_text,
+                end="",
+                flush=True,
             )
 
         def draw_items() -> None:
