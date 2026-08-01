@@ -29,7 +29,12 @@ from ..synth.sfx import (
     play_defeat_theme,
     play_victory_fanfare,
 )
-from ..ui.capture_fx import animate_captures, show_defeat_banner, show_victory_banner
+from ..ui.capture_fx import (
+    animate_captures,
+    show_draw_banner,
+    show_lose_banner,
+    show_victory_banner,
+)
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
 from .rules import resolve_captures
@@ -416,13 +421,18 @@ def run_game(
         elif c_final > p_final:
             play_defeat_theme()
             if use_screen:
-                show_defeat_banner(term)
+                show_lose_banner(term)
                 _render_game_over_screen(
                     term, use_screen, board, p_final, c_final, result_text=result_text
                 )
             pause_message()
             return "CPU"
         else:
+            if use_screen:
+                show_draw_banner(term)
+                _render_game_over_screen(
+                    term, use_screen, board, p_final, c_final, result_text=result_text
+                )
             pause_message()
             return "Draw"
 
@@ -661,7 +671,19 @@ def run_p2p_game(
             elif label == "You lost. Better luck next time!":
                 play_defeat_theme()
                 if use_screen:
-                    show_defeat_banner(term)
+                    show_lose_banner(term)
+                    _render_game_over_screen(
+                        term,
+                        use_screen,
+                        board,
+                        p_final,
+                        c_final,
+                        score_labels=("You", "Opponent"),
+                        result_text=label,
+                    )
+            elif label == "It's a draw!":
+                if use_screen:
+                    show_draw_banner(term)
                     _render_game_over_screen(
                         term,
                         use_screen,

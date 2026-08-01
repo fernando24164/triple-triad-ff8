@@ -13,8 +13,9 @@ if TYPE_CHECKING:
     from blessed import Terminal
 
 _FLASH = "\033[97;1m"  # bold bright white
-_GREEN = "\033[92;1m"  # bold bright green — player capture
-_RED = "\033[91;1m"  # bold bright red — CPU/opponent capture
+_GREEN = "\033[92;1m"  # bold bright green — player capture / win
+_RED = "\033[91;1m"  # bold bright red — CPU/opponent capture / loss
+_YELLOW = "\033[93;1m"  # bold bright yellow — draw
 _RESET = "\033[0m"
 
 _BANNER_WORD = "CAPTURED!"
@@ -36,6 +37,10 @@ _FONT: dict[str, tuple[str, str, str, str, str]] = {
     "I": ("###", " # ", " # ", " # ", "###"),
     "O": (" ### ", "#   #", "#   #", "#   #", " ### "),
     "Y": ("#   #", " # # ", "  #  ", "  #  ", "  #  "),
+    "W": ("#   #", "#   #", "# # #", "# # #", " # # "),
+    "N": ("#   #", "##  #", "# # #", "#  ##", "#   #"),
+    "L": ("#    ", "#    ", "#    ", "#    ", "#####"),
+    "S": (" ####", "#    ", " ### ", "    #", "#### "),
     "!": (" # ", " # ", " # ", "   ", " # "),
     " ": ("   ", "   ", "   ", "   ", "   "),
 }
@@ -150,25 +155,36 @@ def _flash_banner(term: Terminal, new_owner: str | None) -> None:
 
 
 def show_victory_banner(term: Terminal | None) -> None:
-    """ASCII-art 'VICTORY!' banner for a player match win: materializes and
+    """ASCII-art 'YOU WIN!' banner for a player match win: materializes and
     dissolves center-screen the same way the capture banner does. No-op
     when no interactive terminal is available. The caller should redraw
     the game-over screen afterward to clear any leftover banner artifacts.
     """
     if term is None or not term.does_styling:
         return
-    _show_banner(term, "VICTORY!", _GREEN)
+    _show_banner(term, "YOU WIN!", _GREEN)
 
 
-def show_defeat_banner(term: Terminal | None) -> None:
-    """ASCII-art 'DEFEAT!' banner for a match loss: materializes and
+def show_lose_banner(term: Terminal | None) -> None:
+    """ASCII-art 'YOU LOSE!' banner for a match loss: materializes and
     dissolves center-screen the same way the capture banner does. No-op
     when no interactive terminal is available. The caller should redraw
     the game-over screen afterward to clear any leftover banner artifacts.
     """
     if term is None or not term.does_styling:
         return
-    _show_banner(term, "DEFEAT!", _RED)
+    _show_banner(term, "YOU LOSE!", _RED)
+
+
+def show_draw_banner(term: Terminal | None) -> None:
+    """ASCII-art 'DRAW!' banner for a tied match: materializes and
+    dissolves center-screen the same way the capture banner does. No-op
+    when no interactive terminal is available. The caller should redraw
+    the game-over screen afterward to clear any leftover banner artifacts.
+    """
+    if term is None or not term.does_styling:
+        return
+    _show_banner(term, "DRAW!", _YELLOW)
 
 
 def animate_captures(
