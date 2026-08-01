@@ -111,7 +111,9 @@ def _build_art(word: str, pixel: str) -> list[str]:
     ]
 
 
-def _paint_art(term: Terminal, row: int, col: int, lines: list[str], color: str) -> None:
+def _paint_art(
+    term: Terminal, row: int, col: int, lines: list[str], color: str
+) -> None:
     visible = max(0, term.width - col)
     frame = "".join(
         term.move_yx(row + i, col) + color + line[:visible] + _RESET
@@ -253,7 +255,9 @@ def animate_captures(
         ncard.owner = new_owner
 
     # Beat 3: reveal the card in its new owner's color (the flip's payoff).
-    _paint(term, cursor_row, col_offset, captures, lambda card, r: _ROW_RENDERERS[r](card))
+    _paint(
+        term, cursor_row, col_offset, captures, lambda card, r: _ROW_RENDERERS[r](card)
+    )
     time.sleep(0.2)
 
     # Beat 3.5: announce each special rule that triggered this capture

@@ -130,8 +130,12 @@ def print_help() -> None:
 
   DURING YOUR TURN
   ────────────────
-  - Enter a number (1-9) to place a card on the grid
-  - Or enter a card number from your hand to see details
+  - Enter a card number from your hand (1-5) to select it
+  - Then use the arrow keys (↑ ↓ ← →) to move the yellow
+    border marker to an empty cell, and press Enter to place
+  - Press Escape or 'r' to go back and pick another card
+  - In plain terminals (no arrow keys), you can still enter
+    the cell number (1-9) directly
   - Strategy matters: position cards to maximize captures!
 
   ╔═════════════════════════════════════╗

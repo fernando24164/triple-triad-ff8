@@ -40,6 +40,7 @@ from ..ui.capture_fx import (
 )
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
+from ..ui.position_selector import select_position
 from .rules import resolve_captures
 from .scoring import calculate_final_scores, calculate_scores
 
@@ -174,6 +175,7 @@ def _render_turn_screen(
     sep: str = "═",
     note: str | None = None,
     extra_lines: int = 0,
+    highlight: int | None = None,
 ) -> tuple[int, int]:
     """Draw one turn's screen — clearing first if a persistent (fullscreen)
     terminal is in use, so the board updates in place instead of scrolling.
@@ -200,7 +202,7 @@ def _render_turn_screen(
         return " " * hpad + text
 
     bar = sep * 62
-    board_text = board.display()
+    board_text = board.display(highlight=highlight)
     own_lines = 6 + board_text.count("\n") + 1 + (2 if note is not None else 0)
     col_offset = 0
     if use_screen and term is not None:
@@ -213,7 +215,9 @@ def _render_turn_screen(
     print(_center(f"  Turn {turn_number}  |  {turn_label}"))
     print(_center(bar))
     if col_offset:
-        board_text = "\n".join(" " * col_offset + line for line in board_text.split("\n"))
+        board_text = "\n".join(
+            " " * col_offset + line for line in board_text.split("\n")
+        )
     print(board_text)
     you_label, opp_label = score_labels
     print()
@@ -262,7 +266,9 @@ def _render_game_over_screen(
     print(_center("  GAME OVER"))
     print(_center(bar))
     if col_offset:
-        board_text = "\n".join(" " * col_offset + line for line in board_text.split("\n"))
+        board_text = "\n".join(
+            " " * col_offset + line for line in board_text.split("\n")
+        )
     print(board_text)
     you_label, opp_label = score_labels
     print()
@@ -324,6 +330,7 @@ def run_game(
                     c_score: int = c_score,
                     show_cpu: bool = show_cpu,
                     extra: int = choose_extra,
+                    highlight: int | None = None,
                 ) -> None:
                     _render_turn_screen(
                         term,
@@ -334,6 +341,7 @@ def run_game(
                         p_score,
                         c_score,
                         extra_lines=extra,
+                        highlight=highlight,
                     )
                     display_hand(player_hand, "Your", term=term)
                     display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
@@ -351,19 +359,27 @@ def run_game(
                     except ValueError:
                         print("  ✗ Enter a number.")
 
-                empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
-                while True:
-                    raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw]: ")
-                    if raw.strip().lower() == "r":
+                if use_screen and term is not None:
+                    pos = select_position(
+                        board, term, use_screen, lambda h: _redraw(highlight=h)
+                    )
+                    if pos is None:
                         _redraw()
                         continue
-                    try:
-                        pos = int(raw) - 1
-                        if pos in empty:
-                            break
-                        print("  ✗ Position taken or invalid.")
-                    except ValueError:
-                        print("  ✗ Enter a number.")
+                else:
+                    empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
+                    while True:
+                        raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw]: ")
+                        if raw.strip().lower() == "r":
+                            _redraw()
+                            continue
+                        try:
+                            pos = int(raw) - 1
+                            if pos in empty:
+                                break
+                            print("  ✗ Position taken or invalid.")
+                        except ValueError:
+                            print("  ✗ Enter a number.")
 
                 card = player_hand.pop(ci)
                 card.owner = "P"
@@ -454,7 +470,9 @@ def run_game(
         else:
             result_text = "🤝  IT'S A DRAW!"
 
-        _render_game_over_screen(term, use_screen, board, p_final, c_final, result_text=result_text)
+        _render_game_over_screen(
+            term, use_screen, board, p_final, c_final, result_text=result_text
+        )
 
         if p_final > c_final:
             play_victory_fanfare()
@@ -771,8 +789,10 @@ def _get_local_move_interactive(
     display_hand(player_hand, "Your", term=term)
     display_hand(opponent_hand, "Opponent", show=show_opp, term=term)
 
-    def _redraw() -> None:
-        extra = _hand_block_lines(len(player_hand)) + _hand_block_lines(len(opponent_hand))
+    def _redraw(highlight: int | None = None) -> None:
+        extra = _hand_block_lines(len(player_hand)) + _hand_block_lines(
+            len(opponent_hand)
+        )
         _render_turn_screen(
             term,
             use_screen,
@@ -784,38 +804,46 @@ def _get_local_move_interactive(
             score_labels=score_labels,
             sep="=",
             extra_lines=extra,
+            highlight=highlight,
         )
         display_hand(player_hand, "Your", term=term)
         display_hand(opponent_hand, "Opponent", show=show_opp, term=term)
 
     while True:
-        raw = input(f"\n  Choose card (1-{len(player_hand)}) [r=redraw]: ")
-        if raw.strip().lower() == "r":
-            _redraw()
-            continue
-        try:
-            ci = int(raw) - 1
-            if 0 <= ci < len(player_hand):
-                break
-            print(f"  Enter a number between 1 and {len(player_hand)}.")
-        except ValueError:
-            print("  Enter a number.")
+        while True:
+            raw = input(f"\n  Choose card (1-{len(player_hand)}) [r=redraw]: ")
+            if raw.strip().lower() == "r":
+                _redraw()
+                continue
+            try:
+                ci = int(raw) - 1
+                if 0 <= ci < len(player_hand):
+                    break
+                print(f"  Enter a number between 1 and {len(player_hand)}.")
+            except ValueError:
+                print("  Enter a number.")
 
-    empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
-    while True:
-        raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw]: ")
-        if raw.strip().lower() == "r":
-            _redraw()
-            continue
-        try:
-            pos = int(raw) - 1
-            if pos in empty:
-                break
-            print("  Position taken or invalid.")
-        except ValueError:
-            print("  Enter a number.")
+        if term is not None and use_screen:
+            pos = select_position(board, term, use_screen, _redraw)
+            if pos is None:
+                _redraw()
+                continue
+        else:
+            empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
+            while True:
+                raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw]: ")
+                if raw.strip().lower() == "r":
+                    _redraw()
+                    continue
+                try:
+                    pos = int(raw) - 1
+                    if pos in empty:
+                        break
+                    print("  Position taken or invalid.")
+                except ValueError:
+                    print("  Enter a number.")
 
-    return player_hand[ci], pos
+        return player_hand[ci], pos
 
 
 def _wait_for_move(

@@ -8,6 +8,7 @@ class Color:
     # Board structure
     BORDER = "\033[90m"  # dark grey     — grid lines
     EMPTY_POS = "\033[33m"  # yellow        — empty cell number
+    HIGHLIGHT = "\033[93m"  # bright yellow — selected cell border
 
     @staticmethod
     def player(text: str) -> str:
@@ -24,6 +25,10 @@ class Color:
     @staticmethod
     def empty(text: str) -> str:
         return f"{Color.EMPTY_POS}{text}{Color.RESET}"
+
+    @staticmethod
+    def highlight(text: str) -> str:
+        return f"{Color.HIGHLIGHT}{text}{Color.RESET}"
 
     @staticmethod
     def card(text: str, owner: str | None) -> str:

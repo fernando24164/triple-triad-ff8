@@ -127,18 +127,40 @@ class Board:
         return Color.border(text)
 
     @classmethod
-    def _hline(cls, left: str, mid: str, right: str, fill: str) -> str:
+    def _hline(
+        cls,
+        left: str,
+        mid: str,
+        right: str,
+        fill: str,
+        highlight_col: int | None = None,
+    ) -> str:
         segment = fill * cls.CELL_W
         line = left + (mid.join([segment] * GRID_SIZE)) + right
-        return cls._colored_border(line)
+        if highlight_col is None or not 0 <= highlight_col < GRID_SIZE:
+            return cls._colored_border(line)
+        # Span covering the segment of the highlighted column plus the
+        # junction chars on both of its ends.
+        span_start = highlight_col * (cls.CELL_W + 1)
+        span_end = span_start + cls.CELL_W + 1
+        return (
+            cls._colored_border(line[:span_start])
+            + Color.highlight(line[span_start:span_end])
+            + cls._colored_border(line[span_end:])
+        )
 
     # ── Main renderer ──────────────────────────────────────────────────────
 
-    def display(self) -> str:
-        top = self._hline("┌", "┬", "┐", "─")
-        mid = self._hline("├", "┼", "┤", "─")
-        bot = self._hline("└", "┴", "┘", "─")
-        sep = Color.border("│")
+    def display(self, highlight: int | None = None) -> str:
+        """Render the board. When ``highlight`` is a valid position, the
+        borders of that cell are drawn in bright yellow."""
+        hr, hc = (None, None)
+        if highlight is not None and 0 <= highlight < BOARD_CELLS:
+            hr, hc = divmod(highlight, GRID_SIZE)
+        top = self._hline("┌", "┬", "┐", "─", highlight_col=hc if hr == 0 else None)
+        bot = self._hline(
+            "└", "┴", "┘", "─", highlight_col=hc if hr == GRID_SIZE - 1 else None
+        )
 
         lines = [top]
 
@@ -153,6 +175,7 @@ class Board:
                 self._render_row4,
             ]
 
+            row_hl = hc if row == hr else None
             for render_idx, renderer in enumerate(row_renderers):
                 parts = []
                 for col, card in enumerate(cells):
@@ -167,10 +190,27 @@ class Board:
                     else:
                         parts.append(renderer(card))
 
-                lines.append(sep + sep.join(parts) + sep)
+                if row_hl is None:
+                    sep = Color.border("│")
+                    lines.append(sep + sep.join(parts) + sep)
+                else:
+                    seps = [Color.border("│")] * (GRID_SIZE + 1)
+                    seps[row_hl] = Color.highlight("│")
+                    seps[row_hl + 1] = Color.highlight("│")
+                    lines.append(
+                        seps[0]
+                        + parts[0]
+                        + seps[1]
+                        + parts[1]
+                        + seps[2]
+                        + parts[2]
+                        + seps[3]
+                    )
 
             if row < GRID_SIZE - 1:
-                lines.append(mid)
+                # Mid line borders rows ``row`` (below) and ``row + 1`` (above).
+                hl = hc if (row == hr or row + 1 == hr) else None
+                lines.append(self._hline("├", "┼", "┤", "─", highlight_col=hl))
 
         lines.append(bot)
         return "\n".join(lines)

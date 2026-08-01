@@ -312,7 +312,9 @@ def main_menu() -> str:
                 x = _center_x(line)
                 y = avail_start_y + i
                 style = term.bold_black_on_cyan if i == idx else term.white
-                out.append(term.normal + _clear_row(y) + term.move_yx(y, x) + style(line))
+                out.append(
+                    term.normal + _clear_row(y) + term.move_yx(y, x) + style(line)
+                )
             print("".join(out), end="", flush=True)
 
         draw_frame()

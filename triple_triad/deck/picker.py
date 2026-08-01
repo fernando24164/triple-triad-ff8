@@ -220,7 +220,9 @@ class _DeckPicker:
 
         print(t.home + "\n".join(lines), end="", flush=True)
 
-    def _show_submenu(self, title: str, items: list[str], start_idx: int = 0) -> int | None:
+    def _show_submenu(
+        self, title: str, items: list[str], start_idx: int = 0
+    ) -> int | None:
         t = self.term
         idx = start_idx if 0 <= start_idx < len(items) else 0
         while True:
@@ -395,7 +397,9 @@ class _DeckPicker:
     def run(self) -> list[Card]:
         t = self.term
         with t.fullscreen(), t.cbreak(), t.hidden_cursor():
-            print(t.clear, end="")  # once, on entry — _draw() no longer clears per frame
+            print(
+                t.clear, end=""
+            )  # once, on entry — _draw() no longer clears per frame
             while len(self.chosen) < DECK_SIZE:
                 self._clamp_page()
                 self._clamp_cursor()

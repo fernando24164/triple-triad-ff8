@@ -22,12 +22,7 @@ RIVALS = [
     "Nida",
 ]
 
-BOSSES = [
-    "Seifer Almasy",
-    "Edea Kramer",
-    "NORG",
-    "Queen of the Cards"
-]
+BOSSES = ["Seifer Almasy", "Edea Kramer", "NORG", "Queen of the Cards"]
 
 
 @dataclass

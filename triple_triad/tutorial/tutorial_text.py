@@ -44,8 +44,8 @@ STEPS: list[dict[str, Any]] = [
     {
         "lines": [
             "Players take turns placing one card from their hand onto an empty cell.",
-            "Choose which card to play, then pick a position (1-9) on the grid.",
-            "Try it yourself!",
+            "Choose which card to play, then use the arrow keys to highlight an empty cell.",
+            "Press Enter to place your card. Try it yourself!",
         ],
         "interactive": "place_demo",
     },

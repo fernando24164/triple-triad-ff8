@@ -8,6 +8,7 @@ from ..engine.rules import resolve_captures
 from ..models.board import Board
 from ..models.card import Card
 from ..synth.sfx import play_cancel, play_confirm, play_cursor
+from ..ui.position_selector import next_empty_in_direction
 from .dialogs import show_dialog
 from .tutorial_text import RULE_TOPIC_STEPS, SPEAKER, STEPS
 
@@ -374,14 +375,31 @@ def _demo_place_card() -> bool:
     card = Card("Geezard")
     card.owner = "P"
 
-    _draw_demo_frame("Step 1: Place a Card")
-    _draw_board_demo(board)
-    _draw_demo_text("Pick a position (1-9) to place your card!", y=5)
+    cur = 0
+    while True:
+        _draw_demo_frame("Step 1: Place a Card")
+        _draw_board_demo(board, highlight=cur)
+        _draw_demo_text("Arrow keys move • Enter to place • q to quit", y=5)
 
-    key = _wait_for_position_choice(board)
-    if key is None:
-        return False
-    pos = key
+        k: Any = term.inkey(timeout=None)
+        if str(k).lower() == "q":
+            return False
+        if k.name in ("KEY_UP", "KEY_DOWN", "KEY_LEFT", "KEY_RIGHT"):
+            nxt = next_empty_in_direction(board, cur, k.name)
+            if nxt is not None:
+                cur = nxt
+                play_cursor()
+        elif k.name == "KEY_ENTER" or k == "\n":
+            play_confirm()
+            break
+        elif k.isdigit():
+            num = int(k) - 1
+            if 0 <= num < BOARD_CELLS and board.is_empty(num):
+                play_confirm()
+                cur = num
+                break
+
+    pos = cur
 
     board.place(pos, card)
 
@@ -536,8 +554,8 @@ def _draw_demo_frame(title: str) -> None:
     )
 
 
-def _draw_board_demo(board: Board) -> None:
-    board_str = board.display()
+def _draw_board_demo(board: Board, highlight: int | None = None) -> None:
+    board_str = board.display(highlight=highlight)
     lines = board_str.split("\n")
     start_y = max(8, (term.height - len(lines)) // 2)
     for i, line in enumerate(lines):
@@ -548,18 +566,6 @@ def _draw_board_demo(board: Board) -> None:
 def _draw_demo_text(text: str, y: int) -> None:
     x = max(0, (term.width - term.length(text)) // 2)
     print(term.move_yx(y, x) + term.white(text))
-
-
-def _wait_for_position_choice(board: Board) -> int | None:
-    """Wait for the player to press 1-9 for a valid empty position."""
-    while True:
-        k: Any = term.inkey(timeout=None)
-        if str(k).lower() == "q":
-            return None
-        if k.isdigit():
-            pos = int(k) - 1
-            if 0 <= pos < BOARD_CELLS and board.is_empty(pos):
-                return pos
 
 
 def _wait_for_specific_key(expected_pos: int, board: Board) -> int | None:

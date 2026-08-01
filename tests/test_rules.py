@@ -302,20 +302,28 @@ class TestRules:
         center_card = Card("Belhelmel")  # T:3 R:4 B:5 L:3
         center_card.owner = "P"
 
-        top_neighbor = Card("Mesmerize")  # T:5 R:3 B:3 L:4 (bottom=3 matches center top)
+        top_neighbor = Card(
+            "Mesmerize"
+        )  # T:5 R:3 B:3 L:4 (bottom=3 matches center top)
         top_neighbor.owner = "CPU"
         empty_board.place(1, top_neighbor)
 
-        left_neighbor = Card("Thrustaevis")  # T:5 R:3 B:2 L:5 (right=3 matches center left)
+        left_neighbor = Card(
+            "Thrustaevis"
+        )  # T:5 R:3 B:2 L:5 (right=3 matches center left)
         left_neighbor.owner = "CPU"
         empty_board.place(3, left_neighbor)
 
         # Chain targets: not touched by the center card at all.
-        chain_target_1 = Card("Grat")  # T:7 R:1 B:3 L:1 -> beaten by Mesmerize's left(4)
+        chain_target_1 = Card(
+            "Grat"
+        )  # T:7 R:1 B:3 L:1 -> beaten by Mesmerize's left(4)
         chain_target_1.owner = "CPU"
         empty_board.place(0, chain_target_1)
 
-        chain_target_2 = Card("Geezard")  # T:1 R:4 B:1 L:5 -> beaten by Thrustaevis's bottom(2)
+        chain_target_2 = Card(
+            "Geezard"
+        )  # T:1 R:4 B:1 L:5 -> beaten by Thrustaevis's bottom(2)
         chain_target_2.owner = "CPU"
         empty_board.place(6, chain_target_2)
 

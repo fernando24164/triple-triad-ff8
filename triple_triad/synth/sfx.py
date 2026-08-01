@@ -151,7 +151,8 @@ def play_capture_lose() -> None:
 def play_capture_banner() -> None:
     """Quick ascending sweep — the 'whoosh' of the CAPTURED! banner popping in."""
     notes = [
-        (freq, 0.02) for freq in (300.0, 380.0, 460.0, 560.0, 680.0, 820.0, 980.0, 1160.0)
+        (freq, 0.02)
+        for freq in (300.0, 380.0, 460.0, 560.0, 680.0, 820.0, 980.0, 1160.0)
     ]
     buf = _generate_sfx(
         notes, vol=0.16, duty=0.4, attack=0.001, decay=0.008, release=0.008
