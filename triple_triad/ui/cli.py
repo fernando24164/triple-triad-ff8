@@ -651,7 +651,8 @@ def prompt_save_deck_ui(deck: list[Card]) -> None:
 
 def pause_message(message: str = "Press Enter to continue...") -> None:
     with term.cbreak(), term.hidden_cursor():
-        print("\n" + term.dim + message)
+        hpad = _center_x(message) if term.does_styling else 0
+        print("\n" + " " * hpad + term.dim + message)
         while True:
             k = term.inkey(timeout=None)
             if k.name == "KEY_ENTER" or k == "\n":
