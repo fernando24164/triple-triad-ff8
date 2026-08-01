@@ -1,7 +1,7 @@
 import numpy as np
 
 from .constants import HARMONY_MAP, NOTE_FREQ, SAMPLE_RATE
-from .melodies import defeat_theme, victory_fanfare
+from .melodies import boogie, defeat_theme, victory_fanfare
 from .melodies.background_music import BASS, CHORDS, MELODY, PERC
 
 
@@ -199,4 +199,27 @@ def generate_defeat_buffer() -> np.ndarray:
     peak = np.max(np.abs(mixed))
     if peak > 0:
         mixed = mixed / peak * 0.75
+    return mixed
+
+
+def generate_boogie_buffer() -> np.ndarray:
+    """Mix the 12-bar boogie blues gameplay theme into one float64 buffer."""
+    melody = _render_melody(boogie.MELODY)
+    harmony = _render_harmony(boogie.MELODY)
+    pad = _render_pad(boogie.CHORDS)
+    bass = _render_bass(boogie.BASS)
+    perc = _render_perc(boogie.PERC)
+
+    length = min(len(melody), len(harmony), len(pad), len(bass), len(perc))
+    mixed: np.ndarray = (
+        melody[:length] * 1.0
+        + harmony[:length] * 1.0
+        + pad[:length] * 1.0
+        + bass[:length] * 1.0
+        + perc[:length] * 1.0
+    )
+
+    peak = np.max(np.abs(mixed))
+    if peak > 0:
+        mixed = mixed / peak * 0.8
     return mixed

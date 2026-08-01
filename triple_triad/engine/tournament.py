@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from ..data.cards import Element
 from ..deck.builder import build_cpu_deck, build_random_deck
 from ..engine.game_loop import run_game
@@ -10,12 +14,16 @@ from ..ui.tournament_display import (
     show_round_result,
 )
 
+if TYPE_CHECKING:
+    from ..synth.player import ChiptunePlayer
+
 
 def run_tournament(
     difficulty: str,
     ai_mode: str,
     board_elements: list[Element | None],
     ai_randomness: float = 0.0,
+    music_player: ChiptunePlayer | None = None,
 ) -> tuple[int, int, int]:
     """
     Run a 3-game tournament with random rules for each game.
@@ -25,6 +33,8 @@ def run_tournament(
         ai_mode: The AI mode for the CPU.
         board_elements: The board elements configuration.
         ai_randomness: The greedy-AI randomness factor for the CPU.
+        music_player: Shared menu music player, ducked to the gameplay
+            theme for each match and restored afterward.
 
     Returns:
         A tuple of (wins, losses, draws) representing the player's record.
@@ -49,7 +59,13 @@ def run_tournament(
             card.owner = "CPU"
 
         winner = run_game(
-            player_hand, cpu_hand, rules, ai_mode, board_elements, ai_randomness
+            player_hand,
+            cpu_hand,
+            rules,
+            ai_mode,
+            board_elements,
+            ai_randomness,
+            music_player=music_player,
         )
         if winner == "P":
             wins += 1

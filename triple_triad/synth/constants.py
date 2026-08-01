@@ -44,6 +44,7 @@ NOTE_FREQ = {
     "Sib2": 116.54,
     "Sib3": 233.08,
     "Sib4": 466.16,
+    "Mib5": 622.25,  # blue (flat-7th) note for the boogie theme
     "R": 0,
 }
 

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import os
 import threading
 import time
+from collections.abc import Callable
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 
@@ -22,7 +25,10 @@ class ChiptunePlayer:
     Silent no-op when audio libraries are unavailable.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self, generate_buffer: Callable[[], np.ndarray] = generate_music_buffer
+    ) -> None:
+        self._generate_buffer = generate_buffer
         self._sound: pygame.mixer.Sound | None = None
         self._is_playing = False
         self._volume = 1.0
@@ -64,6 +70,19 @@ class ChiptunePlayer:
     def is_playing(self) -> bool:
         return self._is_playing
 
+    def switch_track(self, generate_buffer: Callable[[], np.ndarray]) -> None:
+        """Switch to a different composition, resuming playback only if
+        music was already playing (so a muted session stays muted)."""
+        if generate_buffer is self._generate_buffer:
+            return
+        was_playing = self._is_playing
+        self.stop()
+        with self._lock:
+            self._generate_buffer = generate_buffer
+            self._sound = None  # force regeneration on next _ensure_sound()
+        if was_playing:
+            self.start()
+
     def set_volume(self, volume: float) -> None:
         """Set playback volume (0.0-1.0). Applies immediately if already playing."""
         self._volume = max(0.0, min(1.0, volume))
@@ -78,7 +97,7 @@ class ChiptunePlayer:
         if self._sound is not None:
             return
 
-        buf = generate_music_buffer()
+        buf = self._generate_buffer()
 
         pcm = (buf * 32767).astype(np.int16)
         stereo = np.column_stack((pcm, pcm))

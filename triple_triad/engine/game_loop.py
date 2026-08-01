@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import random
 import time
-from collections.abc import Collection
-from contextlib import nullcontext
+from collections.abc import Collection, Iterator
+from contextlib import contextmanager, nullcontext
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from blessed import Terminal
+
+    from ..synth.player import ChiptunePlayer
 
 from ..ai.base import cpu_choose
 from ..constants import BOARD_CELLS
@@ -29,6 +31,7 @@ from ..synth.sfx import (
     play_defeat_theme,
     play_victory_fanfare,
 )
+from ..synth.wave_generators import generate_boogie_buffer, generate_music_buffer
 from ..ui.capture_fx import (
     animate_captures,
     show_draw_banner,
@@ -57,6 +60,22 @@ def _get_terminal() -> Terminal | None:
         return _BlessedTerminal()
     except Exception:
         return None
+
+
+@contextmanager
+def _boogie_during_match(music_player: ChiptunePlayer | None) -> Iterator[None]:
+    """Swap the main menu music for the gameplay 'boogie' theme while cards
+    are being played, then swap back to the menu theme — however the block
+    exits (normal return, early return, or exception). A no-op when
+    there's no shared player (headless mode, tests)."""
+    if music_player is None:
+        yield
+        return
+    music_player.switch_track(generate_boogie_buffer)
+    try:
+        yield
+    finally:
+        music_player.switch_track(generate_music_buffer)
 
 
 def _decide_first(term: Terminal | None) -> str:
@@ -244,6 +263,7 @@ def run_game(
     ai_mode: str,
     board_elements: list[Element | None] | None = None,
     ai_randomness: float = 0.0,
+    music_player: ChiptunePlayer | None = None,
 ) -> str:
     """Run the full game loop until the board is full."""
     board = Board(elements=board_elements)
@@ -251,7 +271,7 @@ def run_game(
     use_screen = term is not None and term.does_styling
 
     screen = term.fullscreen() if (use_screen and term is not None) else nullcontext()
-    with screen:
+    with screen, _boogie_during_match(music_player):
         first = _decide_first(term if use_screen else None)
 
         turn = first
@@ -449,6 +469,7 @@ def run_p2p_game(
     local_role: str,
     first_turn: str,
     headless: bool = False,
+    music_player: ChiptunePlayer | None = None,
 ) -> str:
     """Run a P2P multiplayer game loop.
 
@@ -461,6 +482,8 @@ def run_p2p_game(
         local_role: 'P1' or 'P2' - this client's role.
         first_turn: 'P' or 'CPU' - who goes first.
         headless: If True, use AI for all local moves.
+        music_player: Shared menu music player to duck while the match
+            plays and restore afterward, or None to skip music switching.
 
     Returns:
         'P1_WIN', 'P2_WIN', or 'DRAW'.
@@ -473,7 +496,7 @@ def run_p2p_game(
     score_labels = ("You", "Opponent")
 
     screen = term.fullscreen() if (use_screen and term is not None) else nullcontext()
-    with screen:
+    with screen, _boogie_during_match(music_player if not headless else None):
         while any(board.is_empty(i) for i in range(BOARD_CELLS)):
             p_score, c_score = calculate_scores(board, player_hand, opponent_hand)
             turn_label = "YOUR TURN" if turn == "P" else "OPPONENT TURN"

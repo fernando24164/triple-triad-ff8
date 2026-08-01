@@ -52,7 +52,7 @@ def _setup_headless_env() -> None:
     os.environ["SDL_AUDIODRIVER"] = "dummy"
 
 
-def play_single_game() -> None:
+def play_single_game(music_player: ChiptunePlayer | None = None) -> None:
     difficulty = choose_difficulty_ui()
     ai_mode = get_cpu_ai_mode(difficulty)
     ai_randomness = get_cpu_randomness(difficulty)
@@ -106,20 +106,30 @@ def play_single_game() -> None:
             f"    {c.name}{el}  ^{c.top} >{c.right} v{c.bottom} <{c.left}  Lv{c.level}"
         )
 
-    run_game(player_hand, cpu_hand, rules, ai_mode, board_elements, ai_randomness)
+    run_game(
+        player_hand,
+        cpu_hand,
+        rules,
+        ai_mode,
+        board_elements,
+        ai_randomness,
+        music_player=music_player,
+    )
     pause_message()
 
 
-def play_tournament() -> None:
+def play_tournament(music_player: ChiptunePlayer | None = None) -> None:
     difficulty = choose_difficulty_ui()
     ai_mode = get_cpu_ai_mode(difficulty)
     ai_randomness = get_cpu_randomness(difficulty)
     board_elements = choose_board_ui()
-    run_tournament(difficulty, ai_mode, board_elements, ai_randomness)
+    run_tournament(
+        difficulty, ai_mode, board_elements, ai_randomness, music_player=music_player
+    )
     pause_message()
 
 
-def play_multiplayer_game() -> None:
+def play_multiplayer_game(music_player: ChiptunePlayer | None = None) -> None:
     """Interactive multiplayer flow with UI menus."""
     from .ui.network_menu import host_game_ui, join_game_ui, lobby_sync_ui
 
@@ -149,7 +159,9 @@ def play_multiplayer_game() -> None:
 
     local_role = "P1" if is_host else "P2"
     try:
-        game_result = run_p2p_game_from_ctx(conn, sync_ctx, local_role, headless=False)
+        game_result = run_p2p_game_from_ctx(
+            conn, sync_ctx, local_role, headless=False, music_player=music_player
+        )
     except Exception as exc:
         logger.error("P2P game error: %s", exc)
         game_result = "DRAW"
@@ -165,6 +177,7 @@ def run_p2p_game_from_ctx(
     sync_ctx: dict[str, Any],
     local_role: str,
     headless: bool = False,
+    music_player: ChiptunePlayer | None = None,
 ) -> str:
     """Run a P2P game from a synchronization context dict."""
     from .data.cards import Element
@@ -186,6 +199,7 @@ def run_p2p_game_from_ctx(
         local_role=local_role,
         first_turn=first_turn,
         headless=headless,
+        music_player=music_player,
     )
 
 
@@ -356,11 +370,11 @@ def main() -> None:
             elif choice == "new_game":
                 game_type = new_game_menu()
                 if game_type == "single":
-                    play_single_game()
+                    play_single_game(music_player)
                 elif game_type == "tournament":
-                    play_tournament()
+                    play_tournament(music_player)
                 elif game_type == "multiplayer":
-                    play_multiplayer_game()
+                    play_multiplayer_game(music_player)
     finally:
         music_player.stop()
 
