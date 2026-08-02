@@ -24,7 +24,7 @@ def run_tournament(
     board_elements: list[Element | None],
     ai_randomness: float = 0.0,
     music_player: ChiptunePlayer | None = None,
-) -> tuple[int, int, int]:
+) -> tuple[int, int, int] | None:
     """
     Run a 3-game tournament with random rules for each game.
 
@@ -37,7 +37,8 @@ def run_tournament(
             theme for each match and restored afterward.
 
     Returns:
-        A tuple of (wins, losses, draws) representing the player's record.
+        A tuple of (wins, losses, draws) representing the player's record,
+        or None when the player quit a match early.
     """
     wins, losses, draws = 0, 0, 0
     matches = build_bracket()
@@ -67,6 +68,9 @@ def run_tournament(
             ai_randomness,
             music_player=music_player,
         )
+        if winner == "quit":
+            print("\n  Tournament cancelled.")
+            return None
         if winner == "P":
             wins += 1
             result = "W"

@@ -134,6 +134,7 @@ def print_help() -> None:
   - Then use the arrow keys (↑ ↓ ← →) to move the yellow
     border marker to an empty cell, and press Enter to place
   - Press Escape or 'r' to go back and pick another card
+  - Press 'q' at any prompt to quit back to the main menu
   - In plain terminals (no arrow keys), you can still enter
     the cell number (1-9) directly
   - Strategy matters: position cards to maximize captures!

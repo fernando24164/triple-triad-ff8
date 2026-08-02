@@ -13,6 +13,10 @@ _WASD = {"w": "KEY_UP", "a": "KEY_LEFT", "s": "KEY_DOWN", "d": "KEY_RIGHT"}
 _ARROWS = ("KEY_UP", "KEY_DOWN", "KEY_LEFT", "KEY_RIGHT")
 
 
+class QuitGameError(Exception):
+    """Raised when the player presses 'q' to abandon the current match."""
+
+
 def next_empty_in_direction(board: Board, pos: int, key: str) -> int | None:
     """Return the nearest empty cell from ``pos`` moving toward ``key``,
     wrapping at the grid edges; None when that row/column has no empty cell.
@@ -50,6 +54,7 @@ def select_position(
     Re-renders via ``render(highlight)`` on every move so the board shows a
     yellow border around the highlighted cell. Returns the chosen position,
     or None when the player cancels (Escape / r) to go back to card choice.
+    Raises :class:`QuitGameError` when the player presses 'q' to abandon the match.
     Only meaningful for a styled (fullscreen-capable) terminal — callers
     keep the numeric prompt as the fallback otherwise.
     """
@@ -74,5 +79,7 @@ def select_position(
                     render(cur)
             elif name == "KEY_ENTER" or k == "\n":
                 return cur
+            elif str(k).lower() == "q":
+                raise QuitGameError
             elif name == "KEY_ESCAPE" or str(k).lower() == "r":
                 return None

@@ -26,6 +26,7 @@ from ..network.protocol import (
     parse_packet,
 )
 from ..synth.sfx import (
+    play_cancel,
     play_capture_lose,
     play_capture_win,
     play_defeat_theme,
@@ -40,7 +41,7 @@ from ..ui.capture_fx import (
 )
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
-from ..ui.position_selector import select_position
+from ..ui.position_selector import QuitGameError, select_position
 from .rules import resolve_captures
 from .scoring import calculate_final_scores, calculate_scores
 
@@ -319,72 +320,86 @@ def run_game(
             )
 
             if turn == "P":
-                show_cpu = "Open" in rules
-                display_hand(player_hand, "Your", term=term)
-                display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
-
-                def _redraw(
-                    turn_label: str = turn_label,
-                    turn_number: int = turn_number,
-                    p_score: int = p_score,
-                    c_score: int = c_score,
-                    show_cpu: bool = show_cpu,
-                    extra: int = choose_extra,
-                    highlight: int | None = None,
-                ) -> None:
-                    _render_turn_screen(
-                        term,
-                        use_screen,
-                        board,
-                        turn_label,
-                        turn_number,
-                        p_score,
-                        c_score,
-                        extra_lines=extra,
-                        highlight=highlight,
-                    )
+                try:
+                    show_cpu = "Open" in rules
                     display_hand(player_hand, "Your", term=term)
                     display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
 
-                while True:
-                    raw = input(f"\n  Choose card (1-{len(player_hand)}) [r=redraw]: ")
-                    if raw.strip().lower() == "r":
-                        _redraw()
-                        continue
-                    try:
-                        ci = int(raw) - 1
-                        if 0 <= ci < len(player_hand):
-                            break
-                        print(f"  ✗ Enter a number between 1 and {len(player_hand)}.")
-                    except ValueError:
-                        print("  ✗ Enter a number.")
+                    def _redraw(
+                        turn_label: str = turn_label,
+                        turn_number: int = turn_number,
+                        p_score: int = p_score,
+                        c_score: int = c_score,
+                        show_cpu: bool = show_cpu,
+                        extra: int = choose_extra,
+                        highlight: int | None = None,
+                    ) -> None:
+                        _render_turn_screen(
+                            term,
+                            use_screen,
+                            board,
+                            turn_label,
+                            turn_number,
+                            p_score,
+                            c_score,
+                            extra_lines=extra,
+                            highlight=highlight,
+                        )
+                        display_hand(player_hand, "Your", term=term)
+                        display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
 
-                if use_screen and term is not None:
-                    pos = select_position(
-                        board, term, use_screen, lambda h: _redraw(highlight=h)
-                    )
-                    if pos is None:
-                        _redraw()
-                        continue
-                else:
-                    empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
                     while True:
-                        raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw]: ")
+                        raw = input(
+                            f"\n  Choose card (1-{len(player_hand)}) [r=redraw, q=quit]: "
+                        )
+                        if raw.strip().lower() == "q":
+                            raise QuitGameError
                         if raw.strip().lower() == "r":
                             _redraw()
                             continue
                         try:
-                            pos = int(raw) - 1
-                            if pos in empty:
+                            ci = int(raw) - 1
+                            if 0 <= ci < len(player_hand):
                                 break
-                            print("  ✗ Position taken or invalid.")
+                            print(
+                                f"  ✗ Enter a number between 1 and {len(player_hand)}."
+                            )
                         except ValueError:
                             print("  ✗ Enter a number.")
 
-                card = player_hand.pop(ci)
-                card.owner = "P"
-                board.place(pos, card)
-                move_note = f"You placed [{card.name}] at position {pos + 1}"
+                    if use_screen and term is not None:
+                        pos = select_position(
+                            board, term, use_screen, lambda h: _redraw(highlight=h)
+                        )
+                        if pos is None:
+                            _redraw()
+                            continue
+                    else:
+                        empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
+                        while True:
+                            raw = input(
+                                f"  Choose position (1-{BOARD_CELLS}) [r=redraw, q=quit]: "
+                            )
+                            if raw.strip().lower() == "q":
+                                raise QuitGameError
+                            if raw.strip().lower() == "r":
+                                _redraw()
+                                continue
+                            try:
+                                pos = int(raw) - 1
+                                if pos in empty:
+                                    break
+                                print("  ✗ Position taken or invalid.")
+                            except ValueError:
+                                print("  ✗ Enter a number.")
+
+                    card = player_hand.pop(ci)
+                    card.owner = "P"
+                    board.place(pos, card)
+                    move_note = f"You placed [{card.name}] at position {pos + 1}"
+                except QuitGameError:
+                    play_cancel()
+                    return "quit"
 
             else:
                 print("\n  CPU is thinking...")
@@ -582,20 +597,25 @@ def run_p2p_game(
                     board.place(pos, card)
                     conn.send(make_move(ci, pos))
                 else:
-                    card, pos = _get_local_move_interactive(
-                        board,
-                        player_hand,
-                        opponent_hand,
-                        rules,
-                        term,
-                        local_role,
-                        use_screen,
-                        turn_label,
-                        turn_number,
-                        p_score,
-                        c_score,
-                        score_labels,
-                    )
+                    try:
+                        card, pos = _get_local_move_interactive(
+                            board,
+                            player_hand,
+                            opponent_hand,
+                            rules,
+                            term,
+                            local_role,
+                            use_screen,
+                            turn_label,
+                            turn_number,
+                            p_score,
+                            c_score,
+                            score_labels,
+                        )
+                    except QuitGameError:
+                        conn.send(make_forfeit("Player quit"))
+                        play_cancel()
+                        return "quit"
                     ci_index = player_hand.index(card)
                     player_hand.pop(ci_index)
                     card.owner = "P"
@@ -811,7 +831,9 @@ def _get_local_move_interactive(
 
     while True:
         while True:
-            raw = input(f"\n  Choose card (1-{len(player_hand)}) [r=redraw]: ")
+            raw = input(f"\n  Choose card (1-{len(player_hand)}) [r=redraw, q=quit]: ")
+            if raw.strip().lower() == "q":
+                raise QuitGameError
             if raw.strip().lower() == "r":
                 _redraw()
                 continue
@@ -831,7 +853,9 @@ def _get_local_move_interactive(
         else:
             empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
             while True:
-                raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw]: ")
+                raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw, q=quit]: ")
+                if raw.strip().lower() == "q":
+                    raise QuitGameError
                 if raw.strip().lower() == "r":
                     _redraw()
                     continue

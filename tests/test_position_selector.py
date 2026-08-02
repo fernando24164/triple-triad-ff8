@@ -1,4 +1,24 @@
-from triple_triad.ui.position_selector import next_empty_in_direction
+from unittest.mock import MagicMock
+
+import pytest
+
+from triple_triad.ui.position_selector import (
+    QuitGameError,
+    next_empty_in_direction,
+    select_position,
+)
+
+
+class _Key:
+    def __init__(self, name=None, value=""):
+        self.name = name
+        self._value = value
+
+    def __str__(self):
+        return self._value
+
+    def __eq__(self, other):
+        return self._value == other
 
 
 class TestNextEmptyInDirection:
@@ -53,3 +73,29 @@ class TestNextEmptyInDirection:
 
     def test_unknown_key(self, empty_board):
         assert next_empty_in_direction(empty_board, 4, "KEY_HOME") is None
+
+
+class TestSelectPosition:
+    def test_returns_chosen_position(self, empty_board):
+        term = MagicMock()
+        term.inkey.side_effect = [_Key("KEY_DOWN"), _Key("KEY_ENTER")]
+        pos = select_position(empty_board, term, True, lambda h: None)
+        assert pos == 3
+
+    def test_cancel_returns_none(self, empty_board):
+        term = MagicMock()
+        term.inkey.side_effect = [_Key("KEY_ESCAPE")]
+        assert select_position(empty_board, term, True, lambda h: None) is None
+
+    def test_quit_raises(self, empty_board):
+        term = MagicMock()
+        term.inkey.side_effect = [_Key(value="q")]
+        with pytest.raises(QuitGameError):
+            select_position(empty_board, term, True, lambda h: None)
+
+    def test_non_screen_returns_none(self, empty_board):
+        assert select_position(empty_board, None, False, lambda h: None) is None
+
+    def test_full_board_returns_none(self, full_board):
+        term = MagicMock()
+        assert select_position(full_board, term, True, lambda h: None) is None

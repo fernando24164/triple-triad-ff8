@@ -106,15 +106,19 @@ def play_single_game(music_player: ChiptunePlayer | None = None) -> None:
             f"    {c.name}{el}  ^{c.top} >{c.right} v{c.bottom} <{c.left}  Lv{c.level}"
         )
 
-    run_game(
-        player_hand,
-        cpu_hand,
-        rules,
-        ai_mode,
-        board_elements,
-        ai_randomness,
-        music_player=music_player,
-    )
+    if (
+        run_game(
+            player_hand,
+            cpu_hand,
+            rules,
+            ai_mode,
+            board_elements,
+            ai_randomness,
+            music_player=music_player,
+        )
+        == "quit"
+    ):
+        return
     pause_message()
 
 
@@ -123,9 +127,17 @@ def play_tournament(music_player: ChiptunePlayer | None = None) -> None:
     ai_mode = get_cpu_ai_mode(difficulty)
     ai_randomness = get_cpu_randomness(difficulty)
     board_elements = choose_board_ui()
-    run_tournament(
-        difficulty, ai_mode, board_elements, ai_randomness, music_player=music_player
-    )
+    if (
+        run_tournament(
+            difficulty,
+            ai_mode,
+            board_elements,
+            ai_randomness,
+            music_player=music_player,
+        )
+        is None
+    ):
+        return
     pause_message()
 
 
@@ -168,6 +180,8 @@ def play_multiplayer_game(music_player: ChiptunePlayer | None = None) -> None:
     finally:
         conn.close()
 
+    if game_result == "quit":
+        return
     print(f"\n  Game result: {game_result}")
     pause_message()
 
