@@ -17,28 +17,42 @@ class QuitGameError(Exception):
     """Raised when the player presses 'q' to abandon the current match."""
 
 
+def _cyclic_dist(a: int, b: int) -> int:
+    """Shortest wrapped distance between two grid coordinates."""
+    d = (a - b) % GRID_SIZE
+    return min(d, GRID_SIZE - d)
+
+
 def next_empty_in_direction(board: Board, pos: int, key: str) -> int | None:
-    """Return the nearest empty cell from ``pos`` moving toward ``key``,
-    wrapping at the grid edges; None when that row/column has no empty cell.
-    The current cell is never returned."""
+    """Return the nearest empty cell from ``pos`` moving toward ``key``.
+
+    Lines (rows for UP/DOWN, columns for LEFT/RIGHT) are scanned in the
+    pressed direction, wrapping around the grid edges. The first line
+    containing any empty cell wins, and the cursor snaps to the empty cell
+    in that line nearest to the current one. This keeps every empty cell
+    reachable — e.g. two free cells in opposite corners — which a plain
+    same-row/column scan can never do. Returns None when no other empty
+    cell exists. The current cell is never returned.
+    """
+    if key not in ("KEY_UP", "KEY_DOWN", "KEY_LEFT", "KEY_RIGHT"):
+        return None
     row, col = divmod(pos, GRID_SIZE)
-    for step in range(1, GRID_SIZE):
-        if key == "KEY_UP":
-            r = (row - step) % GRID_SIZE
-            cand = r * GRID_SIZE + col
-        elif key == "KEY_DOWN":
-            r = (row + step) % GRID_SIZE
-            cand = r * GRID_SIZE + col
-        elif key == "KEY_LEFT":
-            c = (col - step) % GRID_SIZE
-            cand = row * GRID_SIZE + c
-        elif key == "KEY_RIGHT":
-            c = (col + step) % GRID_SIZE
-            cand = row * GRID_SIZE + c
+    row_primary = key in ("KEY_UP", "KEY_DOWN")
+    step = 1 if key in ("KEY_DOWN", "KEY_RIGHT") else -1
+    line_anchor = row if row_primary else col
+    sec_anchor = col if row_primary else row
+
+    for dist in range(1, GRID_SIZE + 1):
+        line = (line_anchor + step * dist) % GRID_SIZE
+        if row_primary:
+            line_cells = [(line * GRID_SIZE + c, c) for c in range(GRID_SIZE)]
         else:
-            return None
-        if board.is_empty(cand):
-            return cand
+            line_cells = [(r * GRID_SIZE + line, r) for r in range(GRID_SIZE)]
+        candidates = [(p, s) for p, s in line_cells if p != pos and board.is_empty(p)]
+        if not candidates:
+            continue
+        candidates.sort(key=lambda ps: (_cyclic_dist(sec_anchor, ps[1]), ps[0]))
+        return candidates[0][0]
     return None
 
 

@@ -9,10 +9,16 @@ if TYPE_CHECKING:
 
 
 def display_hand(
-    hand: list[Card], label: str, show: bool = True, term: Terminal | None = None
+    hand: list[Card],
+    label: str,
+    show: bool = True,
+    term: Terminal | None = None,
+    highlight: int | None = None,
 ) -> None:
     """Print a hand listing, horizontally centered as one block when
-    ``term`` is a styled (fullscreen-capable) terminal."""
+    ``term`` is a styled (fullscreen-capable) terminal. When ``highlight``
+    is a valid card index, that card row is drawn with the inverted-bar
+    style used by the main menu (requires ``term``)."""
     lines = [f"  {label}'s Hand:", "  " + "─" * 60]
     if show:
         for i, card in enumerate(hand, 1):
@@ -33,8 +39,11 @@ def display_hand(
         pad = max(0, (term.width - max(len(line) for line in lines)) // 2)
 
     print()
-    for line in lines:
-        print(" " * pad + line)
+    for i, line in enumerate(lines):
+        line = " " * pad + line
+        if term is not None and highlight is not None and i == highlight + 2:
+            line = term.bold_black_on_cyan(line)
+        print(line)
 
 
 def print_banner() -> None:

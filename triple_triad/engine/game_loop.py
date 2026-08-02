@@ -39,6 +39,7 @@ from ..ui.capture_fx import (
     show_lose_banner,
     show_victory_banner,
 )
+from ..ui.card_selector import select_card
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
 from ..ui.position_selector import QuitGameError, select_position
@@ -333,6 +334,7 @@ def run_game(
                         show_cpu: bool = show_cpu,
                         extra: int = choose_extra,
                         highlight: int | None = None,
+                        card_hl: int | None = None,
                     ) -> None:
                         _render_turn_screen(
                             term,
@@ -345,31 +347,42 @@ def run_game(
                             extra_lines=extra,
                             highlight=highlight,
                         )
-                        display_hand(player_hand, "Your", term=term)
+                        display_hand(player_hand, "Your", term=term, highlight=card_hl)
                         display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
 
-                    while True:
-                        raw = input(
-                            f"\n  Choose card (1-{len(player_hand)}) [r=redraw, q=quit]: "
+                    if use_screen and term is not None:
+                        ci = select_card(
+                            player_hand, term, use_screen, lambda h: _redraw(card_hl=h)
                         )
-                        if raw.strip().lower() == "q":
-                            raise QuitGameError
-                        if raw.strip().lower() == "r":
+                        if ci is None:
                             _redraw()
                             continue
-                        try:
-                            ci = int(raw) - 1
-                            if 0 <= ci < len(player_hand):
-                                break
-                            print(
-                                f"  ✗ Enter a number between 1 and {len(player_hand)}."
+                    else:
+                        while True:
+                            raw = input(
+                                f"\n  Choose card (1-{len(player_hand)}) [r=redraw, q=quit]: "
                             )
-                        except ValueError:
-                            print("  ✗ Enter a number.")
+                            if raw.strip().lower() == "q":
+                                raise QuitGameError
+                            if raw.strip().lower() == "r":
+                                _redraw()
+                                continue
+                            try:
+                                ci = int(raw) - 1
+                                if 0 <= ci < len(player_hand):
+                                    break
+                                print(
+                                    f"  ✗ Enter a number between 1 and {len(player_hand)}."
+                                )
+                            except ValueError:
+                                print("  ✗ Enter a number.")
 
                     if use_screen and term is not None:
                         pos = select_position(
-                            board, term, use_screen, lambda h: _redraw(highlight=h)
+                            board,
+                            term,
+                            use_screen,
+                            lambda h: _redraw(highlight=h),
                         )
                         if pos is None:
                             _redraw()
@@ -809,7 +822,7 @@ def _get_local_move_interactive(
     display_hand(player_hand, "Your", term=term)
     display_hand(opponent_hand, "Opponent", show=show_opp, term=term)
 
-    def _redraw(highlight: int | None = None) -> None:
+    def _redraw(highlight: int | None = None, card_hl: int | None = None) -> None:
         extra = _hand_block_lines(len(player_hand)) + _hand_block_lines(
             len(opponent_hand)
         )
@@ -826,27 +839,42 @@ def _get_local_move_interactive(
             extra_lines=extra,
             highlight=highlight,
         )
-        display_hand(player_hand, "Your", term=term)
+        display_hand(player_hand, "Your", term=term, highlight=card_hl)
         display_hand(opponent_hand, "Opponent", show=show_opp, term=term)
 
     while True:
-        while True:
-            raw = input(f"\n  Choose card (1-{len(player_hand)}) [r=redraw, q=quit]: ")
-            if raw.strip().lower() == "q":
-                raise QuitGameError
-            if raw.strip().lower() == "r":
+        if term is not None and use_screen:
+            ci = select_card(
+                player_hand, term, use_screen, lambda h: _redraw(card_hl=h)
+            )
+            if ci is None:
                 _redraw()
                 continue
-            try:
-                ci = int(raw) - 1
-                if 0 <= ci < len(player_hand):
-                    break
-                print(f"  Enter a number between 1 and {len(player_hand)}.")
-            except ValueError:
-                print("  Enter a number.")
+        else:
+            while True:
+                raw = input(
+                    f"\n  Choose card (1-{len(player_hand)}) [r=redraw, q=quit]: "
+                )
+                if raw.strip().lower() == "q":
+                    raise QuitGameError
+                if raw.strip().lower() == "r":
+                    _redraw()
+                    continue
+                try:
+                    ci = int(raw) - 1
+                    if 0 <= ci < len(player_hand):
+                        break
+                    print(f"  Enter a number between 1 and {len(player_hand)}.")
+                except ValueError:
+                    print("  Enter a number.")
 
         if term is not None and use_screen:
-            pos = select_position(board, term, use_screen, _redraw)
+            pos = select_position(
+                board,
+                term,
+                use_screen,
+                lambda h: _redraw(highlight=h),
+            )
             if pos is None:
                 _redraw()
                 continue
