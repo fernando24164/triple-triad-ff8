@@ -206,6 +206,7 @@ def _render_turn_screen(
     bar = sep * 62
     board_text = board.display(highlight=highlight)
     own_lines = 6 + board_text.count("\n") + 1 + (2 if note is not None else 0)
+    vpad = 0
     col_offset = 0
     if use_screen and term is not None:
         vpad = max(0, (term.height - (own_lines + extra_lines)) // 2)
@@ -229,7 +230,26 @@ def _render_turn_screen(
         print()
         print(_center(f"  {note}"))
         lines += 2
+
+    if use_screen and term is not None:
+        _draw_key_hints(term)
+        print(term.move_yx(vpad + 4 + lines, 0), end="", flush=True)
+
     return lines, col_offset
+
+
+def _draw_key_hints(term: Terminal | None, use_screen: bool = True) -> None:
+    """Draw the 'r: redraw screen | q: exit main menu' hint at the bottom
+    center of the screen. No-op when not on a styled terminal."""
+    if not use_screen or term is None:
+        return
+    hint = "  r: redraw screen   |   q: exit main menu  "
+    hint_x = max(0, (term.width - len(hint)) // 2)
+    print(
+        term.move_yx(term.height - 1, hint_x) + term.dim(hint),
+        end="",
+        flush=True,
+    )
 
 
 def _render_game_over_screen(
@@ -325,6 +345,7 @@ def run_game(
                     show_cpu = "Open" in rules
                     display_hand(player_hand, "Your", term=term)
                     display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
+                    _draw_key_hints(term, use_screen)
 
                     def _redraw(
                         turn_label: str = turn_label,
@@ -349,6 +370,7 @@ def run_game(
                         )
                         display_hand(player_hand, "Your", term=term, highlight=card_hl)
                         display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
+                        _draw_key_hints(term, use_screen)
 
                     if use_screen and term is not None:
                         ci = select_card(
@@ -640,6 +662,7 @@ def run_p2p_game(
                     print("\n  Opponent is thinking...")
                     display_hand(player_hand, "Your", show="Open" in rules, term=term)
                     display_hand(opponent_hand, "Opponent", show=True, term=term)
+                    _draw_key_hints(term, use_screen)
 
                 packet = _wait_for_move(conn, term, headless)
                 if packet is None:
@@ -821,6 +844,7 @@ def _get_local_move_interactive(
     show_opp = "Open" in rules
     display_hand(player_hand, "Your", term=term)
     display_hand(opponent_hand, "Opponent", show=show_opp, term=term)
+    _draw_key_hints(term, use_screen)
 
     def _redraw(highlight: int | None = None, card_hl: int | None = None) -> None:
         extra = _hand_block_lines(len(player_hand)) + _hand_block_lines(
@@ -841,6 +865,7 @@ def _get_local_move_interactive(
         )
         display_hand(player_hand, "Your", term=term, highlight=card_hl)
         display_hand(opponent_hand, "Opponent", show=show_opp, term=term)
+        _draw_key_hints(term, use_screen)
 
     while True:
         if term is not None and use_screen:

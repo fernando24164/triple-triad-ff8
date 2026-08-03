@@ -48,5 +48,7 @@ def select_card(
             elif name == "KEY_ENTER" or k == "\n":
                 play_confirm()
                 return cur
+            elif str(k).lower() == "r":
+                render(cur)
             elif str(k).lower() == "q":
                 raise QuitGameError
