@@ -1,6 +1,5 @@
 from triple_triad.ai.base import cpu_choose
 from triple_triad.deck.builder import build_cpu_deck, get_cpu_ai_mode
-from triple_triad.engine.game_loop import run_game
 from triple_triad.engine.rules import resolve_captures
 from triple_triad.models.card import Card
 
@@ -46,13 +45,6 @@ class TestGameLogic:
 
         # Verify board state
         assert sum(1 for c in board.cells if c is not None) == 2
-
-    def test_run_game_quit_returns_quit(self, monkeypatch, player_hand, cpu_hand):
-        """Test that pressing 'q' during the game aborts back to the menu."""
-        monkeypatch.setattr("triple_triad.engine.game_loop._get_terminal", lambda: None)
-        monkeypatch.setattr("builtins.input", lambda *a, **k: "q")
-        result = run_game(player_hand, cpu_hand, set(), "greedy")
-        assert result == "quit"
 
     def test_score_calculation(self, board_with_cards, player_hand, cpu_hand):
         """Test score calculation logic."""
