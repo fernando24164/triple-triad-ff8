@@ -214,7 +214,7 @@ class _DeckPicker:
 
         help_text = (
             "↑/↓ move  •  Enter select  •  n/p page  •  u undo  •  s sort  •  "
-            "/ search  •  r reset  •  d done  •  q quit"
+            "/ search  •  r reset  •  d done"
         )
         add(t.normal + t.dim + help_text + " " * max(0, t.width - len(help_text)))
 
@@ -318,6 +318,20 @@ class _DeckPicker:
             self.search_query = None
             self._invalidate_cache()
 
+    def _show_message(self, message: str) -> None:
+        t = self.term
+        print(t.clear)
+        print(
+            t.move_yx(t.height // 2, max(0, (t.width - len(message)) // 2))
+            + t.bold_cyan(message)
+        )
+        print(
+            t.move_yx(t.height // 2 + 2, max(0, (t.width - 30) // 2))
+            + t.dim
+            + "Press any key to continue"
+        )
+        t.inkey()
+
     def _handle_key(self, k: Any) -> str | None:
         view = self._view_names
         cap = self._page_capacity
@@ -373,6 +387,8 @@ class _DeckPicker:
         elif str(k).lower() == "d":
             if len(self.chosen) == 0:
                 return None
+            if len(self.chosen) < DECK_SIZE:
+                return "need_more"
             play_confirm()
             _fill_remaining(self.chosen, self.chosen_names, self.all_names)
             return "break"
@@ -389,9 +405,7 @@ class _DeckPicker:
         elif str(k) == "/":
             self._show_search_prompt()
             play_confirm()
-        elif str(k).lower() == "q":
-            play_cancel()
-            return "quit"
+
         return None
 
     def run(self) -> list[Card]:
@@ -410,9 +424,9 @@ class _DeckPicker:
                 result = self._handle_key(k)
                 if result == "break":
                     break
-                if result == "quit":
-                    self.chosen.clear()
-                    break
+                if result == "need_more":
+                    self._show_message("You need to complete your hand!")
+
         return self.chosen
 
 
