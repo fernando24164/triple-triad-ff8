@@ -1,6 +1,6 @@
 [project]
 name = "triple-triad-ff8"
-version = "0.1.6"
+version = "0.1.7"
 description = "A fan-made tribute to the Triple Triad card game from Final Fantasy VIII"
 requires-python = ">=3.13"
 readme = "README.md"
@@ -8,7 +8,6 @@ license = { file = "LICENSE" }
 authors = [{ name = "fernando24164", email = "fernando24164@gmail.com" }]
 keywords = ["game", "triple-triad", "ff8"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
