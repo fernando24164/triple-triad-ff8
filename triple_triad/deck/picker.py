@@ -212,9 +212,10 @@ class _DeckPicker:
         for _ in range(max(0, fill)):
             add("")
 
+        q_label = "q clear search" if self.search_query else "q go back"
         help_text = (
             "↑/↓ move  •  Enter select  •  n/p page  •  u undo  •  s sort  •  "
-            "/ search  •  r reset  •  d done"
+            f"/ search  •  d done  •  {q_label}"
         )
         add(t.normal + t.dim + help_text + " " * max(0, t.width - len(help_text)))
 
@@ -332,6 +333,27 @@ class _DeckPicker:
         )
         t.inkey()
 
+    def _confirm_quit(self) -> bool:
+        t = self.term
+        out: list[Any] = [t.clear]
+        msg = "Go back to main menu? (y/n)"
+        out.append(
+            t.move_yx(t.height // 2, max(0, (t.width - len(msg)) // 2))
+            + t.bold_cyan(msg)
+        )
+        print("".join(out), end="", flush=True)
+        with t.cbreak():
+            while True:
+                k = t.inkey()
+                if not k:
+                    continue
+                if str(k).lower() == "y":
+                    play_confirm()
+                    return True
+                if str(k).lower() == "n" or k.name == "KEY_ESCAPE":
+                    play_cancel()
+                    return False
+
     def _handle_key(self, k: Any) -> str | None:
         view = self._view_names
         cap = self._page_capacity
@@ -392,20 +414,31 @@ class _DeckPicker:
             play_confirm()
             _fill_remaining(self.chosen, self.chosen_names, self.all_names)
             return "break"
-        elif str(k).lower() == "r":
-            self.element = None
-            self.search_query = None
-            self.sort_key = "level"
-            self.sort_reverse = False
-            self.page = 0
-            self.cursor = 0
-            self._invalidate_cache()
         elif str(k).lower() == "s":
             self._show_sort_menu()
         elif str(k) == "/":
             self._show_search_prompt()
             play_confirm()
-
+        elif str(k).lower() == "q":
+            if self.search_query:
+                play_cancel()
+                self.search_query = None
+                self.page = 0
+                self.cursor = 0
+                self._invalidate_cache()
+                return None
+            if self.element or self.sort_key != "level" or self.sort_reverse:
+                play_cancel()
+                self.element = None
+                self.sort_key = "level"
+                self.sort_reverse = False
+                self.page = 0
+                self.cursor = 0
+                self._invalidate_cache()
+                return None
+            if self._confirm_quit():
+                return "quit"
+            return None
         return None
 
     def run(self) -> list[Card]:
@@ -423,6 +456,9 @@ class _DeckPicker:
                     continue
                 result = self._handle_key(k)
                 if result == "break":
+                    break
+                if result == "quit":
+                    self.chosen.clear()
                     break
                 if result == "need_more":
                     self._show_message("You need to complete your hand!")
