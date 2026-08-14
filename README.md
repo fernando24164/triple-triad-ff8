@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/tests-passing-brightgreen" alt="Tests status">
 </p>
 
-A terminal-based Python implementation of the classic **Triple Triad** card game from *Final Fantasy VIII*, complete card collection with the clasical rules
+A terminal-based Python implementation of the classic **Triple Triad** card game from *Final Fantasy VIII*, complete card collection with the classical rules
 
 ---
 
