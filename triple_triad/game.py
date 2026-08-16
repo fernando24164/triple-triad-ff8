@@ -58,28 +58,32 @@ def play_single_game(music_player: ChiptunePlayer | None = None) -> None:
     ai_randomness = get_cpu_randomness(difficulty)
     rules = choose_rules_ui()
     board_elements = choose_board_ui()
-    deck_mode = choose_deck_mode_ui()
-    if deck_mode is None:
-        return
 
     player_hand: list[Card]
-    if deck_mode == "1":
-        picked = choose_deck()
-        if not picked:
-            return
-        player_hand = picked
-        prompt_save_deck_ui(player_hand)
-    elif deck_mode == "2":
-        player_hand = build_starter_deck()
-    elif deck_mode == "3":
+    if "Random" in rules:
         player_hand = build_random_deck()
-    elif deck_mode == "5":
-        loaded = choose_saved_deck_ui()
-        if loaded is None:
-            return
-        player_hand = loaded
     else:
-        player_hand = choose_preset_deck()
+        deck_mode = choose_deck_mode_ui()
+        if deck_mode is None:
+            return
+
+        if deck_mode == "1":
+            picked = choose_deck()
+            if not picked:
+                return
+            player_hand = picked
+            prompt_save_deck_ui(player_hand)
+        elif deck_mode == "2":
+            player_hand = build_starter_deck()
+        elif deck_mode == "3":
+            player_hand = build_random_deck()
+        elif deck_mode == "5":
+            loaded = choose_saved_deck_ui()
+            if loaded is None:
+                return
+            player_hand = loaded
+        else:
+            player_hand = choose_preset_deck()
 
     cpu_hand = build_cpu_deck(difficulty)
 
