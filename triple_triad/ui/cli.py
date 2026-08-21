@@ -4,15 +4,12 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
 
-from blessed import Terminal
-
 from ..constants import BOARD_CELLS
 from ..data.cards import Element
 from ..models.card import Card
 from ..synth.constants import MUSIC_VOLUME_LEVELS
 from ..synth.sfx import play_cancel, play_confirm, play_cursor
-
-term = Terminal()
+from .terminal import term
 
 TITLE_ART = [
     "╔══════════════════════════════════════════════════════════╗",

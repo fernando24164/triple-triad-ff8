@@ -31,7 +31,7 @@ from ..network.protocol import (
     parse_packet,
 )
 from ..synth.sfx import play_cancel, play_confirm, play_error
-from ..ui.cli import term
+from ..ui.terminal import term
 
 logger = logging.getLogger(__name__)
 

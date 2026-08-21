@@ -6,7 +6,8 @@ from ..constants import DECK_SIZE
 from ..data.cards import CARDS
 from ..models.card import Card, stat_display
 from ..synth.sfx import play_cancel, play_confirm, play_cursor
-from ..ui.cli import selector, term
+from ..ui.cli import selector
+from ..ui.terminal import term
 
 PAGE_SIZE = 15
 

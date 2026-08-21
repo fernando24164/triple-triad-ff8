@@ -2,9 +2,7 @@ import random
 import time
 from dataclasses import dataclass
 
-from blessed import Terminal
-
-term = Terminal()
+from .terminal import term
 
 FRAME_W = 62
 BOX_W = 34

@@ -1,8 +1,6 @@
-from blessed import Terminal
 
 from ..synth.sfx import play_cancel, play_confirm
-
-term = Terminal()
+from ..ui.terminal import term
 
 DIALOG_W = 64
 SPEAKER_LABEL = "♕ Queen of Cards"

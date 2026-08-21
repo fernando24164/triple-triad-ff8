@@ -39,26 +39,14 @@ from ..ui.match_view import (
     show_match_outcome,
 )
 from ..ui.position_selector import QuitGameError
+from ..ui.terminal import term
 from .rules import apply_captures, resolve_captures
 from .scoring import calculate_final_scores, calculate_scores
 
-try:
-    from blessed import Terminal as _BlessedTerminal
-
-    _HAS_TERMINAL = True
-except Exception:
-    _BlessedTerminal = None  # type: ignore[misc, assignment]
-    _HAS_TERMINAL = False
-
 
 def _get_terminal() -> Terminal | None:
-    """Return a blessed Terminal instance if available, else None."""
-    if not _HAS_TERMINAL or _BlessedTerminal is None:
-        return None
-    try:
-        return _BlessedTerminal()
-    except Exception:
-        return None
+    """Return the shared blessed Terminal instance."""
+    return term
 
 
 @contextmanager

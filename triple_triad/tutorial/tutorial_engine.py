@@ -1,7 +1,5 @@
 from typing import Any
 
-from blessed import Terminal
-
 from ..constants import BOARD_CELLS
 from ..data.cards import Element
 from ..engine.rules import apply_captures, resolve_captures
@@ -12,10 +10,9 @@ from ..synth.sfx import play_confirm, play_cursor
 from ..ui.cli import selector_embedded
 from ..ui.position_selector import next_empty_in_direction
 from ..ui.render import render_board
+from ..ui.terminal import term
 from .dialogs import show_dialog
 from .tutorial_text import RULE_TOPIC_STEPS, SPEAKER, STEPS
-
-term = Terminal()
 
 
 def run_tutorial() -> None:
