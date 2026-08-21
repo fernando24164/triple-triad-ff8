@@ -1,5 +1,6 @@
 from triple_triad.models.card import Card
 from triple_triad.ui.color import Color
+from triple_triad.ui.render import render_board
 
 
 class TestBoard:
@@ -64,7 +65,7 @@ class TestBoard:
 
     def test_board_display_empty(self, empty_board):
         """Test displaying an empty board."""
-        display = empty_board.display()
+        display = render_board(empty_board)
         assert isinstance(display, str)
         assert len(display) > 0
         # Check that position numbers are shown
@@ -74,28 +75,28 @@ class TestBoard:
 
     def test_board_display_default_no_highlight(self, empty_board):
         """Test that the default display has no highlight marker."""
-        assert Color.HIGHLIGHT not in empty_board.display()
+        assert Color.HIGHLIGHT not in render_board(empty_board)
 
     def test_board_display_highlight_all_cells(self, empty_board):
         """Test that highlighting any cell colors its borders."""
         for pos in range(9):
-            display = empty_board.display(highlight=pos)
+            display = render_board(empty_board, highlight=pos)
             # 3 hline spans (top/bottom/mid) + 8 vertical separators
             assert display.count(Color.HIGHLIGHT) == 10, f"cell {pos}"
 
     def test_board_display_highlight_invalid_ignored(self, empty_board):
         """Test that an invalid highlight position renders normally."""
-        assert Color.HIGHLIGHT not in empty_board.display(highlight=99)
+        assert Color.HIGHLIGHT not in render_board(empty_board, highlight=99)
 
     def test_board_display_highlight_occupied_cell(self, empty_board, sample_card):
         """Test that highlighting works for a cell that already has a card."""
         empty_board.place(4, sample_card)
-        display = empty_board.display(highlight=4)
+        display = render_board(empty_board, highlight=4)
         assert display.count(Color.HIGHLIGHT) == 10
 
     def test_board_display_with_cards(self, board_with_cards):
         """Test displaying a board with cards."""
-        display = board_with_cards.display()
+        display = render_board(board_with_cards)
         assert isinstance(display, str)
         assert "Geezard" in display
         assert "Funguar" in display

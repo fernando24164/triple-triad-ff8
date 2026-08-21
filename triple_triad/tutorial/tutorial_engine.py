@@ -9,6 +9,7 @@ from ..models.board import Board
 from ..models.card import Card
 from ..synth.sfx import play_cancel, play_confirm, play_cursor
 from ..ui.position_selector import next_empty_in_direction
+from ..ui.render import render_board
 from .dialogs import show_dialog
 from .tutorial_text import RULE_TOPIC_STEPS, SPEAKER, STEPS
 
@@ -555,7 +556,7 @@ def _draw_demo_frame(title: str) -> None:
 
 
 def _draw_board_demo(board: Board, highlight: int | None = None) -> None:
-    board_str = board.display(highlight=highlight)
+    board_str = render_board(board, highlight=highlight)
     lines = board_str.split("\n")
     start_y = max(8, (term.height - len(lines)) // 2)
     for i, line in enumerate(lines):

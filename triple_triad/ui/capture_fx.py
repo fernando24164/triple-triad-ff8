@@ -5,9 +5,9 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from ..constants import GRID_SIZE
-from ..models.board import Board
 from ..models.card import Card
 from ..synth.sfx import play_capture_banner
+from .render import CELL_W, render_row1, render_row2, render_row3, render_row4
 
 if TYPE_CHECKING:
     from blessed import Terminal
@@ -48,19 +48,19 @@ _FONT: dict[str, tuple[str, str, str, str, str]] = {
 }
 
 _ROW_RENDERERS = (
-    Board._render_row1,
-    Board._render_row2,
-    Board._render_row3,
-    Board._render_row4,
+    render_row1,
+    render_row2,
+    render_row3,
+    render_row4,
 )
 
 
 def _cell_origin(pos: int) -> tuple[int, int]:
     """First content-row index and column of a board cell within the text
-    produced by ``Board.display()`` (top border is row 0)."""
+    produced by ``render_board()`` (top border is row 0)."""
     row, col = divmod(pos, GRID_SIZE)
     row_start = 1 + row * 5  # 4 content rows + 1 separator per grid row
-    col_start = 1 + col * (Board.CELL_W + 1)
+    col_start = 1 + col * (CELL_W + 1)
     return row_start, col_start
 
 
@@ -240,8 +240,8 @@ def animate_captures(
             ncard.owner = new_owner
         return
 
-    squeeze = _FLASH + f"{'▐▌':^{Board.CELL_W}}" + _RESET
-    thin = _FLASH + f"{'│':^{Board.CELL_W}}" + _RESET
+    squeeze = _FLASH + f"{'▐▌':^{CELL_W}}" + _RESET
+    thin = _FLASH + f"{'│':^{CELL_W}}" + _RESET
 
     # Beat 1: card shrinks edge-on (flip in profile), flashed bright white.
     _paint(term, cursor_row, col_offset, captures, lambda _card, _r: squeeze)

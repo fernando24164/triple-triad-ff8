@@ -43,6 +43,7 @@ from ..ui.card_selector import select_card
 from ..ui.cli import pause_message
 from ..ui.display import display_hand
 from ..ui.position_selector import QuitGameError, select_position
+from ..ui.render import board_total_width, render_board
 from .rules import resolve_captures
 from .scoring import calculate_final_scores, calculate_scores
 
@@ -204,14 +205,14 @@ def _render_turn_screen(
         return " " * hpad + text
 
     bar = sep * 62
-    board_text = board.display(highlight=highlight)
+    board_text = render_board(board, highlight=highlight)
     own_lines = 6 + board_text.count("\n") + 1 + (2 if note is not None else 0)
     vpad = 0
     col_offset = 0
     if use_screen and term is not None:
         vpad = max(0, (term.height - (own_lines + extra_lines)) // 2)
         print("\n" * vpad, end="")
-        col_offset = max(0, (term.width - Board.total_width()) // 2)
+        col_offset = max(0, (term.width - board_total_width()) // 2)
 
     print()
     print(_center(bar))
@@ -275,13 +276,13 @@ def _render_game_over_screen(
         return " " * hpad + text
 
     bar = sep * 62
-    board_text = board.display()
+    board_text = render_board(board)
     own_lines = 6 + board_text.count("\n") + 1 + (2 if result_text is not None else 0)
     col_offset = 0
     if use_screen and term is not None:
         vpad = max(0, (term.height - own_lines) // 2)
         print("\n" * vpad, end="")
-        col_offset = max(0, (term.width - Board.total_width()) // 2)
+        col_offset = max(0, (term.width - board_total_width()) // 2)
 
     print()
     print(_center(bar))
