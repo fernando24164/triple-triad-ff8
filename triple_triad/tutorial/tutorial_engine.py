@@ -4,7 +4,7 @@ from blessed import Terminal
 
 from ..constants import BOARD_CELLS
 from ..data.cards import Element
-from ..engine.rules import resolve_captures
+from ..engine.rules import apply_captures, resolve_captures
 from ..models.board import Board
 from ..models.card import Card
 from ..models.player import Player
@@ -152,8 +152,7 @@ def _demo_same() -> bool:
 
     board.place(4, player)
     captures, events = resolve_captures(board, 4, player, ["Same"])
-    for _, c in captures:
-        c.owner = player.owner
+    apply_captures(captures, player.owner)
 
     print(term.clear)
     _draw_demo_frame("Same Rule")
@@ -200,8 +199,7 @@ def _demo_same_wall() -> bool:
 
     board.place(1, player)
     captures, events = resolve_captures(board, 1, player, {"Same", "Same Wall"})
-    for _, c in captures:
-        c.owner = player.owner
+    apply_captures(captures, player.owner)
 
     print(term.clear)
     _draw_demo_frame("Same Wall")
@@ -259,8 +257,7 @@ def _demo_plus() -> bool:
 
     board.place(4, player)
     captures, events = resolve_captures(board, 4, player, ["Plus"])
-    for _, c in captures:
-        c.owner = player.owner
+    apply_captures(captures, player.owner)
 
     print(term.clear)
     _draw_demo_frame("Plus Rule")
@@ -322,8 +319,7 @@ def _demo_combo() -> bool:
 
     board.place(4, player)
     captures, events = resolve_captures(board, 4, player, ["Same"])
-    for _, c in captures:
-        c.owner = player.owner
+    apply_captures(captures, player.owner)
 
     print(term.clear)
     _draw_demo_frame("Combo Rule")
@@ -444,9 +440,7 @@ def _demo_capture() -> bool:
 
     board.place(1, player_card)
     captures, events = resolve_captures(board, 1, player_card, [])
-
-    for _, captured_card in captures:
-        captured_card.owner = player_card.owner
+    apply_captures(captures, player_card.owner)
 
     print(term.clear)
     _draw_demo_frame("Step 2: Capture!")
@@ -505,9 +499,7 @@ def _demo_element() -> bool:
 
     board.place(0, player_card)
     captures, events = resolve_captures(board, 0, player_card, [])
-
-    for _, captured_card in captures:
-        captured_card.owner = player_card.owner
+    apply_captures(captures, player_card.owner)
 
     print(term.clear)
     _draw_demo_frame("Step 3: Element Squares")

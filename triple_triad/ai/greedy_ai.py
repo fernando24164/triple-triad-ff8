@@ -4,6 +4,7 @@ from collections.abc import Collection
 from ..engine.rules import simulate_capture
 from ..models.board import Board
 from ..models.card import Card
+from ..models.player import Player
 
 
 def greedy_choice(
@@ -25,7 +26,7 @@ def greedy_choice(
     zero-capture move, regardless of ``randomness``.
     """
     moves = [
-        (ci, pos, simulate_capture(board, pos, card, "CPU", rules))
+        (ci, pos, simulate_capture(board, pos, card, Player.CPU, rules))
         for ci, card in enumerate(cpu_hand)
         for pos in empty_positions
     ]

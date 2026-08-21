@@ -45,7 +45,7 @@ from ..ui.cli import pause_message
 from ..ui.display import display_hand
 from ..ui.position_selector import QuitGameError, select_position
 from ..ui.render import board_total_width, render_board
-from .rules import resolve_captures
+from .rules import apply_captures, resolve_captures
 from .scoring import calculate_final_scores, calculate_scores
 
 try:
@@ -489,23 +489,22 @@ def run_game(
                         note=move_note,
                     )
                 else:
-                    for _, ccard in captures:
-                        ccard.owner = card.owner
+                    apply_captures(captures, card.owner)
                 play_capture_win() if card.owner == Player.PLAYER else play_capture_lose()
             if not use_screen:
                 # In screen mode this is already announced by the ASCII
                 # rule banner(s) animate_captures just showed.
                 for evt in events:
                     print(f"  *** {evt.upper()}! ***")
+            attacker_label = "You" if card.owner == Player.PLAYER else "CPU"
             for cap_pos, ncard in captures:
                 old_owner = old_owners[cap_pos]
-                ncard.owner = card.owner
-                attacker_label = "You" if card.owner == Player.PLAYER else "CPU"
                 defender_label = "CPU" if old_owner == Player.CPU else "You"
                 print(
                     f"  ⚔  [{card.name}] captured [{ncard.name}]! "
                     f"({defender_label} → {attacker_label})"
                 )
+            apply_captures(captures, card.owner)
 
             if use_screen:
                 time.sleep(0.9)
@@ -738,28 +737,26 @@ def run_p2p_game(
                             note=move_note,
                         )
                     else:
-                        for _, ccard in captures:
-                            ccard.owner = card.owner
+                        apply_captures(captures, card.owner)
                     play_capture_win() if card.owner == Player.PLAYER else play_capture_lose()
                 if not use_screen:
                     # In screen mode this is already announced by the ASCII
                     # rule banner(s) animate_captures just showed.
                     for evt in events:
                         print(f"  *** {evt.upper()}! ***")
+                attacker_label = "You" if card.owner == Player.PLAYER else "Opponent"
                 for cap_pos, ncard in captures:
                     old_owner = old_owners[cap_pos]
-                    ncard.owner = card.owner
-                    attacker_label = "You" if card.owner == "P" else "Opponent"
-                    defender_label = "Opponent" if old_owner == "CPU" else "You"
+                    defender_label = "Opponent" if old_owner == Player.CPU else "You"
                     print(
                         f"  [{card.name}] captured [{ncard.name}]! "
                         f"({defender_label} -> {attacker_label})"
                     )
+                apply_captures(captures, card.owner)
                 if use_screen:
                     time.sleep(0.9)
             else:
-                for _, ccard in captures:
-                    ccard.owner = card.owner
+                apply_captures(captures, card.owner)
 
             turn = Player.CPU if turn == Player.PLAYER else Player.PLAYER
             turn_number += 1

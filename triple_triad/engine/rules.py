@@ -4,6 +4,7 @@ from typing import Any, cast
 from ..data.cards import Element
 from ..models.board import Board
 from ..models.card import Card
+from ..models.player import Player
 
 OPPOSITE = {"top": "bottom", "bottom": "top", "left": "right", "right": "left"}
 DIRECTIONS = ("top", "bottom", "left", "right")
@@ -172,8 +173,20 @@ def resolve_captures(
     return captures, events
 
 
+def apply_captures(
+    captures: list[tuple[int, Card]], attacker: Player | None
+) -> None:
+    """Transfer ownership of captured cards to ``attacker``.
+
+    Callers no longer need to remember to flip ownership themselves —
+    this is the single place where a capture mutates state.
+    """
+    for _, card in captures:
+        card.owner = attacker
+
+
 def simulate_capture(
-    board: Board, pos: int, card: Card, owner: str | None, rules: Collection[str]
+    board: Board, pos: int, card: Card, owner: Player | None, rules: Collection[str]
 ) -> int:
     """
     Calculate captures for a hypothetical move without modifying state.
@@ -185,7 +198,7 @@ def simulate_capture(
         board: The current Board object (read-only)
         pos: Position to simulate placing at (0..BOARD_CELLS-1)
         card: Card object with top/right/bottom/left attributes
-        owner: The owner of the placed card ('P', 'CPU', or None for simulation)
+        owner: The owner of the placed card (Player member or None for simulation)
         rules: List of active rules
 
     Returns:
