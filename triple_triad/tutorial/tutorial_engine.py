@@ -8,7 +8,8 @@ from ..engine.rules import apply_captures, resolve_captures
 from ..models.board import Board
 from ..models.card import Card
 from ..models.player import Player
-from ..synth.sfx import play_cancel, play_confirm, play_cursor
+from ..synth.sfx import play_confirm, play_cursor
+from ..ui.cli import selector_embedded
 from ..ui.position_selector import next_empty_in_direction
 from ..ui.render import render_board
 from .dialogs import show_dialog
@@ -82,42 +83,7 @@ def _selector_menu(title: str, items: list[str]) -> int | None:
 
     Returns chosen index or None.
     """
-    idx = 0
-    while True:
-        print(term.clear)
-        print(
-            term.move_yx(1, max(0, (term.width - term.length(title)) // 2))
-            + term.bold_cyan(title)
-        )
-        start_y = max(4, term.height // 2 - len(items) // 2)
-        for i, item in enumerate(items):
-            line = f"  {item}  "
-            x = max(0, (term.width - len(line)) // 2)
-            y = start_y + i
-            if i == idx:
-                print(term.move_yx(y, x) + term.bold_black_on_cyan(line))
-            else:
-                print(term.move_yx(y, x) + term.white(line))
-        print(
-            term.move_yx(term.height - 2, 2)
-            + term.dim
-            + "↑/↓ move • Enter select • q to cancel"
-        )
-        k = term.inkey(timeout=0.1)
-        if not k:
-            continue
-        if str(k).lower() == "q":
-            play_cancel()
-            return None
-        if k.name == "KEY_UP":
-            idx = (idx - 1) % len(items)
-            play_cursor()
-        elif k.name == "KEY_DOWN":
-            idx = (idx + 1) % len(items)
-            play_cursor()
-        elif k.name == "KEY_ENTER" or k == "\n":
-            play_confirm()
-            return idx
+    return selector_embedded(title, items)
 
 
 # ── Deep-dive interactive demos ──────────────────────────────────────

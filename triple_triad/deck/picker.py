@@ -6,7 +6,7 @@ from ..constants import DECK_SIZE
 from ..data.cards import CARDS
 from ..models.card import Card, stat_display
 from ..synth.sfx import play_cancel, play_confirm, play_cursor
-from ..ui.cli import term
+from ..ui.cli import selector, term
 
 PAGE_SIZE = 15
 
@@ -224,42 +224,7 @@ class _DeckPicker:
     def _show_submenu(
         self, title: str, items: list[str], start_idx: int = 0
     ) -> int | None:
-        t = self.term
-        idx = start_idx if 0 <= start_idx < len(items) else 0
-        while True:
-            out: list[Any] = [t.clear]
-            out.append(
-                t.move_yx(3, max(0, (t.width - len(title)) // 2)) + t.bold_cyan(title)
-            )
-            start_y = max(5, t.height // 2 - len(items) // 2)
-            for i, item in enumerate(items):
-                line = f"  {item}  "
-                x = max(0, (t.width - len(line)) // 2)
-                if i == idx:
-                    out.append(t.move_yx(start_y + i, x) + t.bold_black_on_cyan(line))
-                else:
-                    out.append(t.move_yx(start_y + i, x) + t.white(line))
-            out.append(
-                t.move_yx(t.height - 2, 2)
-                + t.dim
-                + "↑/↓ move  •  Enter select  •  q back"
-            )
-            print("".join(out), end="", flush=True)
-            k = t.inkey()
-            if not k:
-                continue
-            if k.name == "KEY_UP":
-                idx = (idx - 1) % len(items)
-                play_cursor()
-            elif k.name == "KEY_DOWN":
-                idx = (idx + 1) % len(items)
-                play_cursor()
-            elif k.name == "KEY_ENTER" or k == "\n":
-                play_confirm()
-                return idx
-            elif str(k).lower() == "q":
-                play_cancel()
-                return None
+        return selector(title, items, start_idx=start_idx)
 
     def _show_sort_menu(self) -> None:
         keys = ["level", "name", "top", "right", "bottom", "left", "element"]

@@ -1,5 +1,7 @@
 import random
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 from blessed import Terminal
@@ -133,32 +135,50 @@ class _MenuBase:
     def draw_items(self) -> None:
         raise NotImplementedError
 
-    def on_enter(self) -> int | set[str] | None:
+    def on_enter(self) -> int | set[str] | str | None:
         raise NotImplementedError
 
-    def on_quit(self) -> int | set[str] | None:
+    def on_quit(self) -> int | set[str] | str | None:
         return None
+
+    def on_left(self) -> None:
+        pass
+
+    def on_right(self) -> None:
+        pass
 
     def draw(self) -> None:
         _draw_frame(self.title, self.subtitle)
 
-    def handle_key(self, k: Any) -> int | set[str] | None:
+    def handle_key(self, k: Any) -> int | set[str] | str | None:
         if k.name == "KEY_UP":
             self.idx = (self.idx - 1) % self.item_count()
             play_cursor()
         elif k.name == "KEY_DOWN":
             self.idx = (self.idx + 1) % self.item_count()
             play_cursor()
+        elif k.name == "KEY_LEFT":
+            self.on_left()
+        elif k.name == "KEY_RIGHT":
+            self.on_right()
         elif k.name == "KEY_ENTER" or k == "\n":
             play_confirm()
             return self.on_enter()
         return None
 
-    def run(self) -> int | set[str] | None:
-        with term.fullscreen(), term.cbreak(), term.hidden_cursor():
-            # Frame + help text are static for the life of this menu, so they
-            # only need to be painted once — only draw_items() (below) runs
-            # on every keypress, to avoid a full-screen clear/flash per move.
+    def run(self, manage_screen: bool = True) -> int | set[str] | str | None:
+        @contextmanager
+        def _noop() -> Iterator[None]:
+            yield
+
+        screen = term.fullscreen() if manage_screen else _noop()
+        cbreak = term.cbreak() if manage_screen else _noop()
+        hidden = term.hidden_cursor() if manage_screen else _noop()
+
+        # Frame + help text are static for the life of this menu, so they
+        # only need to be painted once — only draw_items() (below) runs
+        # on every keypress, to avoid a full-screen clear/flash per move.
+        with screen, cbreak, hidden:
             self.draw()
             self.draw_items()
             print(term.move_yx(term.height - 2, 2) + term.dim + self.help_text)
@@ -183,9 +203,11 @@ class _SelectorMenu(_MenuBase):
         items: list[str],
         subtitle: str = "",
         help_text: str = "↑/↓ move • Enter select • q back",
+        start_idx: int = 0,
     ) -> None:
         super().__init__(title, help_text, subtitle)
         self.items = items
+        self.idx = start_idx if 0 <= start_idx < len(items) else 0
 
     def item_count(self) -> int:
         return len(self.items)
@@ -258,8 +280,16 @@ def selector(
     items: list[str],
     subtitle: str = "",
     help_text: str = "↑/↓ move • Enter select • q back",
+    start_idx: int = 0,
 ) -> int | None:
-    result = _SelectorMenu(title, items, subtitle, help_text).run()
+    result = _SelectorMenu(title, items, subtitle, help_text, start_idx).run()
+    return result  # type: ignore[return-value]
+
+
+def selector_embedded(title: str, items: list[str]) -> int | None:
+    """Like ``selector`` but without managing the terminal screen — for use
+    inside an already-active fullscreen context."""
+    result = _SelectorMenu(title, items).run(manage_screen=False)
     return result  # type: ignore[return-value]
 
 
@@ -276,67 +306,136 @@ def multi_selector(
 # ── Top menus ────────────────────────────────────────────────────────────────
 
 
+class _MainMenu(_MenuBase):
+    """Main menu, drawn below the animated title art."""
+
+    ACTIONS = ["new_game", "deck_manager", "tutorial", "options", "quit"]
+    ITEMS = ["New Game", "Deck Manager", "Tutorial", "Options", "Quit"]
+
+    def __init__(self) -> None:
+        super().__init__("TRIPLE TRIAD")
+        self.items_y = 0
+
+    def item_count(self) -> int:
+        return len(self.ITEMS)
+
+    def draw(self) -> None:
+        # Border and title art never change during this menu's lifetime,
+        # and _animate_title() already left them painted at their final
+        # position — re-clearing and redrawing them here just caused a
+        # visible flash right as the title-drop animation finished. Only
+        # the help text (not drawn by the animation) still needs adding.
+        avail = term.height - (2 + len(TITLE_ART))
+        self.items_y = 2 + len(TITLE_ART) + (avail - len(self.ITEMS)) // 2
+        help_text = "↑/↓ move • Enter select"
+        print(
+            term.normal
+            + term.move_yx(term.height - 2, _center_x(help_text))
+            + term.dim
+            + help_text,
+            end="",
+            flush=True,
+        )
+
+    def draw_items(self) -> None:
+        out = []
+        for i, item in enumerate(self.ITEMS):
+            line = f"  {item}  "
+            x = _center_x(line)
+            y = self.items_y + i
+            style = term.bold_black_on_cyan if i == self.idx else term.white
+            out.append(
+                term.normal + _clear_row(y) + term.move_yx(y, x) + style(line)
+            )
+        print("".join(out), end="", flush=True)
+
+    def on_enter(self) -> str:
+        return self.ACTIONS[self.idx]
+
+    def on_quit(self) -> str:
+        return "quit"
+
+
 def main_menu() -> str:
-    items = ["New Game", "Deck Manager", "Tutorial", "Options", "Quit"]
-    idx = 0
-
-    avail_start_y: int = 0
-
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
         _animate_title()
+        result = _MainMenu().run(manage_screen=False)
+        if isinstance(result, str):
+            return result
+        return "quit"
 
-        def draw_frame() -> None:
-            # Border and title art never change during this menu's lifetime,
-            # and _animate_title() already left them painted at their final
-            # position — re-clearing and redrawing them here just caused a
-            # visible flash right as the title-drop animation finished. Only
-            # the help text (not drawn by the animation) still needs adding.
-            nonlocal avail_start_y
-            avail = term.height - (2 + len(TITLE_ART))
-            avail_start_y = 2 + len(TITLE_ART) + (avail - len(items)) // 2
 
-            help_text = "↑/↓ move • Enter select"
-            print(
-                term.normal
-                + term.move_yx(term.height - 2, _center_x(help_text))
-                + term.dim
-                + help_text,
-                end="",
-                flush=True,
-            )
+class _OptionsMenu(_MenuBase):
+    """Interactive options screen: toggle music and adjust its intensity."""
 
-        def draw_items() -> None:
-            out = []
-            for i, item in enumerate(items):
-                line = f"  {item}  "
-                x = _center_x(line)
-                y = avail_start_y + i
-                style = term.bold_black_on_cyan if i == idx else term.white
-                out.append(
-                    term.normal + _clear_row(y) + term.move_yx(y, x) + style(line)
-                )
-            print("".join(out), end="", flush=True)
+    def __init__(self, music_player: Any, volume_idx: int) -> None:
+        super().__init__(
+            "Options",
+            help_text="↑/↓ move • ←/→ adjust volume • Enter select • q back",
+        )
+        self.music_player = music_player
+        self.volume_idx = volume_idx
 
-        draw_frame()
-        draw_items()
-        while True:
-            k = term.inkey(timeout=0.15)
-            if not k:
-                continue
-            if k.name == "KEY_UP":
-                idx = (idx - 1) % len(items)
-                play_cursor()
-                draw_items()
-            elif k.name == "KEY_DOWN":
-                idx = (idx + 1) % len(items)
-                play_cursor()
-                draw_items()
-            elif k.name == "KEY_ENTER" or k == "\n":
-                play_confirm()
-                return ["new_game", "deck_manager", "tutorial", "options", "quit"][idx]
-            elif str(k).lower() == "q":
-                play_cancel()
-                return "quit"
+    def item_count(self) -> int:
+        return 3
+
+    def _labels(self) -> list[str]:
+        music_on = self.music_player.is_playing()
+        vol_name, _ = MUSIC_VOLUME_LEVELS[self.volume_idx]
+        return [
+            "Mute Music" if music_on else "Start Music",
+            f"Music Volume:  ◀ {vol_name} ▶",
+            "Back",
+        ]
+
+    def draw_items(self) -> None:
+        labels = self._labels()
+        start_y = max(5, term.height // 2 - len(labels) // 2)
+        out = []
+        for i, label in enumerate(labels):
+            line = f"  {label}  "
+            x = _center_x(line)
+            y = start_y + i
+            style = term.bold_black_on_cyan if i == self.idx else term.white
+            out.append(_clear_row(y) + term.move_yx(y, x) + style(line))
+        print("".join(out), end="", flush=True)
+
+    def _adjust_volume(self, step: int) -> None:
+        new_idx = self.volume_idx + step
+        if 0 <= new_idx < len(MUSIC_VOLUME_LEVELS):
+            self.volume_idx = new_idx
+            self.music_player.set_volume(MUSIC_VOLUME_LEVELS[new_idx][1])
+            play_cursor()
+
+    def on_left(self) -> None:
+        if self.idx == 1:
+            self._adjust_volume(-1)
+
+    def on_right(self) -> None:
+        if self.idx == 1:
+            self._adjust_volume(1)
+
+    def on_enter(self) -> int | None:
+        if self.idx == 0:
+            if self.music_player.is_playing():
+                self.music_player.stop()
+            else:
+                self.music_player.start()
+            return None
+        if self.idx == 2:
+            return self.volume_idx
+        return None
+
+    def on_quit(self) -> int:
+        return self.volume_idx
+
+
+def options_menu(music_player: Any, volume_idx: int) -> int:
+    """Interactive options screen. Music on/off and volume changes are
+    applied live to ``music_player``; returns the resulting volume index so
+    callers can carry it into the next visit."""
+    result = _OptionsMenu(music_player, volume_idx).run()
+    return result if isinstance(result, int) else volume_idx
 
 
 def new_game_menu() -> str | None:
@@ -345,82 +444,6 @@ def new_game_menu() -> str | None:
     if sel is None or sel == 3:
         return None
     return ["single", "tournament", "multiplayer"][sel]
-
-
-def options_menu(music_player: Any, volume_idx: int) -> int:
-    """Interactive options screen: toggle music and adjust its intensity.
-
-    Music on/off and volume changes are applied live to ``music_player`` as
-    the user adjusts them (←/→ steps through the volume levels). Returns the
-    resulting volume index so callers can carry it into the next visit.
-    """
-    idx = 0
-    help_text = "↑/↓ move • ←/→ adjust volume • Enter select • q back"
-    start_y = 0
-
-    with term.fullscreen(), term.cbreak(), term.hidden_cursor():
-
-        def draw_frame() -> None:
-            # Header and help text are static; only draw_items() (below)
-            # needs to repaint on each key, so a move never re-clears them.
-            nonlocal start_y
-            _draw_frame("Options")
-            start_y = max(5, term.height // 2 - 3 // 2)
-            print(term.move_yx(term.height - 2, 2) + term.dim + help_text)
-
-        def draw_items() -> None:
-            music_on = music_player.is_playing()
-            vol_name, _ = MUSIC_VOLUME_LEVELS[volume_idx]
-            items = [
-                "Mute Music" if music_on else "Start Music",
-                f"Music Volume:  ◀ {vol_name} ▶",
-                "Back",
-            ]
-            out = []
-            for i, item in enumerate(items):
-                line = f"  {item}  "
-                x = _center_x(line)
-                y = start_y + i
-                style = term.bold_black_on_cyan if i == idx else term.white
-                out.append(_clear_row(y) + term.move_yx(y, x) + style(line))
-            print("".join(out), end="", flush=True)
-
-        draw_frame()
-        draw_items()
-        while True:
-            k = term.inkey(timeout=0.2)
-            if not k:
-                continue
-
-            if k.name == "KEY_UP":
-                idx = (idx - 1) % 3
-                play_cursor()
-                draw_items()
-            elif k.name == "KEY_DOWN":
-                idx = (idx + 1) % 3
-                play_cursor()
-                draw_items()
-            elif idx == 1 and k.name in ("KEY_LEFT", "KEY_RIGHT"):
-                step = -1 if k.name == "KEY_LEFT" else 1
-                new_idx = volume_idx + step
-                if 0 <= new_idx < len(MUSIC_VOLUME_LEVELS):
-                    volume_idx = new_idx
-                    music_player.set_volume(MUSIC_VOLUME_LEVELS[volume_idx][1])
-                    play_cursor()
-                    draw_items()
-            elif k.name == "KEY_ENTER" or k == "\n":
-                play_confirm()
-                if idx == 0:
-                    if music_player.is_playing():
-                        music_player.stop()
-                    else:
-                        music_player.start()
-                    draw_items()
-                elif idx == 2:
-                    return volume_idx
-            elif str(k).lower() == "q":
-                play_cancel()
-                return volume_idx
 
 
 def deck_manager_ui() -> None:
