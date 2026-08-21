@@ -56,7 +56,7 @@ Triple Triad is a 2-player card game played on a 3×3 grid. Each player has 5 ca
 
 - **Python 3.13+**
 - **NumPy** (for audio synthesis)
-- **pygame-ce** (for audio playback — optional, game runs silently without it)
+- **pygame-ce** (for audio playback)
 
 ### Installation from PyPI
 
