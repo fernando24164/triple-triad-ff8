@@ -1,4 +1,5 @@
 from ..data.cards import CARDS, CardStats, Element
+from .player import Player
 
 
 def stat_display(value: int) -> str:
@@ -19,7 +20,7 @@ class Card:
     def __init__(self, name: str) -> None:
         self.name = name
         self._stats: CardStats = CARDS[name]
-        self.owner: str | None = None  # 'P' or 'CPU'
+        self.owner: Player | None = None
 
     # Properties for stats - read from immutable _stats
     @property
@@ -57,7 +58,7 @@ class Card:
 
     def short_str(self, width: int = 18) -> str:
         """Short display for board rendering."""
-        owner_sym = "■" if self.owner == "P" else "□"
+        owner_sym = "■" if self.owner == Player.PLAYER else "□"
         name_trunc = self.name[: width - 2]
         return f"{owner_sym}{name_trunc}"
 

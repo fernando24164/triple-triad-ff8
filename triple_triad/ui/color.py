@@ -1,3 +1,6 @@
+from ..models.player import Player
+
+
 class Color:
     """ANSI color codes for terminal rendering."""
 
@@ -31,8 +34,8 @@ class Color:
         return f"{Color.HIGHLIGHT}{text}{Color.RESET}"
 
     @staticmethod
-    def card(text: str, owner: str | None) -> str:
-        """Color a string based on card owner ('P' or 'CPU')."""
-        if owner == "P":
+    def card(text: str, owner: Player | None) -> str:
+        """Color a string based on card owner."""
+        if owner == Player.PLAYER:
             return Color.player(text)
         return Color.cpu(text)

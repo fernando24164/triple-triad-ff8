@@ -16,6 +16,7 @@ from ..constants import BOARD_CELLS
 from ..data.cards import Element
 from ..models.board import Board
 from ..models.card import Card
+from ..models.player import MatchResult, Player, Role
 from ..network.connection import P2PConnection
 from ..network.protocol import (
     MOVE_TIMEOUT_S,
@@ -82,14 +83,14 @@ def _boogie_during_match(music_player: ChiptunePlayer | None) -> Iterator[None]:
         music_player.switch_track(generate_music_buffer)
 
 
-def _decide_first(term: Terminal | None) -> str:
+def _decide_first(term: Terminal | None) -> Player:
     """Animate a bouncing selector between YOU and CPU, then reveal who goes
     first. Draws within the caller's already-active fullscreen session
     (pass None to skip the animation and just pick randomly)."""
     if term is None:
-        return random.choice(["P", "CPU"])
-    first = random.choice(["P", "CPU"])
-    winner = 0 if first == "P" else 1
+        return random.choice([Player.PLAYER, Player.CPU])
+    first = random.choice([Player.PLAYER, Player.CPU])
+    winner = 0 if first == Player.PLAYER else 1
 
     cur = random.randint(0, 1)
     seq: list[int] = []
@@ -148,7 +149,7 @@ def _decide_first(term: Terminal | None) -> str:
             flush=True,
         )
 
-        result = "You go first!" if first == "P" else "CPU goes first!"
+        result = "You go first!" if first == Player.PLAYER else "CPU goes first!"
         print(
             term.move_yx(11, max(0, (term.width - len(result)) // 2))
             + term.bold_yellow(result),
@@ -309,7 +310,7 @@ def run_game(
     board_elements: list[Element | None] | None = None,
     ai_randomness: float = 0.0,
     music_player: ChiptunePlayer | None = None,
-) -> str:
+) -> MatchResult:
     """Run the full game loop until the board is full."""
     board = Board(elements=board_elements)
     term = _get_terminal()
@@ -324,10 +325,10 @@ def run_game(
 
         while any(board.is_empty(i) for i in range(BOARD_CELLS)):
             p_score, c_score = calculate_scores(board, player_hand, cpu_hand)
-            turn_label = "YOUR TURN" if turn == "P" else "CPU TURN"
+            turn_label = "YOUR TURN" if turn == Player.PLAYER else "CPU TURN"
             choose_extra = (
                 _hand_block_lines(len(player_hand)) + _hand_block_lines(len(cpu_hand))
-                if turn == "P"
+                if turn == Player.PLAYER
                 else 2  # "\n  CPU is thinking..."
             )
             _render_turn_screen(
@@ -341,7 +342,7 @@ def run_game(
                 extra_lines=choose_extra,
             )
 
-            if turn == "P":
+            if turn == Player.PLAYER:
                 try:
                     show_cpu = "Open" in rules
                     display_hand(player_hand, "Your", term=term)
@@ -430,12 +431,12 @@ def run_game(
                                 print("  ✗ Enter a number.")
 
                     card = player_hand.pop(ci)
-                    card.owner = "P"
+                    card.owner = Player.PLAYER
                     board.place(pos, card)
                     move_note = f"You placed [{card.name}] at position {pos + 1}"
                 except QuitGameError:
                     play_cancel()
-                    return "quit"
+                    return MatchResult.QUIT
 
             else:
                 print("\n  CPU is thinking...")
@@ -450,7 +451,7 @@ def run_game(
                 )
                 assert cpu_pos is not None, "CPU had no valid move on a non-full board"
                 card = cpu_hand.pop(ci)
-                card.owner = "CPU"
+                card.owner = Player.CPU
                 board.place(cpu_pos, card)
                 pos = cpu_pos
                 move_note = f"CPU placed [{card.name}] at position {pos + 1}"
@@ -490,7 +491,7 @@ def run_game(
                 else:
                     for _, ccard in captures:
                         ccard.owner = card.owner
-                play_capture_win() if card.owner == "P" else play_capture_lose()
+                play_capture_win() if card.owner == Player.PLAYER else play_capture_lose()
             if not use_screen:
                 # In screen mode this is already announced by the ASCII
                 # rule banner(s) animate_captures just showed.
@@ -499,8 +500,8 @@ def run_game(
             for cap_pos, ncard in captures:
                 old_owner = old_owners[cap_pos]
                 ncard.owner = card.owner
-                attacker_label = "You" if card.owner == "P" else "CPU"
-                defender_label = "CPU" if old_owner == "CPU" else "You"
+                attacker_label = "You" if card.owner == Player.PLAYER else "CPU"
+                defender_label = "CPU" if old_owner == Player.CPU else "You"
                 print(
                     f"  ⚔  [{card.name}] captured [{ncard.name}]! "
                     f"({defender_label} → {attacker_label})"
@@ -509,7 +510,7 @@ def run_game(
             if use_screen:
                 time.sleep(0.9)
 
-            turn = "CPU" if turn == "P" else "P"
+            turn = Player.CPU if turn == Player.PLAYER else Player.PLAYER
             turn_number += 1
 
         p_final, c_final = calculate_final_scores(board)
@@ -533,7 +534,7 @@ def run_game(
                     term, use_screen, board, p_final, c_final, result_text=result_text
                 )
             pause_message()
-            return "P"
+            return MatchResult.P1_WIN
         elif c_final > p_final:
             play_defeat_theme()
             if use_screen:
@@ -542,7 +543,7 @@ def run_game(
                     term, use_screen, board, p_final, c_final, result_text=result_text
                 )
             pause_message()
-            return "CPU"
+            return MatchResult.P2_WIN
         else:
             if use_screen:
                 show_draw_banner(term)
@@ -550,7 +551,7 @@ def run_game(
                     term, use_screen, board, p_final, c_final, result_text=result_text
                 )
             pause_message()
-            return "Draw"
+            return MatchResult.DRAW
 
 
 # ── P2P Game Loop ────────────────────────────────────────────────────────────
@@ -562,11 +563,11 @@ def run_p2p_game(
     opponent_hand: list[Card],
     rules: Collection[str],
     board_elements: list[Element | None] | None,
-    local_role: str,
-    first_turn: str,
+    local_role: Role,
+    first_turn: Player,
     headless: bool = False,
     music_player: ChiptunePlayer | None = None,
-) -> str:
+) -> MatchResult:
     """Run a P2P multiplayer game loop.
 
     Args:
@@ -575,17 +576,17 @@ def run_p2p_game(
         opponent_hand: Remote opponent's hand (cards with owner='CPU').
         rules: Active rules set.
         board_elements: Board element configuration.
-        local_role: 'P1' or 'P2' - this client's role.
-        first_turn: 'P' or 'CPU' - who goes first.
+        local_role: This client's seat (Role.P1 or Role.P2).
+        first_turn: Who goes first (Player.PLAYER or Player.CPU).
         headless: If True, use AI for all local moves.
         music_player: Shared menu music player to duck while the match
             plays and restore afterward, or None to skip music switching.
 
     Returns:
-        'P1_WIN', 'P2_WIN', or 'DRAW'.
+        MatchResult.P1_WIN, P2_WIN, DRAW, or QUIT.
     """
     board = Board(elements=board_elements)
-    turn = first_turn
+    turn = Player(first_turn)
     turn_number = 1
     term = _get_terminal() if not headless else None
     use_screen = not headless and term is not None and term.does_styling
@@ -597,9 +598,10 @@ def run_p2p_game(
             p_score, c_score = calculate_scores(board, player_hand, opponent_hand)
             turn_label = "YOUR TURN" if turn == "P" else "OPPONENT TURN"
 
-            is_local_turn = (turn == "P" and local_role == "P1") or (
-                turn == "CPU" and local_role == "P2"
-            )
+            is_local_turn = (
+                turn == Player.PLAYER
+                and local_role == Role.P1
+            ) or (turn == Player.CPU and local_role == Role.P2)
             hands_extra = _hand_block_lines(len(player_hand)) + _hand_block_lines(
                 len(opponent_hand)
             )
@@ -629,7 +631,7 @@ def run_p2p_game(
                     assert cpu_pos is not None
                     pos = cpu_pos
                     card = player_hand.pop(ci)
-                    card.owner = "P"
+                    card.owner = Player.PLAYER
                     board.place(pos, card)
                     conn.send(make_move(ci, pos))
                 else:
@@ -651,10 +653,10 @@ def run_p2p_game(
                     except QuitGameError:
                         conn.send(make_forfeit("Player quit"))
                         play_cancel()
-                        return "quit"
+                        return MatchResult.QUIT
                     ci_index = player_hand.index(card)
                     player_hand.pop(ci_index)
-                    card.owner = "P"
+                    card.owner = Player.PLAYER
                     board.place(pos, card)
                     conn.send(make_move(ci_index, pos))
                 move_note = f"You placed [{card.name}] at position {pos + 1}"
@@ -669,33 +671,33 @@ def run_p2p_game(
                 if packet is None:
                     if not headless and term:
                         print("\n  Opponent took too long!")
-                    return "P1_WIN" if local_role == "P1" else "P2_WIN"
+                    return _win_by_opponent_error(local_role)
 
                 msg_type, payload = parse_packet(packet)
                 if msg_type == MessageType.FORFEIT:
                     if not headless and term:
                         reason = payload.get("reason", "")
                         print(f"\n  Opponent forfeited! {reason}")
-                    return "P1_WIN" if local_role == "P1" else "P2_WIN"
+                    return _win_by_opponent_error(local_role)
 
                 if msg_type in (MessageType.DISCONNECT, MessageType.CONNECTION_LOST):
                     if not headless and term:
                         print("\n  Opponent disconnected!")
-                    return "P1_WIN" if local_role == "P1" else "P2_WIN"
+                    return _win_by_opponent_error(local_role)
 
                 opp_ci = payload["card_idx"]
                 opp_pos = payload["position"]
 
                 if opp_ci < 0 or opp_ci >= len(opponent_hand):
                     conn.send(make_forfeit("Invalid card index"))
-                    return "P1_WIN" if local_role == "P1" else "P2_WIN"
+                    return _win_by_opponent_error(local_role)
 
                 if opp_pos < 0 or opp_pos >= BOARD_CELLS or not board.is_empty(opp_pos):
                     conn.send(make_forfeit("Invalid position"))
-                    return "P1_WIN" if local_role == "P1" else "P2_WIN"
+                    return _win_by_opponent_error(local_role)
 
                 opp_card = opponent_hand.pop(opp_ci)
-                opp_card.owner = "CPU"
+                opp_card.owner = Player.CPU
                 board.place(opp_pos, opp_card)
                 card = opp_card
                 pos = opp_pos
@@ -738,7 +740,7 @@ def run_p2p_game(
                     else:
                         for _, ccard in captures:
                             ccard.owner = card.owner
-                    play_capture_win() if card.owner == "P" else play_capture_lose()
+                    play_capture_win() if card.owner == Player.PLAYER else play_capture_lose()
                 if not use_screen:
                     # In screen mode this is already announced by the ASCII
                     # rule banner(s) animate_captures just showed.
@@ -759,19 +761,19 @@ def run_p2p_game(
                 for _, ccard in captures:
                     ccard.owner = card.owner
 
-            turn = "CPU" if turn == "P" else "P"
+            turn = Player.CPU if turn == Player.PLAYER else Player.PLAYER
             turn_number += 1
 
         p_final, c_final = calculate_final_scores(board)
 
         if p_final > c_final:
-            result = "P1_WIN" if local_role == "P1" else "P2_WIN"
+            result = MatchResult.P1_WIN if local_role == Role.P1 else MatchResult.P2_WIN
             label = "YOU WIN!"
         elif c_final > p_final:
-            result = "P2_WIN" if local_role == "P1" else "P1_WIN"
+            result = MatchResult.P2_WIN if local_role == Role.P1 else MatchResult.P1_WIN
             label = "You lost. Better luck next time!"
         else:
-            result = "DRAW"
+            result = MatchResult.DRAW
             label = "It's a draw!"
 
         if not headless and term:
@@ -924,6 +926,11 @@ def _get_local_move_interactive(
         return player_hand[ci], pos
 
 
+def _win_by_opponent_error(local_role: Role) -> MatchResult:
+    """The opponent erred/disconnected — the other seat wins."""
+    return MatchResult.P1_WIN if local_role == Role.P2 else MatchResult.P2_WIN
+
+
 def _wait_for_move(
     conn: P2PConnection,
     term: Terminal | None,
@@ -971,9 +978,9 @@ def run_headless_p2p_game(
     opponent_hand: list[Card],
     rules: Collection[str],
     board_elements: list[Element | None] | None,
-    local_role: str,
-    first_turn: str,
-) -> str:
+    local_role: Role,
+    first_turn: Player,
+) -> MatchResult:
     """Run a headless P2P game using AI for all local moves."""
     return run_p2p_game(
         conn=conn,

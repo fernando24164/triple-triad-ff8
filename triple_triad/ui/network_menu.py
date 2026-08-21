@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 from ..data.cards import CARDS, Element
 from ..deck.builder import build_random_deck
 from ..models.card import Card
+from ..models.player import Player
 from ..network.connection import P2PConnection
 from ..network.handshake import perform_handshake
 from ..network.protocol import (
@@ -326,8 +327,8 @@ def lobby_sync_ui(
             board_elements: list[Element | None] = [None] * 9
             player_hand = build_random_deck()
             for c in player_hand:
-                c.owner = "P"
-            first_turn = random.choice(["P", "CPU"])
+                c.owner = Player.PLAYER
+            first_turn = random.choice([Player.PLAYER, Player.CPU]).value
         else:
             from ..deck.picker import choose_deck
             from ..ui.cli import choose_board_ui, choose_rules_ui
@@ -340,7 +341,7 @@ def lobby_sync_ui(
                 if not headless:
                     print("  Host: deck selection returned empty.")
                 return None
-            first_turn = random.choice(["P", "CPU"])
+            first_turn = random.choice([Player.PLAYER, Player.CPU]).value
 
         board_elements_serialized: list[str | None] = [
             e.value if isinstance(e, Element) else None for e in board_elements
@@ -406,7 +407,7 @@ def lobby_sync_ui(
                 print("  Host: guest deck validation failed.")
             return None
         for c in guest_hand:
-            c.owner = "CPU"
+            c.owner = Player.CPU
 
         sync_ctx = {
             "rules": rules,
@@ -462,7 +463,7 @@ def lobby_sync_ui(
                     print("  Guest: deck selection returned empty.")
                 return None
         for c in player_hand:
-            c.owner = "P"
+            c.owner = Player.PLAYER
 
         # Send ack
         conn.send(make_sync_ack())
@@ -502,7 +503,7 @@ def lobby_sync_ui(
                 print("  Guest: host deck validation failed.")
             return None
         for c in host_hand:
-            c.owner = "CPU"
+            c.owner = Player.CPU
 
         sync_ctx = {
             "rules": rules,

@@ -7,6 +7,7 @@ from ..data.cards import Element
 from ..engine.rules import resolve_captures
 from ..models.board import Board
 from ..models.card import Card
+from ..models.player import Player
 from ..synth.sfx import play_cancel, play_confirm, play_cursor
 from ..ui.position_selector import next_empty_in_direction
 from ..ui.render import render_board
@@ -126,15 +127,15 @@ def _demo_same() -> bool:
     """Demonstrate the Same rule."""
     # Mesmerize (bottom=3) at pos 1, Thrustaevis (right=3) at pos 3
     cpu1 = Card("Mesmerize")
-    cpu1.owner = "CPU"
+    cpu1.owner = Player.CPU
     cpu2 = Card("Thrustaevis")
-    cpu2.owner = "CPU"
+    cpu2.owner = Player.CPU
     board = Board()
     board.place(1, cpu1)
     board.place(3, cpu2)
 
     player = Card("Belhelmel")
-    player.owner = "P"
+    player.owner = Player.PLAYER
 
     _draw_demo_frame("Same Rule")
     _draw_board_demo(board)
@@ -179,12 +180,12 @@ def _demo_same() -> bool:
 def _demo_same_wall() -> bool:
     """Demonstrate Same Wall (board edges count as rank A)."""
     cpu = Card("Gayla")
-    cpu.owner = "CPU"
+    cpu.owner = Player.CPU
     board = Board()
     board.place(4, cpu)
 
     player = Card("Bahamut")
-    player.owner = "P"
+    player.owner = Player.PLAYER
 
     _draw_demo_frame("Same Wall")
     _draw_board_demo(board)
@@ -228,15 +229,15 @@ def _demo_same_wall() -> bool:
 def _demo_plus() -> bool:
     """Demonstrate the Plus rule."""
     opp1 = Card("Grat")
-    opp1.owner = "CPU"
+    opp1.owner = Player.CPU
     opp2 = Card("Red Bat")
-    opp2.owner = "CPU"
+    opp2.owner = Player.CPU
     board = Board()
     board.place(1, opp1)
     board.place(3, opp2)
 
     player = Card("Gayla")
-    player.owner = "P"
+    player.owner = Player.PLAYER
 
     _draw_demo_frame("Plus Rule")
     _draw_board_demo(board)
@@ -287,20 +288,20 @@ def _demo_combo() -> bool:
     """Demonstrate the Combo chain reaction."""
     board = Board()
     opp1 = Card("Mesmerize")
-    opp1.owner = "CPU"
+    opp1.owner = Player.CPU
     opp2 = Card("Thrustaevis")
-    opp2.owner = "CPU"
+    opp2.owner = Player.CPU
     opp3 = Card("Grat")
-    opp3.owner = "CPU"
+    opp3.owner = Player.CPU
     opp4 = Card("Geezard")
-    opp4.owner = "CPU"
+    opp4.owner = Player.CPU
     board.place(1, opp1)
     board.place(3, opp2)
     board.place(0, opp3)
     board.place(6, opp4)
 
     player = Card("Belhelmel")
-    player.owner = "P"
+    player.owner = Player.PLAYER
 
     _draw_demo_frame("Combo Rule")
     _draw_board_demo(board)
@@ -374,7 +375,7 @@ def _demo_place_card() -> bool:
     """Let the player place a card on an empty board."""
     board = Board()
     card = Card("Geezard")
-    card.owner = "P"
+    card.owner = Player.PLAYER
 
     cur = 0
     while True:
@@ -423,11 +424,11 @@ def _demo_capture() -> bool:
     """Let the player place a card to capture an opponent's card."""
     board = Board()
     cpu_card = Card("Bite Bug")
-    cpu_card.owner = "CPU"
+    cpu_card.owner = Player.CPU
     board.place(0, cpu_card)
 
     player_card = Card("Geezard")
-    player_card.owner = "P"
+    player_card.owner = Player.PLAYER
 
     _draw_demo_frame("Step 2: Capture!")
     _draw_board_demo(board)
@@ -476,11 +477,11 @@ def _demo_element() -> bool:
     board = Board(elements=elements)
 
     cpu_card = Card("Red Bat")
-    cpu_card.owner = "CPU"
+    cpu_card.owner = Player.CPU
     board.place(1, cpu_card)
 
     player_card = Card("Ruby Dragon")
-    player_card.owner = "P"
+    player_card.owner = Player.PLAYER
 
     _draw_demo_frame("Step 3: Element Squares")
     _draw_board_demo(board)

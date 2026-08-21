@@ -18,6 +18,7 @@ from .deck.picker import choose_deck
 from .engine.game_loop import run_game
 from .engine.tournament import run_tournament
 from .models.card import Card
+from .models.player import MatchResult, Player, Role
 from .network.connection import P2PConnection
 from .network.handshake import perform_handshake
 from .network.protocol import (
@@ -88,9 +89,9 @@ def play_single_game(music_player: ChiptunePlayer | None = None) -> None:
     cpu_hand = build_cpu_deck(difficulty)
 
     for c in player_hand:
-        c.owner = "P"
+        c.owner = Player.PLAYER
     for c in cpu_hand:
-        c.owner = "CPU"
+        c.owner = Player.CPU
 
     print("\n  -- Your Deck --")
     for c in player_hand:
@@ -110,18 +111,15 @@ def play_single_game(music_player: ChiptunePlayer | None = None) -> None:
             f"    {c.name}{el}  ^{c.top} >{c.right} v{c.bottom} <{c.left}  Lv{c.level}"
         )
 
-    if (
-        run_game(
-            player_hand,
-            cpu_hand,
-            rules,
-            ai_mode,
-            board_elements,
-            ai_randomness,
-            music_player=music_player,
-        )
-        == "quit"
-    ):
+    if run_game(
+        player_hand,
+        cpu_hand,
+        rules,
+        ai_mode,
+        board_elements,
+        ai_randomness,
+        music_player=music_player,
+    ) is MatchResult.QUIT:
         return
     pause_message()
 
@@ -173,30 +171,30 @@ def play_multiplayer_game(music_player: ChiptunePlayer | None = None) -> None:
         pause_message()
         return
 
-    local_role = "P1" if is_host else "P2"
+    local_role = Role.P1 if is_host else Role.P2
     try:
         game_result = run_p2p_game_from_ctx(
             conn, sync_ctx, local_role, headless=False, music_player=music_player
         )
     except Exception as exc:
         logger.error("P2P game error: %s", exc)
-        game_result = "DRAW"
+        game_result = MatchResult.DRAW
     finally:
         conn.close()
 
-    if game_result == "quit":
+    if game_result == MatchResult.QUIT:
         return
-    print(f"\n  Game result: {game_result}")
+    print(f"\n  Game result: {game_result.value}")
     pause_message()
 
 
 def run_p2p_game_from_ctx(
     conn: P2PConnection,
     sync_ctx: dict[str, Any],
-    local_role: str,
+    local_role: Role,
     headless: bool = False,
     music_player: ChiptunePlayer | None = None,
-) -> str:
+) -> MatchResult:
     """Run a P2P game from a synchronization context dict."""
     from .data.cards import Element
     from .engine.game_loop import run_p2p_game
@@ -206,7 +204,7 @@ def run_p2p_game_from_ctx(
     board_elements = [Element(e) if isinstance(e, str) else None for e in raw_elements]
     player_hand = sync_ctx["player_hand"]
     opponent_hand = sync_ctx["opponent_hand"]
-    first_turn = sync_ctx["first_turn"]
+    first_turn = Player(sync_ctx["first_turn"])
 
     return run_p2p_game(
         conn=conn,
@@ -257,10 +255,10 @@ def run_headless_host_test(port: int = DEFAULT_PORT) -> int:
 
     logger.info("Sync complete. Starting game...")
     try:
-        result = run_p2p_game_from_ctx(conn, sync_ctx, "P1", headless=True)
+        result = run_p2p_game_from_ctx(conn, sync_ctx, Role.P1, headless=True)
     except Exception as exc:
         logger.info("Game error: %s", exc)
-        result = "DRAW"
+        result = MatchResult.DRAW
     finally:
         conn.close()
 
@@ -303,10 +301,10 @@ def run_headless_join_test(host_ip: str, port: int = DEFAULT_PORT) -> int:
 
     logger.info("Sync complete. Starting game...")
     try:
-        result = run_p2p_game_from_ctx(conn, sync_ctx, "P2", headless=True)
+        result = run_p2p_game_from_ctx(conn, sync_ctx, Role.P2, headless=True)
     except Exception as exc:
         logger.info("Game error: %s", exc)
-        result = "DRAW"
+        result = MatchResult.DRAW
     finally:
         conn.close()
 

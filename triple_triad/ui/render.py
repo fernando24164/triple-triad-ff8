@@ -4,6 +4,7 @@ from ..constants import BOARD_CELLS, GRID_SIZE
 from ..data.cards import Element
 from ..models.board import Board
 from ..models.card import Card, stat_display
+from ..models.player import Player
 from .color import Color
 
 CELL_W = 18  # inner width of each cell (visible characters only)
@@ -25,7 +26,7 @@ def render_row1(card: Card | None) -> str:
     w = CELL_W
     if card is None:
         return " " * w
-    sym = "■" if card.owner == "P" else "□"
+    sym = "■" if card.owner == Player.PLAYER else "□"
     label = f"{sym}{card.name}"
     label = label[: w - 1]  # truncate to visible width
     plain = f" {label:<{w - 1}}"  # exactly CELL_W visible chars

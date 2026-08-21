@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from ..constants import GRID_SIZE
 from ..models.card import Card
+from ..models.player import Player
 from ..synth.sfx import play_capture_banner
 from .render import CELL_W, render_row1, render_row2, render_row3, render_row4
 
@@ -153,7 +154,7 @@ def _show_banner(term: Terminal, word: str, color: str) -> None:
 def _flash_banner(term: Terminal, new_owner: str | None) -> None:
     """Casino-style 'CAPTURED!' banner with a whoosh sound, rendered as
     block-letter ASCII art via `_show_banner`."""
-    owner_color = _GREEN if new_owner == "P" else _RED
+    owner_color = _GREEN if new_owner == Player.PLAYER else _RED
     play_capture_banner()
     _show_banner(term, _BANNER_WORD, owner_color)
 
@@ -199,7 +200,7 @@ def show_rule_banner(term: Terminal | None, rule_name: str, owner: str | None) -
     terminal is available."""
     if term is None or not term.does_styling:
         return
-    color = _GREEN if owner == "P" else _RED
+    color = _GREEN if owner == Player.PLAYER else _RED
     _show_banner(term, f"{rule_name.upper()}!", color)
 
 
@@ -207,7 +208,7 @@ def animate_captures(
     term: Terminal | None,
     cursor_row: int,
     captures: list[tuple[int, Card]],
-    new_owner: str | None,
+    new_owner: Player | None,
     col_offset: int = 0,
     events: list[str] | None = None,
 ) -> None:
@@ -227,7 +228,7 @@ def animate_captures(
             (blank) cursor position — i.e. how far up to travel to reach
             board row 0.
         captures: (pos, card) pairs being captured this turn.
-        new_owner: Owner ('P' or 'CPU') the captured cards are flipping to.
+        new_owner: Owner the captured cards are flipping to.
         col_offset: Columns the board was shifted right for horizontal
             centering — added to every cell's column so the flip lands on
             the actual on-screen board instead of column 0.

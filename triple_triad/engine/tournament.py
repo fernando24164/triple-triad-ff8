@@ -6,6 +6,7 @@ from ..data.cards import Element
 from ..deck.builder import build_cpu_deck, build_random_deck
 from ..engine.game_loop import run_game
 from ..engine.utils import random_rules, reset_card_owners
+from ..models.player import MatchResult, Player
 from ..ui.tournament_display import (
     build_bracket,
     show_bracket_reveal,
@@ -55,9 +56,9 @@ def run_tournament(
         player_hand = build_random_deck()
         cpu_hand = build_cpu_deck(difficulty)
         for card in player_hand:
-            card.owner = "P"
+            card.owner = Player.PLAYER
         for card in cpu_hand:
-            card.owner = "CPU"
+            card.owner = Player.CPU
 
         winner = run_game(
             player_hand,
@@ -68,13 +69,13 @@ def run_tournament(
             ai_randomness,
             music_player=music_player,
         )
-        if winner == "quit":
+        if winner == MatchResult.QUIT:
             print("\n  Tournament cancelled.")
             return None
-        if winner == "P":
+        if winner == MatchResult.P1_WIN:
             wins += 1
             result = "W"
-        elif winner == "CPU":
+        elif winner == MatchResult.P2_WIN:
             losses += 1
             result = "L"
         else:
