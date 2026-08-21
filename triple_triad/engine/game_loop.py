@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import time
 from collections.abc import Collection, Iterator
 from contextlib import contextmanager, nullcontext
@@ -26,25 +25,20 @@ from ..network.protocol import (
     make_move,
     parse_packet,
 )
-from ..synth.sfx import (
-    play_cancel,
-    play_capture_lose,
-    play_capture_win,
-    play_defeat_theme,
-    play_victory_fanfare,
-)
+from ..synth.sfx import play_cancel, play_capture_lose, play_capture_win
 from ..synth.wave_generators import generate_boogie_buffer, generate_music_buffer
-from ..ui.capture_fx import (
-    animate_captures,
-    show_draw_banner,
-    show_lose_banner,
-    show_victory_banner,
-)
-from ..ui.card_selector import select_card
-from ..ui.cli import pause_message
+from ..ui.capture_fx import animate_captures
 from ..ui.display import display_hand
-from ..ui.position_selector import QuitGameError, select_position
-from ..ui.render import board_total_width, render_board
+from ..ui.match_controller import TurnContext, get_local_move
+from ..ui.match_view import (
+    decide_first,
+    draw_key_hints,
+    hand_block_lines,
+    render_game_over_screen,
+    render_turn_screen,
+    show_match_outcome,
+)
+from ..ui.position_selector import QuitGameError
 from .rules import apply_captures, resolve_captures
 from .scoring import calculate_final_scores, calculate_scores
 
@@ -83,225 +77,6 @@ def _boogie_during_match(music_player: ChiptunePlayer | None) -> Iterator[None]:
         music_player.switch_track(generate_music_buffer)
 
 
-def _decide_first(term: Terminal | None) -> Player:
-    """Animate a bouncing selector between YOU and CPU, then reveal who goes
-    first. Draws within the caller's already-active fullscreen session
-    (pass None to skip the animation and just pick randomly)."""
-    if term is None:
-        return random.choice([Player.PLAYER, Player.CPU])
-    first = random.choice([Player.PLAYER, Player.CPU])
-    winner = 0 if first == Player.PLAYER else 1
-
-    cur = random.randint(0, 1)
-    seq: list[int] = []
-    for _ in range(random.randint(4, 7)):
-        seq.append(cur)
-        cur = 1 - cur
-    seq.append(winner)
-
-    labels = ["  YOU  ", "  CPU  "]
-    gap = 8
-    total_w = len(labels[0]) + gap + len(labels[1])
-    base_x = max(0, (term.width - total_w) // 2)
-    cpu_x = base_x + len(labels[0]) + gap
-    arrow_offset = len(labels[0]) // 2
-    positions = (base_x, cpu_x)
-
-    with term.cbreak(), term.hidden_cursor():
-        # Clear and draw the static title once — clearing every frame in
-        # the loop below is what caused the whole screen to flash/blink.
-        print(term.clear + term.normal, end="")
-        title = "Who goes first?"
-        print(
-            term.move_yx(5, max(0, (term.width - len(title)) // 2))
-            + term.bold_cyan(title),
-            end="",
-            flush=True,
-        )
-
-        # The labels never change appearance during the bounce — only the
-        # arrow below moves — so draw them once. Toggling a background
-        # color on and off every frame (as fast as 40ms early on) is what
-        # read as strobing rather than motion.
-        for idx, label in enumerate(labels):
-            print(term.move_yx(8, positions[idx]) + term.bold_white(label), end="")
-
-        for i, sel in enumerate(seq):
-            progress = i / max(1, len(seq) - 1)
-            delay = 0.1 + progress * 0.3  # kept slow enough to read as a hop
-
-            out = []
-            # Overwrite both possible arrow slots every frame — a blank at
-            # the unselected one, the arrow at the selected one — so the
-            # old arrow never lingers without needing a full clear.
-            for idx, x in enumerate(positions):
-                glyph = term.yellow("▲") if idx == sel else " "
-                out.append(term.move_yx(9, x + arrow_offset) + glyph)
-
-            print("".join(out), end="", flush=True)
-            time.sleep(delay)
-
-        # Reveal: highlight the winning side once, as the payoff.
-        print(
-            term.move_yx(8, positions[winner])
-            + term.bold_black_on_cyan(labels[winner]),
-            end="",
-            flush=True,
-        )
-
-        result = "You go first!" if first == Player.PLAYER else "CPU goes first!"
-        print(
-            term.move_yx(11, max(0, (term.width - len(result)) // 2))
-            + term.bold_yellow(result),
-            end="",
-            flush=True,
-        )
-        time.sleep(1)
-
-    return first
-
-
-def _hand_block_lines(hand_size: int) -> int:
-    """Line count of one ``display_hand`` call: blank+label, separator,
-    one line per card, separator."""
-    return hand_size + 4
-
-
-def _render_turn_screen(
-    term: Terminal | None,
-    use_screen: bool,
-    board: Board,
-    turn_label: str,
-    turn_number: int,
-    p_score: int,
-    c_score: int,
-    score_labels: tuple[str, str] = ("You", "CPU"),
-    sep: str = "═",
-    note: str | None = None,
-    extra_lines: int = 0,
-    highlight: int | None = None,
-) -> tuple[int, int]:
-    """Draw one turn's screen — clearing first if a persistent (fullscreen)
-    terminal is in use, so the board updates in place instead of scrolling.
-    Padded with blank lines on top so the block sits vertically centered in
-    the terminal; ``extra_lines`` should count whatever the caller prints
-    immediately after this returns (e.g. hand listings), so the padding
-    accounts for the full block, not just the header/board/score. Header,
-    score, and note lines are each centered horizontally on their own; the
-    board is centered as a whole block (every row shares one left offset so
-    its grid lines stay aligned).
-
-    Returns ``(cursor_row, col_offset)``: ``cursor_row`` is the number of
-    lines from the board's top border down to the resulting (blank) cursor
-    line, and ``col_offset`` is how many columns the board was shifted
-    right — both are what capture_fx needs to place its flip animation.
-    """
-    if use_screen and term is not None:
-        print(term.clear, end="")
-
-    def _center(text: str) -> str:
-        if not (use_screen and term is not None):
-            return text
-        hpad = max(0, (term.width - len(text)) // 2)
-        return " " * hpad + text
-
-    bar = sep * 62
-    board_text = render_board(board, highlight=highlight)
-    own_lines = 6 + board_text.count("\n") + 1 + (2 if note is not None else 0)
-    vpad = 0
-    col_offset = 0
-    if use_screen and term is not None:
-        vpad = max(0, (term.height - (own_lines + extra_lines)) // 2)
-        print("\n" * vpad, end="")
-        col_offset = max(0, (term.width - board_total_width()) // 2)
-
-    print()
-    print(_center(bar))
-    print(_center(f"  Turn {turn_number}  |  {turn_label}"))
-    print(_center(bar))
-    if col_offset:
-        board_text = "\n".join(
-            " " * col_offset + line for line in board_text.split("\n")
-        )
-    print(board_text)
-    you_label, opp_label = score_labels
-    print()
-    print(_center(f"  Score — {you_label}: {p_score}  {opp_label}: {c_score}"))
-    lines = board_text.count("\n") + 1 + 2
-    if note is not None:
-        print()
-        print(_center(f"  {note}"))
-        lines += 2
-
-    if use_screen and term is not None:
-        _draw_key_hints(term)
-        print(term.move_yx(vpad + 4 + lines, 0), end="", flush=True)
-
-    return lines, col_offset
-
-
-def _draw_key_hints(term: Terminal | None, use_screen: bool = True) -> None:
-    """Draw the 'r: redraw screen | q: exit main menu' hint at the bottom
-    center of the screen. No-op when not on a styled terminal."""
-    if not use_screen or term is None:
-        return
-    hint = "  r: redraw screen   |   q: exit main menu  "
-    hint_x = max(0, (term.width - len(hint)) // 2)
-    print(
-        term.move_yx(term.height - 1, hint_x) + term.dim(hint),
-        end="",
-        flush=True,
-    )
-
-
-def _render_game_over_screen(
-    term: Terminal | None,
-    use_screen: bool,
-    board: Board,
-    p_score: int,
-    c_score: int,
-    score_labels: tuple[str, str] = ("You", "CPU"),
-    sep: str = "═",
-    result_text: str | None = None,
-) -> None:
-    """Draw the final board, score, and win/lose/draw result, centered the
-    same way ``_render_turn_screen`` centers every other screen in the
-    game."""
-    if use_screen and term is not None:
-        print(term.clear, end="")
-
-    def _center(text: str) -> str:
-        if not (use_screen and term is not None):
-            return text
-        hpad = max(0, (term.width - len(text)) // 2)
-        return " " * hpad + text
-
-    bar = sep * 62
-    board_text = render_board(board)
-    own_lines = 6 + board_text.count("\n") + 1 + (2 if result_text is not None else 0)
-    col_offset = 0
-    if use_screen and term is not None:
-        vpad = max(0, (term.height - own_lines) // 2)
-        print("\n" * vpad, end="")
-        col_offset = max(0, (term.width - board_total_width()) // 2)
-
-    print()
-    print(_center(bar))
-    print(_center("  GAME OVER"))
-    print(_center(bar))
-    if col_offset:
-        board_text = "\n".join(
-            " " * col_offset + line for line in board_text.split("\n")
-        )
-    print(board_text)
-    you_label, opp_label = score_labels
-    print()
-    print(_center(f"  Final Score — {you_label}: {p_score}  {opp_label}: {c_score}"))
-    if result_text is not None:
-        print()
-        print(_center(f"  {result_text}"))
-
-
 def run_game(
     player_hand: list[Card],
     cpu_hand: list[Card],
@@ -318,7 +93,7 @@ def run_game(
 
     screen = term.fullscreen() if (use_screen and term is not None) else nullcontext()
     with screen, _boogie_during_match(music_player):
-        first = _decide_first(term if use_screen else None)
+        first = decide_first(term if use_screen else None)
 
         turn = first
         turn_number = 1
@@ -327,11 +102,11 @@ def run_game(
             p_score, c_score = calculate_scores(board, player_hand, cpu_hand)
             turn_label = "YOUR TURN" if turn == Player.PLAYER else "CPU TURN"
             choose_extra = (
-                _hand_block_lines(len(player_hand)) + _hand_block_lines(len(cpu_hand))
+                hand_block_lines(len(player_hand)) + hand_block_lines(len(cpu_hand))
                 if turn == Player.PLAYER
                 else 2  # "\n  CPU is thinking..."
             )
-            _render_turn_screen(
+            render_turn_screen(
                 term,
                 use_screen,
                 board,
@@ -344,93 +119,22 @@ def run_game(
 
             if turn == Player.PLAYER:
                 try:
-                    show_cpu = "Open" in rules
-                    display_hand(player_hand, "Your", term=term)
-                    display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
-                    _draw_key_hints(term, use_screen)
-
-                    def _redraw(
-                        turn_label: str = turn_label,
-                        turn_number: int = turn_number,
-                        p_score: int = p_score,
-                        c_score: int = c_score,
-                        show_cpu: bool = show_cpu,
-                        extra: int = choose_extra,
-                        highlight: int | None = None,
-                        card_hl: int | None = None,
-                    ) -> None:
-                        _render_turn_screen(
-                            term,
-                            use_screen,
-                            board,
-                            turn_label,
-                            turn_number,
-                            p_score,
-                            c_score,
-                            extra_lines=extra,
-                            highlight=highlight,
+                    card, pos = get_local_move(
+                        TurnContext(
+                            board=board,
+                            player_hand=player_hand,
+                            other_hand=cpu_hand,
+                            other_label="CPU",
+                            rules=rules,
+                            term=term,
+                            use_screen=use_screen,
+                            turn_label=turn_label,
+                            turn_number=turn_number,
+                            p_score=p_score,
+                            c_score=c_score,
                         )
-                        display_hand(player_hand, "Your", term=term, highlight=card_hl)
-                        display_hand(cpu_hand, "CPU", show=show_cpu, term=term)
-                        _draw_key_hints(term, use_screen)
-
-                    if use_screen and term is not None:
-                        ci = select_card(
-                            player_hand, term, use_screen, lambda h: _redraw(card_hl=h)
-                        )
-                        if ci is None:
-                            _redraw()
-                            continue
-                    else:
-                        while True:
-                            raw = input(
-                                f"\n  Choose card (1-{len(player_hand)}) [r=redraw, q=quit]: "
-                            )
-                            if raw.strip().lower() == "q":
-                                raise QuitGameError
-                            if raw.strip().lower() == "r":
-                                _redraw()
-                                continue
-                            try:
-                                ci = int(raw) - 1
-                                if 0 <= ci < len(player_hand):
-                                    break
-                                print(
-                                    f"  ✗ Enter a number between 1 and {len(player_hand)}."
-                                )
-                            except ValueError:
-                                print("  ✗ Enter a number.")
-
-                    if use_screen and term is not None:
-                        pos = select_position(
-                            board,
-                            term,
-                            use_screen,
-                            lambda h: _redraw(highlight=h),
-                        )
-                        if pos is None:
-                            _redraw()
-                            continue
-                    else:
-                        empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
-                        while True:
-                            raw = input(
-                                f"  Choose position (1-{BOARD_CELLS}) [r=redraw, q=quit]: "
-                            )
-                            if raw.strip().lower() == "q":
-                                raise QuitGameError
-                            if raw.strip().lower() == "r":
-                                _redraw()
-                                continue
-                            try:
-                                pos = int(raw) - 1
-                                if pos in empty:
-                                    break
-                                print("  ✗ Position taken or invalid.")
-                            except ValueError:
-                                print("  ✗ Enter a number.")
-
-                    card = player_hand.pop(ci)
+                    )
+                    card = player_hand.pop(player_hand.index(card))
                     card.owner = Player.PLAYER
                     board.place(pos, card)
                     move_note = f"You placed [{card.name}] at position {pos + 1}"
@@ -460,7 +164,7 @@ def run_game(
 
             # Redraw cleanly with the placed card visible (pre-capture) —
             # this becomes the animation's anchor.
-            cursor_row, col_offset = _render_turn_screen(
+            cursor_row, col_offset = render_turn_screen(
                 term,
                 use_screen,
                 board,
@@ -478,7 +182,7 @@ def run_game(
                         term, cursor_row, captures, card.owner, col_offset, events
                     )
                     # Wipe the "CAPTURED!" banner left behind by the animation.
-                    _render_turn_screen(
+                    render_turn_screen(
                         term,
                         use_screen,
                         board,
@@ -515,42 +219,22 @@ def run_game(
         p_final, c_final = calculate_final_scores(board)
 
         if p_final > c_final:
+            outcome = MatchResult.P1_WIN
             result_text = "🏆  YOU WIN!  Congratulations!"
         elif c_final > p_final:
+            outcome = MatchResult.P2_WIN
             result_text = "💀  CPU WINS!  Better luck next time!"
         else:
+            outcome = MatchResult.DRAW
             result_text = "🤝  IT'S A DRAW!"
 
-        _render_game_over_screen(
+        render_game_over_screen(
             term, use_screen, board, p_final, c_final, result_text=result_text
         )
-
-        if p_final > c_final:
-            play_victory_fanfare()
-            if use_screen:
-                show_victory_banner(term)
-                _render_game_over_screen(
-                    term, use_screen, board, p_final, c_final, result_text=result_text
-                )
-            pause_message()
-            return MatchResult.P1_WIN
-        elif c_final > p_final:
-            play_defeat_theme()
-            if use_screen:
-                show_lose_banner(term)
-                _render_game_over_screen(
-                    term, use_screen, board, p_final, c_final, result_text=result_text
-                )
-            pause_message()
-            return MatchResult.P2_WIN
-        else:
-            if use_screen:
-                show_draw_banner(term)
-                _render_game_over_screen(
-                    term, use_screen, board, p_final, c_final, result_text=result_text
-                )
-            pause_message()
-            return MatchResult.DRAW
+        show_match_outcome(
+            term, use_screen, board, p_final, c_final, result_text, outcome
+        )
+        return outcome
 
 
 # ── P2P Game Loop ────────────────────────────────────────────────────────────
@@ -601,13 +285,13 @@ def run_p2p_game(
                 turn == Player.PLAYER
                 and local_role == Role.P1
             ) or (turn == Player.CPU and local_role == Role.P2)
-            hands_extra = _hand_block_lines(len(player_hand)) + _hand_block_lines(
+            hands_extra = hand_block_lines(len(player_hand)) + hand_block_lines(
                 len(opponent_hand)
             )
             choose_extra = hands_extra if is_local_turn else hands_extra + 2
 
             if not headless and term:
-                _render_turn_screen(
+                render_turn_screen(
                     term,
                     use_screen,
                     board,
@@ -635,19 +319,22 @@ def run_p2p_game(
                     conn.send(make_move(ci, pos))
                 else:
                     try:
-                        card, pos = _get_local_move_interactive(
-                            board,
-                            player_hand,
-                            opponent_hand,
-                            rules,
-                            term,
-                            local_role,
-                            use_screen,
-                            turn_label,
-                            turn_number,
-                            p_score,
-                            c_score,
-                            score_labels,
+                        card, pos = get_local_move(
+                            TurnContext(
+                                board=board,
+                                player_hand=player_hand,
+                                other_hand=opponent_hand,
+                                other_label="Opponent",
+                                rules=rules,
+                                term=term,
+                                use_screen=use_screen,
+                                turn_label=turn_label,
+                                turn_number=turn_number,
+                                p_score=p_score,
+                                c_score=c_score,
+                                score_labels=score_labels,
+                                sep="=",
+                            )
                         )
                     except QuitGameError:
                         conn.send(make_forfeit("Player quit"))
@@ -664,7 +351,7 @@ def run_p2p_game(
                     print("\n  Opponent is thinking...")
                     display_hand(player_hand, "Your", show="Open" in rules, term=term)
                     display_hand(opponent_hand, "Opponent", show=True, term=term)
-                    _draw_key_hints(term, use_screen)
+                    draw_key_hints(term, use_screen)
 
                 packet = _wait_for_move(conn, term, headless)
                 if packet is None:
@@ -705,7 +392,7 @@ def run_p2p_game(
             assert card is not None and pos >= 0
             captures, events = resolve_captures(board, pos, card, rules)
             if not headless and term:
-                cursor_row, col_offset = _render_turn_screen(
+                cursor_row, col_offset = render_turn_screen(
                     term,
                     use_screen,
                     board,
@@ -724,7 +411,7 @@ def run_p2p_game(
                             term, cursor_row, captures, card.owner, col_offset, events
                         )
                         # Wipe the "CAPTURED!" banner left behind by the animation.
-                        _render_turn_screen(
+                        render_turn_screen(
                             term,
                             use_screen,
                             board,
@@ -774,7 +461,7 @@ def run_p2p_game(
             label = "It's a draw!"
 
         if not headless and term:
-            _render_game_over_screen(
+            render_game_over_screen(
                 term,
                 use_screen,
                 board,
@@ -783,144 +470,17 @@ def run_p2p_game(
                 score_labels=("You", "Opponent"),
                 result_text=label,
             )
-
-            if label == "YOU WIN!":
-                play_victory_fanfare()
-                if use_screen:
-                    show_victory_banner(term)
-                    _render_game_over_screen(
-                        term,
-                        use_screen,
-                        board,
-                        p_final,
-                        c_final,
-                        score_labels=("You", "Opponent"),
-                        result_text=label,
-                    )
-            elif label == "You lost. Better luck next time!":
-                play_defeat_theme()
-                if use_screen:
-                    show_lose_banner(term)
-                    _render_game_over_screen(
-                        term,
-                        use_screen,
-                        board,
-                        p_final,
-                        c_final,
-                        score_labels=("You", "Opponent"),
-                        result_text=label,
-                    )
-            elif label == "It's a draw!":
-                if use_screen:
-                    show_draw_banner(term)
-                    _render_game_over_screen(
-                        term,
-                        use_screen,
-                        board,
-                        p_final,
-                        c_final,
-                        score_labels=("You", "Opponent"),
-                        result_text=label,
-                    )
-            pause_message()
-        return result
-
-
-def _get_local_move_interactive(
-    board: Board,
-    player_hand: list[Card],
-    opponent_hand: list[Card],
-    rules: Collection[str],
-    term: Terminal | None,
-    local_role: str,
-    use_screen: bool,
-    turn_label: str,
-    turn_number: int,
-    p_score: int,
-    c_score: int,
-    score_labels: tuple[str, str],
-) -> tuple[Card, int]:
-    """Get a move from the local player via keyboard input."""
-    show_opp = "Open" in rules
-    display_hand(player_hand, "Your", term=term)
-    display_hand(opponent_hand, "Opponent", show=show_opp, term=term)
-    _draw_key_hints(term, use_screen)
-
-    def _redraw(highlight: int | None = None, card_hl: int | None = None) -> None:
-        extra = _hand_block_lines(len(player_hand)) + _hand_block_lines(
-            len(opponent_hand)
-        )
-        _render_turn_screen(
-            term,
-            use_screen,
-            board,
-            turn_label,
-            turn_number,
-            p_score,
-            c_score,
-            score_labels=score_labels,
-            sep="=",
-            extra_lines=extra,
-            highlight=highlight,
-        )
-        display_hand(player_hand, "Your", term=term, highlight=card_hl)
-        display_hand(opponent_hand, "Opponent", show=show_opp, term=term)
-        _draw_key_hints(term, use_screen)
-
-    while True:
-        if term is not None and use_screen:
-            ci = select_card(
-                player_hand, term, use_screen, lambda h: _redraw(card_hl=h)
-            )
-            if ci is None:
-                _redraw()
-                continue
-        else:
-            while True:
-                raw = input(
-                    f"\n  Choose card (1-{len(player_hand)}) [r=redraw, q=quit]: "
-                )
-                if raw.strip().lower() == "q":
-                    raise QuitGameError
-                if raw.strip().lower() == "r":
-                    _redraw()
-                    continue
-                try:
-                    ci = int(raw) - 1
-                    if 0 <= ci < len(player_hand):
-                        break
-                    print(f"  Enter a number between 1 and {len(player_hand)}.")
-                except ValueError:
-                    print("  Enter a number.")
-
-        if term is not None and use_screen:
-            pos = select_position(
-                board,
+            show_match_outcome(
                 term,
                 use_screen,
-                lambda h: _redraw(highlight=h),
+                board,
+                p_final,
+                c_final,
+                label,
+                result,
+                score_labels=("You", "Opponent"),
             )
-            if pos is None:
-                _redraw()
-                continue
-        else:
-            empty = [i for i in range(BOARD_CELLS) if board.is_empty(i)]
-            while True:
-                raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw, q=quit]: ")
-                if raw.strip().lower() == "q":
-                    raise QuitGameError
-                if raw.strip().lower() == "r":
-                    _redraw()
-                    continue
-                try:
-                    pos = int(raw) - 1
-                    if pos in empty:
-                        break
-                    print("  Position taken or invalid.")
-                except ValueError:
-                    print("  Enter a number.")
-
-        return player_hand[ci], pos
+        return result
 
 
 def _win_by_opponent_error(local_role: Role) -> MatchResult:
