@@ -113,12 +113,12 @@ def host_game_ui() -> tuple[P2PConnection, dict[str, Any]] | None:
                     conn.close()
                     return None
 
-                if not conn.connected and conn._server_sock is not None:
+                if not conn.connected and conn.is_listening():
                     if conn.accept(timeout=0.0):
                         payload = perform_handshake(conn, timeout=HANDSHAKE_TIMEOUT_S)
                         if payload is None:
                             conn.connected = False
-                            conn._cleanup_socket()
+                            conn.cancel_listen()
                             hosting_started = False
                             play_error()
                             continue
@@ -304,6 +304,76 @@ def join_game_ui() -> tuple[P2PConnection, dict[str, Any]] | None:
 # ── Lobby Sync ───────────────────────────────────────────────────────────────
 
 
+def _expect_packet(
+    conn: P2PConnection,
+    expected: set[str],
+    role: str,
+    what: str,
+    headless: bool,
+    timeout: float,
+) -> tuple[str, dict[str, Any]] | None:
+    """Wait for a packet of one of *expected* types.
+
+    Logs and reports (unless headless) on timeout or unexpected type.
+    Returns ``(msg_type, payload)`` on success, ``None`` on failure.
+    """
+    packet = conn.queue_get_filtered(
+        expected | {MessageType.CONNECTION_LOST}, timeout=timeout
+    )
+    if packet is None:
+        logger.warning("%s: timeout waiting for %s", role, what)
+        if not headless:
+            print(f"  {role}: timeout waiting for {what}.")
+        return None
+    msg_type, payload = parse_packet(packet)
+    logger.debug("%s: received %s while waiting for %s", role, msg_type, what)
+    if msg_type not in expected:
+        logger.warning("%s: expected %s, got %s", role, what, msg_type)
+        if not headless:
+            print(f"  {role}: expected {what}, got {msg_type}.")
+        return None
+    return msg_type, payload
+
+
+def _exchange_decks(
+    conn: P2PConnection,
+    player_hand: list[Card],
+    role: str,
+    peer_label: str,
+    headless: bool,
+    timeout: float,
+) -> list[Card] | None:
+    """Send our deck, receive and validate the peer's deck.
+
+    The received cards get ``owner=Player.CPU``. Returns the opponent's
+    hand, or ``None`` on any protocol/validation failure.
+    """
+    conn.send(make_deck_share([c.name for c in player_hand]))
+
+    result = _expect_packet(
+        conn,
+        {MessageType.DECK_SHARE},
+        role,
+        "DECK_SHARE",
+        headless,
+        timeout,
+    )
+    if result is None:
+        return None
+    _, payload = result
+
+    peer_names = payload.get("card_names", [])
+    peer_hand = _validate_deck(peer_names)
+    if peer_hand is None:
+        conn.send(make_sync_error(f"Invalid {peer_label} deck"))
+        if not headless:
+            print(f"  {role}: {peer_label} deck validation failed.")
+        return None
+    for c in peer_hand:
+        c.owner = Player.CPU
+    return peer_hand
+
+
 def lobby_sync_ui(
     conn: P2PConnection,
     is_host: bool,
@@ -318,16 +388,14 @@ def lobby_sync_ui(
 
     In headless mode, uses default rules and random decks.
     """
-    sync_ctx: dict[str, Any] = {}
     sync_timeout = 10.0 if headless else 120.0
+    role = "Host" if is_host else "Guest"
 
     if is_host:
         if headless:
             rules: set[str] = {"Open"}
             board_elements: list[Element | None] = [None] * 9
             player_hand = build_random_deck()
-            for c in player_hand:
-                c.owner = Player.PLAYER
             first_turn = random.choice([Player.PLAYER, Player.CPU]).value
         else:
             from ..deck.picker import choose_deck
@@ -342,106 +410,41 @@ def lobby_sync_ui(
                     print("  Host: deck selection returned empty.")
                 return None
             first_turn = random.choice([Player.PLAYER, Player.CPU]).value
+        for c in player_hand:
+            c.owner = Player.PLAYER
 
         board_elements_serialized: list[str | None] = [
             e.value if isinstance(e, Element) else None for e in board_elements
         ]
-        sync_setup = make_sync_setup(
-            rules=sorted(rules),
-            board_elements=board_elements_serialized,
-            first_turn=first_turn,
+        conn.send(
+            make_sync_setup(
+                rules=sorted(rules),
+                board_elements=board_elements_serialized,
+                first_turn=first_turn,
+            )
         )
-        conn.send(sync_setup)
         logger.debug("Host: sent SYNC_SETUP, waiting for guest ack")
 
-        # Wait for guest ack
-        packet = conn.queue_get_filtered(
-            {MessageType.SYNC_ACK, MessageType.SYNC_ERROR, MessageType.CONNECTION_LOST},
-            timeout=sync_timeout,
+        if _expect_packet(
+            conn, {MessageType.SYNC_ACK}, role, "SYNC_ACK", headless, sync_timeout
+        ) is None:
+            return None
+
+        opponent_hand = _exchange_decks(
+            conn, player_hand, role, "guest", headless, sync_timeout
         )
-        if packet is None:
-            logger.warning("Host: timeout waiting for guest SYNC_ACK")
-            if not headless:
-                print("  Sync timeout waiting for guest ack.")
+        if opponent_hand is None:
             return None
-        msg_type, _ = parse_packet(packet)
-        logger.debug("Host: received %s while waiting for SYNC_ACK", msg_type)
-        if msg_type != MessageType.SYNC_ACK:
-            logger.warning("Host: expected SYNC_ACK, got %s", msg_type)
-            if not headless:
-                print(f"  Host: expected SYNC_ACK, got {msg_type}.")
-            return None
-
-        # Send deck
-        card_names = [c.name for c in player_hand]
-        conn.send(make_deck_share(card_names))
-
-        # Receive guest deck
-        logger.debug("Host: waiting for guest DECK_SHARE")
-        packet = conn.queue_get_filtered(
-            {
-                MessageType.DECK_SHARE,
-                MessageType.SYNC_ERROR,
-                MessageType.CONNECTION_LOST,
-            },
-            timeout=sync_timeout,
-        )
-        if packet is None:
-            logger.warning("Host: timeout waiting for guest DECK_SHARE")
-            if not headless:
-                print("  Host: timeout waiting for guest DECK_SHARE.")
-            return None
-        msg_type, payload = parse_packet(packet)
-        logger.debug("Host: received %s while waiting for DECK_SHARE", msg_type)
-        if msg_type != MessageType.DECK_SHARE:
-            logger.warning("Host: expected DECK_SHARE, got %s", msg_type)
-            if not headless:
-                print(f"  Host: expected DECK_SHARE, got {msg_type}.")
-            return None
-
-        guest_names = payload.get("card_names", [])
-        guest_hand = _validate_deck(guest_names)
-        if guest_hand is None:
-            conn.send(make_sync_error("Invalid guest deck"))
-            if not headless:
-                print("  Host: guest deck validation failed.")
-            return None
-        for c in guest_hand:
-            c.owner = Player.CPU
-
-        sync_ctx = {
-            "rules": rules,
-            "board_elements": board_elements,
-            "player_hand": player_hand,
-            "opponent_hand": guest_hand,
-            "first_turn": first_turn,
-        }
     else:
         # Guest: receive sync_setup
-        logger.debug("Guest: waiting for SYNC_SETUP (timeout=%.1fs)", sync_timeout)
-        packet = conn.queue_get_filtered(
-            {
-                MessageType.SYNC_SETUP,
-                MessageType.SYNC_ERROR,
-                MessageType.CONNECTION_LOST,
-            },
-            timeout=sync_timeout,
+        result = _expect_packet(
+            conn, {MessageType.SYNC_SETUP}, role, "SYNC_SETUP", headless, sync_timeout
         )
-        if packet is None:
-            logger.warning("Guest: timeout waiting for SYNC_SETUP")
-            if not headless:
-                print("  Guest: timeout waiting for SYNC_SETUP.")
+        if result is None:
             return None
-        msg_type, payload = parse_packet(packet)
-        logger.debug("Guest: received %s while waiting for SYNC_SETUP", msg_type)
-        if msg_type != MessageType.SYNC_SETUP:
-            logger.warning("Guest: expected SYNC_SETUP, got %s", msg_type)
-            if not headless:
-                print(f"  Guest: expected SYNC_SETUP, got {msg_type}.")
-            return None
+        _, payload = result
 
-        rules_list = payload.get("rules", [])
-        rules = set(rules_list)
+        rules = set(payload.get("rules", []))
         elements_raw = payload.get("board_elements", [None] * 9)
         board_elements = [
             Element(e)
@@ -465,53 +468,21 @@ def lobby_sync_ui(
         for c in player_hand:
             c.owner = Player.PLAYER
 
-        # Send ack
         conn.send(make_sync_ack())
 
-        # Send deck
-        card_names = [c.name for c in player_hand]
-        conn.send(make_deck_share(card_names))
-
-        # Receive host deck
-        logger.debug("Guest: waiting for host DECK_SHARE")
-        packet = conn.queue_get_filtered(
-            {
-                MessageType.DECK_SHARE,
-                MessageType.SYNC_ERROR,
-                MessageType.CONNECTION_LOST,
-            },
-            timeout=sync_timeout,
+        opponent_hand = _exchange_decks(
+            conn, player_hand, role, "host", headless, sync_timeout
         )
-        if packet is None:
-            logger.warning("Guest: timeout waiting for host DECK_SHARE")
-            if not headless:
-                print("  Guest: timeout waiting for host DECK_SHARE.")
-            return None
-        msg_type, payload = parse_packet(packet)
-        logger.debug("Guest: received %s while waiting for DECK_SHARE", msg_type)
-        if msg_type != MessageType.DECK_SHARE:
-            logger.warning("Guest: expected DECK_SHARE, got %s", msg_type)
-            if not headless:
-                print(f"  Guest: expected DECK_SHARE, got {msg_type}.")
+        if opponent_hand is None:
             return None
 
-        host_names = payload.get("card_names", [])
-        host_hand = _validate_deck(host_names)
-        if host_hand is None:
-            conn.send(make_sync_error("Invalid host deck"))
-            if not headless:
-                print("  Guest: host deck validation failed.")
-            return None
-        for c in host_hand:
-            c.owner = Player.CPU
-
-        sync_ctx = {
-            "rules": rules,
-            "board_elements": board_elements,
-            "player_hand": player_hand,
-            "opponent_hand": host_hand,
-            "first_turn": first_turn,
-        }
+    sync_ctx: dict[str, Any] = {
+        "rules": rules,
+        "board_elements": board_elements,
+        "player_hand": player_hand,
+        "opponent_hand": opponent_hand,
+        "first_turn": first_turn,
+    }
 
     # ── GAME_START two-way handshake ──────────────────────────────────────
     # Both sides send GAME_START and wait for the peer's GAME_START,
@@ -519,43 +490,29 @@ def lobby_sync_ui(
     logger.debug("Lobby: sending GAME_START")
     conn.send(make_game_start())
 
-    packet = conn.queue_get_filtered(
-        {
-            MessageType.GAME_START,
-            MessageType.GAME_START_ACK,
-            MessageType.CONNECTION_LOST,
-        },
-        timeout=sync_timeout,
+    result = _expect_packet(
+        conn,
+        {MessageType.GAME_START, MessageType.GAME_START_ACK},
+        role,
+        "GAME_START",
+        headless,
+        sync_timeout,
     )
-    if packet is None:
-        logger.warning("Lobby: timeout waiting for GAME_START")
-        if not headless:
-            print("  Sync: timeout waiting for GAME_START.")
+    if result is None:
         return None
-    msg_type, _ = parse_packet(packet)
-    logger.debug("Lobby: received %s during GAME_START handshake", msg_type)
-    if msg_type == MessageType.CONNECTION_LOST:
-        logger.warning("Lobby: connection lost during GAME_START handshake")
-        if not headless:
-            print("  Sync: connection lost during GAME_START handshake.")
-        return None
+    msg_type, _ = result
 
     if msg_type == MessageType.GAME_START:
         conn.send(make_game_start_ack())
-        packet = conn.queue_get_filtered(
-            {MessageType.GAME_START_ACK, MessageType.CONNECTION_LOST},
-            timeout=sync_timeout,
+        result = _expect_packet(
+            conn,
+            {MessageType.GAME_START_ACK},
+            role,
+            "GAME_START_ACK",
+            headless,
+            sync_timeout,
         )
-        if packet is None:
-            logger.warning("Lobby: timeout waiting for GAME_START_ACK")
-            if not headless:
-                print("  Sync: timeout waiting for GAME_START_ACK.")
-            return None
-        msg_type, _ = parse_packet(packet)
-        logger.debug("Lobby: received %s, expecting GAME_START_ACK", msg_type)
-        if msg_type != MessageType.GAME_START_ACK:
-            if not headless:
-                print(f"  Sync: expected GAME_START_ACK, got {msg_type}.")
+        if result is None:
             return None
 
     # msg_type == GAME_START_ACK — peer already processed our GAME_START

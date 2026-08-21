@@ -51,6 +51,15 @@ class P2PConnection:
         self._server_sock.settimeout(30.0)
         logger.info("Hosting on port %d", port)
 
+    def is_listening(self) -> bool:
+        """True while a passive listen socket is open (waiting to accept)."""
+        return self._server_sock is not None
+
+    def cancel_listen(self) -> None:
+        """Close the listening socket without dropping an established
+        connection."""
+        self._close_server_socket()
+
     def accept(self, timeout: float | None = None) -> bool:
         assert self._server_sock is not None
         try:
