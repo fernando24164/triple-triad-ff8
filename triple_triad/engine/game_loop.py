@@ -269,10 +269,9 @@ def run_p2p_game(
             p_score, c_score = calculate_scores(board, player_hand, opponent_hand)
             turn_label = "YOUR TURN" if turn == "P" else "OPPONENT TURN"
 
-            is_local_turn = (
-                turn == Player.PLAYER
-                and local_role == Role.P1
-            ) or (turn == Player.CPU and local_role == Role.P2)
+            is_local_turn = (turn == Player.PLAYER and local_role == Role.P1) or (
+                turn == Player.CPU and local_role == Role.P2
+            )
             hands_extra = hand_block_lines(len(player_hand)) + hand_block_lines(
                 len(opponent_hand)
             )

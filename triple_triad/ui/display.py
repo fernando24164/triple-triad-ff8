@@ -1,11 +1,85 @@
 from __future__ import annotations
 
+import contextlib
+import re
 from typing import TYPE_CHECKING
 
-from ..models.card import Card, stat_display
+from ..models.card import Card
+from .color import Color
+from .render import CELL_W, render_row1, render_row2, render_row3, render_row4
 
 if TYPE_CHECKING:
     from blessed import Terminal
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _visible_len(text: str) -> int:
+    """Visible length without ANSI escape codes."""
+    return len(_ANSI_RE.sub("", text))
+
+
+def _card_box(
+    card: Card | None,
+    show: bool,
+    is_highlight: bool,
+    term: Terminal | None,
+) -> list[str]:
+    """Build a 6-line boxed card using arrow sprites like the board.
+
+    Layout (CELL_W=18, BOX_W=20):
+        ┌──────────────────┐
+        │ ■Name            │  render_row1
+        │       ▲ 7        │  render_row2
+        │ ◀ 1   Fire   5 ▶ │  render_row3
+        │       ▼ 3        │  render_row4
+        └──────────────────┘
+
+    When ``show`` is False the inner rows show ``???`` placeholders.
+    When ``is_highlight`` the borders use the highlight colour and,
+    if a styled ``term`` is available, the whole box is wrapped with
+    ``term.bold_black_on_cyan`` (same inverted-bar style as the menus).
+    Returns list of 6 strings (already coloured).
+    """
+    w = CELL_W
+    # Border / side colour
+    if is_highlight:
+        top = Color.highlight("┌" + "─" * w + "┐")
+        bot = Color.highlight("└" + "─" * w + "┘")
+        side_hl = Color.highlight("│")
+    else:
+        top = Color.border("┌" + "─" * w + "┐")
+        bot = Color.border("└" + "─" * w + "┘")
+        side_hl = Color.border("│")
+
+    if show and card is not None:
+        r1 = render_row1(card)
+        r2 = render_row2(card)
+        r3 = render_row3(card)
+        r4 = render_row4(card)
+    else:
+        # Hidden / empty placeholder — no card colours, just centred ???
+        r1 = " " * w
+        r2 = " " * w
+        plain = f"{'???':^{w}}"
+        r3 = plain
+        r4 = " " * w
+
+    lines = [
+        top,
+        f"{side_hl}{r1}{side_hl}",
+        f"{side_hl}{r2}{side_hl}",
+        f"{side_hl}{r3}{side_hl}",
+        f"{side_hl}{r4}{side_hl}",
+        bot,
+    ]
+
+    if is_highlight and term is not None and hasattr(term, "bold_black_on_cyan"):
+        with contextlib.suppress(Exception):
+            # Wrap each line with the inverted style so tests can detect
+            # highlight via term.bold_black_on_cyan mock.
+            lines = [term.bold_black_on_cyan(line) for line in lines]
+    return lines
 
 
 def display_hand(
@@ -15,35 +89,99 @@ def display_hand(
     term: Terminal | None = None,
     highlight: int | None = None,
 ) -> None:
-    """Print a hand listing, horizontally centered as one block when
-    ``term`` is a styled (fullscreen-capable) terminal. When ``highlight``
-    is a valid card index, that card row is drawn with the inverted-bar
-    style used by the main menu (requires ``term``)."""
-    lines = [f"  {label}'s Hand:", "  " + "─" * 60]
-    if show:
-        for i, card in enumerate(hand, 1):
-            el = f"[{card.element}]" if card.element else ""
-            lines.append(
-                f"  [{i}] {card.name}{el}  "
-                f"T:{stat_display(card.top)} R:{stat_display(card.right)} "
-                f"B:{stat_display(card.bottom)} L:{stat_display(card.left)}  "
-                f"Lv:{card.level}"
-            )
-    else:
-        for i in range(len(hand)):
-            lines.append(f"  [{i + 1}] ???")
-    lines.append("  " + "─" * 60)
+    """Print a hand using boxed arrow-sprite cards like the board.
 
+    Each card is rendered as a mini board cell:
+        ┌──────────────────┐
+        │ ■Geezard         │
+        │       ▲ 1        │
+        │ ◀ 1        5 ▶   │
+        │       ▼ 4        │
+        └──────────────────┘
+      Lv:1    (level line below)
+
+    Cards are laid out horizontally (one row of boxes) so the block stays
+    compact on screen — matching the board's ``▲ ◀ ▶ ▼`` notation instead
+    of the old ``T: R: B: L:`` text. ``highlight`` draws that card's box
+    with the inverted-bar style (and yellow borders) used by the menus.
+    When ``term`` is a styled terminal the whole block is horizontally
+    centred; otherwise it prints left-aligned. ``show=False`` renders
+    face-down ``???`` boxes.
+    """
+    box_w = CELL_W + 2
+    gap = 1
+
+    header = f"  {label}'s Hand:"
+    # Build per-card boxes
+    boxes: list[list[str]] = []
+    for idx, card in enumerate(hand):
+        is_hl = highlight is not None and idx == highlight
+        # For show=False we pass None to get hidden placeholder but keep box count
+        c: Card | None = card if show else None
+        # When show=False we still want the placeholder box (not empty)
+        # _card_box handles show flag
+        boxes.append(_card_box(c, show, is_hl, term))
+
+    # Assemble final lines list for printing / centering
+    lines: list[str] = []
+    lines.append(header)
+
+    if not hand:
+        # Empty hand — just header + separators
+        sep = "  " + "─" * 60
+        lines.append(sep)
+        lines.append(sep)
+    else:
+        n = len(hand)
+        block_w = n * box_w + (n - 1) * gap
+        # Top separator matching block width (visible)
+        top_sep = "  " + "─" * block_w
+        lines.append(top_sep)
+
+        # Index row: [1]  [2]  ...
+        index_parts: list[str] = []
+        for idx in range(n):
+            is_hl = highlight is not None and idx == highlight
+            txt = f"[{idx + 1}]"
+            plain = f"{txt:^{box_w}}"
+            if is_hl and term is not None and hasattr(term, "bold_black_on_cyan"):
+                with contextlib.suppress(Exception):
+                    plain = term.bold_black_on_cyan(plain)
+            index_parts.append(plain)
+        index_line = "  " + (" " * gap).join(index_parts)
+        lines.append(index_line)
+
+        # Box rows: 6 rows per box, combined horizontally
+        for row in range(6):
+            parts = [boxes[col][row] for col in range(n)]
+            combined = (" " * gap).join(parts)
+            lines.append("  " + combined)
+
+        # Level row below boxes
+        lvl_parts: list[str] = []
+        for _idx, card in enumerate(hand):
+            txt = f"Lv:{card.level}" if show else "???"
+            plain = f"{txt:^{box_w}}"
+            lvl_parts.append(plain)
+        lvl_line = "  " + (" " * gap).join(lvl_parts)
+        lines.append(lvl_line)
+
+        bot_sep = "  " + "─" * block_w
+        lines.append(bot_sep)
+
+    # Centering: compute max visible length
+    visible_max = max(_visible_len(ln) for ln in lines) if lines else 0
     pad = 0
     if term is not None and term.does_styling:
-        pad = max(0, (term.width - max(len(line) for line in lines)) // 2)
+        pad = max(0, (term.width - visible_max) // 2)
 
+    # Print with blank line before (like before) and per-line pad.
+    # For highlight handling we already wrapped box lines; header/sep never highlighted.
     print()
-    for i, line in enumerate(lines):
-        line = " " * pad + line
-        if term is not None and highlight is not None and i == highlight + 2:
-            line = term.bold_black_on_cyan(line)
-        print(line)
+    for line in lines:
+        # Use vis len for pad? we already computed pad globally, apply uniformly
+        out = " " * pad + line
+        print(out)
 
 
 def print_banner() -> None:
@@ -52,7 +190,7 @@ def print_banner() -> None:
  ║          TRIPLE TRIAD  —  Final Fantasy VIII             ║
  ║                       Text Edition  🃏                   ║
  ╚══════════════════════════════════════════════════════════╝
- """)
+  """)
 
 
 def print_help() -> None:
@@ -141,11 +279,11 @@ def print_help() -> None:
   ────────────────
   - Enter a card number from your hand (1-5) to select it
   - Then use the arrow keys (↑ ↓ ← →) to move the yellow
-    border marker to an empty cell, and press Enter to place
+     border marker to an empty cell, and press Enter to place
   - Press Escape or 'r' to go back and pick another card
   - Press 'q' at any prompt to quit back to the main menu
   - In plain terminals (no arrow keys), you can still enter
-    the cell number (1-9) directly
+     the cell number (1-9) directly
   - Strategy matters: position cards to maximize captures!
 
   ╔═════════════════════════════════════╗

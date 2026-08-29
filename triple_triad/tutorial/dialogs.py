@@ -1,4 +1,3 @@
-
 from ..synth.sfx import play_cancel, play_confirm
 from ..ui.terminal import term
 

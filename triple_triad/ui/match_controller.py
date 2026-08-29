@@ -49,7 +49,9 @@ def get_local_move(ctx: TurnContext) -> tuple[Card, int]:
     pops it) and the target position.
     """
     show_other = "Open" in ctx.rules
-    extra = hand_block_lines(len(ctx.player_hand)) + hand_block_lines(len(ctx.other_hand))
+    extra = hand_block_lines(len(ctx.player_hand)) + hand_block_lines(
+        len(ctx.other_hand)
+    )
 
     def _redraw(highlight: int | None = None, card_hl: int | None = None) -> None:
         render_turn_screen(
@@ -112,9 +114,7 @@ def get_local_move(ctx: TurnContext) -> tuple[Card, int]:
         else:
             empty = [i for i in range(BOARD_CELLS) if ctx.board.is_empty(i)]
             while True:
-                raw = input(
-                    f"  Choose position (1-{BOARD_CELLS}) [r=redraw, q=quit]: "
-                )
+                raw = input(f"  Choose position (1-{BOARD_CELLS}) [r=redraw, q=quit]: ")
                 if raw.strip().lower() == "q":
                     raise QuitGameError
                 if raw.strip().lower() == "r":

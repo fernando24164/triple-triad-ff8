@@ -139,9 +139,7 @@ def render_board(board: Board, highlight: int | None = None) -> str:
     if highlight is not None and 0 <= highlight < BOARD_CELLS:
         hr, hc = divmod(highlight, GRID_SIZE)
     top = _hline("┌", "┬", "┐", "─", highlight_col=hc if hr == 0 else None)
-    bot = _hline(
-        "└", "┴", "┘", "─", highlight_col=hc if hr == GRID_SIZE - 1 else None
-    )
+    bot = _hline("└", "┴", "┘", "─", highlight_col=hc if hr == GRID_SIZE - 1 else None)
 
     lines = [top]
 

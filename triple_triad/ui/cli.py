@@ -341,9 +341,7 @@ class _MainMenu(_MenuBase):
             x = _center_x(line)
             y = self.items_y + i
             style = term.bold_black_on_cyan if i == self.idx else term.white
-            out.append(
-                term.normal + _clear_row(y) + term.move_yx(y, x) + style(line)
-            )
+            out.append(term.normal + _clear_row(y) + term.move_yx(y, x) + style(line))
         print("".join(out), end="", flush=True)
 
     def on_enter(self) -> str:

@@ -111,15 +111,18 @@ def play_single_game(music_player: ChiptunePlayer | None = None) -> None:
             f"    {c.name}{el}  ^{c.top} >{c.right} v{c.bottom} <{c.left}  Lv{c.level}"
         )
 
-    if run_game(
-        player_hand,
-        cpu_hand,
-        rules,
-        ai_mode,
-        board_elements,
-        ai_randomness,
-        music_player=music_player,
-    ) is MatchResult.QUIT:
+    if (
+        run_game(
+            player_hand,
+            cpu_hand,
+            rules,
+            ai_mode,
+            board_elements,
+            ai_randomness,
+            music_player=music_player,
+        )
+        is MatchResult.QUIT
+    ):
         return
     pause_message()
 

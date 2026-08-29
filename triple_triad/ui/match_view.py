@@ -104,9 +104,17 @@ def decide_first(term: Terminal | None) -> Player:
 
 
 def hand_block_lines(hand_size: int) -> int:
-    """Line count of one ``display_hand`` call: blank+label, separator,
-    one line per card, separator."""
-    return hand_size + 4
+    """Line count of one ``display_hand`` call with boxed arrow sprites.
+
+    Boxed layout (horizontal row of boxes):
+        blank + header + top_sep + index_row + 6 box rows + level_row + bot_sep
+        = 11 lines + blank = 12 total when hand non-empty.
+    Empty hand: blank + header + sep + sep = 4.
+    """
+    if hand_size <= 0:
+        return 4
+    # boxed horizontal: 1 blank + 11 content lines = 12
+    return 12
 
 
 def draw_key_hints(term: Terminal | None, use_screen: bool = True) -> None:

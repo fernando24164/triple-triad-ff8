@@ -425,9 +425,12 @@ def lobby_sync_ui(
         )
         logger.debug("Host: sent SYNC_SETUP, waiting for guest ack")
 
-        if _expect_packet(
-            conn, {MessageType.SYNC_ACK}, role, "SYNC_ACK", headless, sync_timeout
-        ) is None:
+        if (
+            _expect_packet(
+                conn, {MessageType.SYNC_ACK}, role, "SYNC_ACK", headless, sync_timeout
+            )
+            is None
+        ):
             return None
 
         opponent_hand = _exchange_decks(

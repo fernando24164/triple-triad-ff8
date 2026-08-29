@@ -173,9 +173,7 @@ def resolve_captures(
     return captures, events
 
 
-def apply_captures(
-    captures: list[tuple[int, Card]], attacker: Player | None
-) -> None:
+def apply_captures(captures: list[tuple[int, Card]], attacker: Player | None) -> None:
     """Transfer ownership of captured cards to ``attacker``.
 
     Callers no longer need to remember to flip ownership themselves —
