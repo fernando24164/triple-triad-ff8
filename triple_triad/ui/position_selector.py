@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from ..constants import BOARD_CELLS, GRID_SIZE
 from ..models.board import Board
+from ..synth.sfx import play_cursor
 
 if TYPE_CHECKING:
     from blessed import Terminal
@@ -90,6 +91,7 @@ def select_position(
                 nxt = next_empty_in_direction(board, cur, name)
                 if nxt is not None and nxt != cur:
                     cur = nxt
+                    play_cursor()
                     render(cur)
             elif name == "KEY_ENTER" or k == "\n":
                 return cur
