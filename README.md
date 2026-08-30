@@ -48,6 +48,21 @@ Triple Triad is a 2-player card game played on a 3×3 grid. Each player has 5 ca
 - **□** = CPU's card
 - Numbers inside empty cells = board position (1–9)
 
+### Controls
+
+During your turn you first pick a card from your hand, then choose an empty cell to place it:
+
+| Input | Action |
+|-------|--------|
+| `←` `→` (or `a` / `d`) | Move the yellow highlight between cards in your hand |
+| `↑` `↓` `←` `→` (or `w` `a` `s` `d`) | Move the yellow highlight to an empty cell on the board |
+| `Enter` | Confirm card selection / place the card on the highlighted cell |
+| `r` | **Redraw** the screen — useful if the display gets garbled; also goes back to re-pick your card after you've highlighted a cell |
+| `Esc` | Cancel the current cell selection and return to choosing a different card from your hand |
+| `q` | Quit the current match and return to the main menu |
+
+In plain terminals that don't support arrow keys, you can type card and cell numbers directly (e.g. `1`–`5` for your hand, `1`–`9` for the board). The `r` and `q` options work the same way at each prompt.
+
 ---
 
 ## 🚀 Getting Started
