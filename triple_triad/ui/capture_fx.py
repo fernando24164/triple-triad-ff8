@@ -8,6 +8,7 @@ from ..constants import GRID_SIZE
 from ..models.card import Card
 from ..models.player import Player
 from ..synth.sfx import play_capture_banner
+from .particles import show_capture_particles
 from .render import CELL_W, render_row1, render_row2, render_row3, render_row4
 
 if TYPE_CHECKING:
@@ -260,6 +261,11 @@ def animate_captures(
         term, cursor_row, col_offset, captures, lambda card, r: _ROW_RENDERERS[r](card)
     )
     time.sleep(0.2)
+
+    # Beat 3.25: green particle burst when the player captures.
+    # The burst overlays the board and self-clears before banners show.
+    if new_owner == Player.PLAYER:
+        show_capture_particles(term, cursor_row, captures, col_offset)
 
     # Beat 3.5: announce each special rule that triggered this capture
     # (Same, Plus, Combo, ...), one banner per rule, before the generic
