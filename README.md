@@ -69,7 +69,7 @@ In plain terminals that don't support arrow keys, you can type card and cell num
 
 ### Prerequisites
 
-- **Python 3.13+**
+- **Python 3.12+**
 - **NumPy** (for audio synthesis)
 - **pygame-ce** (for audio playback)
 
