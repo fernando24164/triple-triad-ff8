@@ -26,9 +26,14 @@ def _filter_cards(
         result = [
             n
             for n in result
-            if CARDS[n].element and CARDS[n].element.value == element  # type: ignore[union-attr]
+            if (el := CARDS[n].element) is not None and el.value == element
         ]
     return result
+
+
+def _element_sort_key(name: str) -> str:
+    el = CARDS[name].element
+    return el.value if el is not None else ""
 
 
 def _sort_cards(
@@ -44,7 +49,7 @@ def _sort_cards(
         "right": lambda n: CARDS[n].right,
         "bottom": lambda n: CARDS[n].bottom,
         "left": lambda n: CARDS[n].left,
-        "element": lambda n: CARDS[n].element or "",
+        "element": _element_sort_key,
     }
     func = key_funcs.get(sort_key, key_funcs["level"])
     return sorted(names, key=lambda n: (func(n), n), reverse=reverse)

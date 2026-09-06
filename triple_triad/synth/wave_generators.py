@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import numpy as np
 
 from .constants import HARMONY_MAP, NOTE_FREQ, SAMPLE_RATE
@@ -52,7 +54,7 @@ def _envelope(
 
 def _render_notes(
     notes: list[tuple[str, float]],
-    wave_fn: object,
+    wave_fn: Callable[[float, float], np.ndarray],
     vol: float,
     **env: float,
 ) -> np.ndarray:
@@ -60,7 +62,7 @@ def _render_notes(
     buf = np.array([], dtype=np.float64)
     for note, dur in notes:
         freq = NOTE_FREQ.get(note, 0)
-        w = wave_fn(freq, dur)  # type: ignore[operator]
+        w = wave_fn(freq, dur)
         w = _envelope(w, **env)
         buf = np.concatenate([buf, w])
     return buf * vol

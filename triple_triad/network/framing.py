@@ -29,10 +29,14 @@ def read_packet(sock: socket.socket) -> dict[str, Any] | None:
     if body is None:
         return None
     try:
-        return json.loads(body.decode("utf-8"))  # type: ignore[no-any-return]
+        parsed: Any = json.loads(body.decode("utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError):
         logger.warning("Failed to decode packet body")
         return None
+    if not isinstance(parsed, dict):
+        logger.warning("Failed to decode packet body")
+        return None
+    return parsed
 
 
 def recv_exact(sock: socket.socket, n: int) -> bytes | None:
