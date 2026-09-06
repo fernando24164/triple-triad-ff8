@@ -10,8 +10,8 @@ def stat_display(value: int) -> str:
 class Card:
     """A playing card with mutable game state (owner) and immutable stats.
 
-    Uses __slots__ for better memory efficiency (~40% reduction per instance).
-    Stats are accessed via properties from the immutable _stats reference
+    Uses ``__slots__`` for better memory efficiency (~40% reduction per instance).
+    Stats are accessed via properties from the immutable ``_stats`` reference
     instead of being duplicated as instance attributes.
     """
 
@@ -22,7 +22,6 @@ class Card:
         self._stats: CardStats = CARDS[name]
         self.owner: Player | None = None
 
-    # Properties for stats - read from immutable _stats
     @property
     def top(self) -> int:
         return self._stats.top

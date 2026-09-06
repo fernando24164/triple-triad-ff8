@@ -7,27 +7,27 @@ from ..models.card import Card
 
 DIFFICULTY_CONFIG = {
     "easy": {
-        "player_max_level": 9,  # Player can pick any card
+        "player_max_level": 9,
         "cpu_min_level": 1,
-        "cpu_max_level": 3,  # CPU stuck with weak cards
-        "cpu_ai": "random",  # CPU plays randomly
-        "cpu_randomness": 0.0,  # unused: 'random' mode ignores this
+        "cpu_max_level": 3,
+        "cpu_ai": "random",
+        "cpu_randomness": 0.0,
         "description": "CPU uses weak cards (Lv 1-3) and plays randomly",
     },
     "medium": {
         "player_max_level": 9,
         "cpu_min_level": 4,
-        "cpu_max_level": 6,  # CPU uses mid-tier cards
-        "cpu_ai": "greedy",  # CPU plays greedy (1-ply)
-        "cpu_randomness": 0.5,  # frequently strays from the optimal move
+        "cpu_max_level": 6,
+        "cpu_ai": "greedy",
+        "cpu_randomness": 0.5,
         "description": "CPU uses mid-tier cards (Lv 4-6) and plays smart",
     },
     "hard": {
         "player_max_level": 9,
         "cpu_min_level": 7,
-        "cpu_max_level": 10,  # CPU uses top-tier cards
-        "cpu_ai": "greedy",  # CPU plays greedy (1-ply)
-        "cpu_randomness": 0.15,  # mostly optimal, rarely unpredictable
+        "cpu_max_level": 10,
+        "cpu_ai": "greedy",
+        "cpu_randomness": 0.15,
         "description": "CPU uses elite cards (Lv 7-10) and plays smart",
     },
 }

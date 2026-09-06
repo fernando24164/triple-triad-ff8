@@ -25,11 +25,9 @@ class TestChooseBoard:
             board = choose_board()
 
         assert len(board) == BOARD_CELLS
-        # Count non-None elements
         non_none_count = sum(1 for cell in board if cell is not None)
         assert 0 <= non_none_count <= 2
 
-        # Verify all non-None cells are valid Element instances
         for cell in board:
             if cell is not None:
                 assert isinstance(cell, Element)

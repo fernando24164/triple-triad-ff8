@@ -26,12 +26,9 @@ class TestDisplayHand:
         display_hand(_hand(), "Your", term=_term(), highlight=1)
         out = capsys.readouterr().out
         assert "<hl>" in out
-        # Boxed hand highlights the whole box (index + 6 box rows) -> 7 segments
         assert out.count("<hl>") == 7
         assert "Funguar" in out
-        # Funguar must appear inside a highlighted segment
         assert any("Funguar" in seg for seg in out.split("<hl>")[1:])
-        # Geezard must not appear inside any highlighted segment
         highlighted_segments = [seg.split("</hl>")[0] for seg in out.split("<hl>")[1:]]
         assert all("Geezard" not in seg for seg in highlighted_segments)
         assert "Geezard" in out

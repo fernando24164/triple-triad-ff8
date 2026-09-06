@@ -4,12 +4,12 @@
 # Standard 12-bar blues form (I-I-I-I-IV-IV-I-I-V-IV-I-V) with a
 # walking-sixths boogie-woogie bass line under a syncopated riff melody.
 
-_BEAT = 60.0 / 96.0  # quarter note
-_H = _BEAT * 2  # half note
-_Q = _BEAT  # quarter
-_E = _BEAT / 2  # eighth
-_S = _BEAT / 4  # sixteenth
-_BAR = _Q * 4  # one 4/4 bar (2.5 s at this tempo)
+_BEAT = 60.0 / 96.0
+_H = _BEAT * 2
+_Q = _BEAT
+_E = _BEAT / 2
+_S = _BEAT / 4
+_BAR = _Q * 4
 
 # ── MELODY (Pulse 1) ─────────────────────────────────────────────────────
 # Syncopated riffs over each chord, closing with a blue-note (b7) run.

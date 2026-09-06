@@ -127,16 +127,13 @@ class TestGameLogic:
         player_card.owner = "P"
         empty_board.place(1, player_card)
 
-        # CPU card captures player card (Geezard right=4 > Funguar left=3)
         captures, _ = resolve_captures(empty_board, 0, cpu_card, basic_rules)
         assert len(captures) == 1
 
-        # Apply capture
         for _, ncard in captures:
             ncard.owner = cpu_card.owner
         assert empty_board.cells[1].owner == "CPU"
 
-        # Now place another player card adjacent to the captured card
         player_card2 = Card("Bite Bug")  # T:1 R:3 B:3 L:5
         player_card2.owner = "P"
         empty_board.place(2, player_card2)
@@ -145,14 +142,12 @@ class TestGameLogic:
         captures, _ = resolve_captures(empty_board, 2, player_card2, basic_rules)
         assert len(captures) == 1
 
-        # Apply capture - chain reversal
         for _, ncard in captures:
             ncard.owner = player_card2.owner
         assert empty_board.cells[1].owner == "P"
 
     def test_multiple_captures_single_turn(self, empty_board, basic_rules):
         """Test capturing multiple cards in a single turn."""
-        # Place CPU cards at positions 1 and 3
         cpu_card1 = Card("Funguar")  # T:5 R:1 B:1 L:3
         cpu_card1.owner = "CPU"
         empty_board.place(1, cpu_card1)
@@ -161,14 +156,10 @@ class TestGameLogic:
         cpu_card2.owner = "CPU"
         empty_board.place(3, cpu_card2)
 
-        # Place player card at position 4 that captures only one
-        # Need top > Funguar's bottom (1) and left > Geezard's right (4)
         player_card = Card("Gayla")  # T:2 R:1 B:4 L:4
         player_card.owner = "P"
         empty_board.place(4, player_card)
 
-        # Player's top (2) > Funguar's bottom (1) - capture!
-        # Player's left (4) > Geezard's right (4) - no capture (equal, not greater)
         captures, _ = resolve_captures(empty_board, 4, player_card, basic_rules)
         assert len(captures) == 1
 

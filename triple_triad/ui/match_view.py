@@ -28,7 +28,8 @@ if TYPE_CHECKING:
 def decide_first(term: Terminal | None) -> Player:
     """Animate a bouncing selector between YOU and CPU, then reveal who goes
     first. Draws within the caller's already-active fullscreen session
-    (pass None to skip the animation and just pick randomly)."""
+    (pass None to skip the animation and just pick randomly).
+    """
     if term is None:
         return random.choice([Player.PLAYER, Player.CPU])
     first = random.choice([Player.PLAYER, Player.CPU])
@@ -50,8 +51,6 @@ def decide_first(term: Terminal | None) -> Player:
     positions = (base_x, cpu_x)
 
     with term.cbreak(), term.hidden_cursor():
-        # Clear and draw the static title once — clearing every frame in
-        # the loop below is what caused the whole screen to flash/blink.
         print(term.clear + term.normal, end="")
         title = "Who goes first?"
         print(
@@ -61,21 +60,14 @@ def decide_first(term: Terminal | None) -> Player:
             flush=True,
         )
 
-        # The labels never change appearance during the bounce — only the
-        # arrow below moves — so draw them once. Toggling a background
-        # color on and off every frame (as fast as 40ms early on) is what
-        # read as strobing rather than motion.
         for idx, label in enumerate(labels):
             print(term.move_yx(8, positions[idx]) + term.bold_white(label), end="")
 
         for i, sel in enumerate(seq):
             progress = i / max(1, len(seq) - 1)
-            delay = 0.1 + progress * 0.3  # kept slow enough to read as a hop
+            delay = 0.1 + progress * 0.3
 
             out = []
-            # Overwrite both possible arrow slots every frame — a blank at
-            # the unselected one, the arrow at the selected one — so the
-            # old arrow never lingers without needing a full clear.
             for idx, x in enumerate(positions):
                 glyph = term.yellow("▲") if idx == sel else " "
                 out.append(term.move_yx(9, x + arrow_offset) + glyph)
@@ -83,7 +75,6 @@ def decide_first(term: Terminal | None) -> Player:
             print("".join(out), end="", flush=True)
             time.sleep(delay)
 
-        # Reveal: highlight the winning side once, as the payoff.
         print(
             term.move_yx(8, positions[winner])
             + term.bold_black_on_cyan(labels[winner]),
@@ -113,7 +104,6 @@ def hand_block_lines(hand_size: int) -> int:
     """
     if hand_size <= 0:
         return 4
-    # boxed horizontal: 1 blank + 11 content lines = 12
     return 12
 
 

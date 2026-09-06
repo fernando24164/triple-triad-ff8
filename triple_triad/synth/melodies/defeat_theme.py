@@ -2,9 +2,9 @@
 #  Key: A minor   |   Tempo: 80 BPM   |   ~3.75s somber "Game Over" sting
 # ═════════════════════════════════════════════════════════════════════════
 
-_BEAT = 60.0 / 80.0  # quarter note
-_H = _BEAT * 2  # half note
-_Q = _BEAT  # quarter
+_BEAT = 60.0 / 80.0
+_H = _BEAT * 2
+_Q = _BEAT
 
 # ── MELODY (Pulse 1) ────────────────────────────────────────────────────
 # Descending 5-4-3-1 lament line, resolving on the tonic.

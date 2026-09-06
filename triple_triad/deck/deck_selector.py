@@ -4,7 +4,6 @@ from .presets import build_preset_deck, list_presets
 
 def choose_preset_deck() -> list[Card]:
     """Prompt the player to pick a preset deck and return the cards."""
-    """Prompt the player to pick a preset deck and return the cards."""
     presets = list_presets()
     print("\n  ── Preset Decks ──")
     for i, name in enumerate(presets, 1):

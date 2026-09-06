@@ -166,7 +166,6 @@ def play_multiplayer_game(music_player: ChiptunePlayer | None = None) -> None:
 
     conn, handshake_payload = result
 
-    # Run lobby sync
     sync_ctx = lobby_sync_ui(conn, is_host=is_host, headless=False)
     if sync_ctx is None:
         print("\n  Lobby sync failed.")
@@ -231,7 +230,6 @@ def run_headless_host_test(port: int = DEFAULT_PORT) -> int:
     conn = P2PConnection(player_name="TestHost")
     conn.host(port)
 
-    # Wait for guest
     logger.info("Waiting for guest to connect...")
     while not conn.connected:
         if conn.accept(timeout=0.5):
@@ -247,7 +245,6 @@ def run_headless_host_test(port: int = DEFAULT_PORT) -> int:
     conn.remote_name = payload.get("player_name", "Guest")
     logger.info("Handshake from %s", conn.remote_name)
 
-    # Setup sync
     from .ui.network_menu import lobby_sync_ui
 
     sync_ctx = lobby_sync_ui(conn, is_host=True, headless=True)
@@ -293,7 +290,6 @@ def run_headless_join_test(host_ip: str, port: int = DEFAULT_PORT) -> int:
     conn.remote_name = payload.get("player_name", "Host")
     logger.info("Handshake from %s", conn.remote_name)
 
-    # Setup sync
     from .ui.network_menu import lobby_sync_ui
 
     sync_ctx = lobby_sync_ui(conn, is_host=False, headless=True)
@@ -354,7 +350,6 @@ def main() -> None:
         print_help()
         sys.exit(0)
 
-    # Headless modes
     if args.host_test:
         exit_code = run_headless_host_test(args.port)
         sys.exit(exit_code)

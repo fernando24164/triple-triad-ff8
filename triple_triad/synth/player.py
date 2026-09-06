@@ -20,8 +20,8 @@ except (ImportError, OSError):
 
 
 class ChiptunePlayer:
-    """
-    Looping chiptune player using pygame.mixer.
+    """Looping chiptune player using pygame.mixer.
+
     Silent no-op when audio libraries are unavailable.
     """
 
@@ -79,7 +79,7 @@ class ChiptunePlayer:
         self.stop()
         with self._lock:
             self._generate_buffer = generate_buffer
-            self._sound = None  # force regeneration on next _ensure_sound()
+            self._sound = None
         if was_playing:
             self.start()
 

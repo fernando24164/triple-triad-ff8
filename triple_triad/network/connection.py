@@ -84,7 +84,7 @@ class P2PConnection:
         try:
             self.sock.settimeout(timeout)
             self.sock.connect((host, port))
-            self.sock.settimeout(None)  # reset to blocking mode
+            self.sock.settimeout(None)
             self.connected = True
             self._last_pong = time.monotonic()
             logger.info("Connected to %s:%d", host, port)
@@ -203,14 +203,10 @@ class P2PConnection:
         """Return the next packet matching one of *expected_types*.
 
         Packets that don't match are buffered in ``_pending`` so they
-        aren't lost – they will be returned by a later call to
-        ``queue_get_nowait`` or a subsequent ``queue_get_filtered``
-        that accepts them.
+        aren't lost.
         """
         deadline = time.monotonic() + timeout if timeout is not None else None
 
-        # First drain any pending packets we already have, preserving order
-        # for the ones that don't match by rotating them to the back.
         for _ in range(len(self._pending)):
             p = self._pending.popleft()
             if p.get("type") in expected_types:

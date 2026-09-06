@@ -2,10 +2,10 @@
 #  Key: F major   |   Tempo: 108 BPM
 # ═════════════════════════════════════════════════════════════════════════
 
-_BEAT = 60.0 / 108.0  # quarter note
-_H = _BEAT * 2  # half note
-_Q = _BEAT  # quarter
-_E = _BEAT / 2  # eighth
+_BEAT = 60.0 / 108.0
+_H = _BEAT * 2
+_Q = _BEAT
+_E = _BEAT / 2
 
 # ── MELODY (Pulse 1) ────────────────────────────────────────────────────
 # 4-bar intro  +  8-bar A  +  8-bar B  =  20 bars  (≈ 44 s)

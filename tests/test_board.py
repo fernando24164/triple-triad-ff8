@@ -68,7 +68,6 @@ class TestBoard:
         display = render_board(empty_board)
         assert isinstance(display, str)
         assert len(display) > 0
-        # Check that position numbers are shown
         assert "[ 1 ]" in display
         assert "[ 5 ]" in display
         assert "[ 9 ]" in display
@@ -81,7 +80,6 @@ class TestBoard:
         """Test that highlighting any cell colors its borders."""
         for pos in range(9):
             display = render_board(empty_board, highlight=pos)
-            # 3 hline spans (top/bottom/mid) + 8 vertical separators
             assert display.count(Color.HIGHLIGHT) == 10, f"cell {pos}"
 
     def test_board_display_highlight_invalid_ignored(self, empty_board):

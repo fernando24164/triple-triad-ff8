@@ -134,9 +134,6 @@ class _DeckPicker:
         lines: list[Any] = []
 
         def add(line: str = "") -> None:
-            # Clear to end of line instead of a full-screen clear on every
-            # redraw — a full `t.clear` on every keypress (including every
-            # card selection) was both slower and caused visible flicker.
             lines.append(line + t.clear_eol)
 
         def add_sep() -> None:
@@ -234,9 +231,6 @@ class _DeckPicker:
             return
         new_key = keys[idx]
 
-        # Stat columns have traditionally shown the highest value first —
-        # default the direction prompt to match, so pressing Enter alone
-        # keeps that familiar behavior.
         default_desc = new_key in ("top", "right", "bottom", "left")
         dir_idx = self._show_submenu(
             "Sort direction",
@@ -410,9 +404,7 @@ class _DeckPicker:
     def run(self) -> list[Card]:
         t = self.term
         with t.fullscreen(), t.cbreak(), t.hidden_cursor():
-            print(
-                t.clear, end=""
-            )  # once, on entry — _draw() no longer clears per frame
+            print(t.clear, end="")
             while len(self.chosen) < DECK_SIZE:
                 self._clamp_page()
                 self._clamp_cursor()

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 import time
 from dataclasses import dataclass
@@ -28,7 +30,7 @@ class BracketMatch:
     round_num: int
     label: str
     opponent: str
-    result: str | None = None  # "W", "L", or "D"
+    result: str | None = None
 
 
 def build_bracket() -> list[BracketMatch]:
@@ -47,8 +49,6 @@ def _center(text: str, width: int = FRAME_W) -> str:
 
 
 def _dim(text: str) -> str:
-    # "dim" isn't a compoundable style in blessed — apply it as a raw
-    # escape/reset pair instead of calling it like term.bold(text).
     return f"{term.dim}{text}{term.normal}"
 
 

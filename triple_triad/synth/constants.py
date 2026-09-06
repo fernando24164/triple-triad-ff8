@@ -1,13 +1,12 @@
-SAMPLE_RATE = 44100  # CD quality
+SAMPLE_RATE = 44100
 
 MUSIC_VOLUME_LEVELS: list[tuple[str, float]] = [
     ("Low", 0.25),
     ("Medium", 0.50),
     ("High", 1.0),
 ]
-DEFAULT_MUSIC_VOLUME_IDX = 1  # Medium
+DEFAULT_MUSIC_VOLUME_IDX = 1
 
-# Note frequencies (La = 440Hz) - European solfège system
 NOTE_FREQ = {
     "Do2": 65.41,
     "Re2": 73.42,
@@ -44,11 +43,10 @@ NOTE_FREQ = {
     "Sib2": 116.54,
     "Sib3": 233.08,
     "Sib4": 466.16,
-    "Mib5": 622.25,  # blue (flat-7th) note for the boogie theme
+    "Mib5": 622.25,
     "R": 0,
 }
 
-# Harmonic interval for harmony channel (up a diatonic third in F major)
 HARMONY_MAP = {
     "Do": "Mi",
     "Re": "Fa",

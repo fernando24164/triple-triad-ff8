@@ -51,7 +51,6 @@ class TestAI:
 
     def test_greedy_choice_with_capture_opportunity(self, empty_board, basic_rules):
         """Test greedy choice finds capture opportunities."""
-        # Place a player card that can be captured
         player_card = Card("Geezard")  # T:1 R:4 B:1 L:5
         player_card.owner = "P"
         empty_board.place(1, player_card)
@@ -69,7 +68,6 @@ class TestAI:
             empty_board, cpu_hand, basic_rules, empty_positions
         )
 
-        # Should choose a position adjacent to the player card
         assert position in [0, 2, 4]  # Adjacent to position 1
 
     def test_cpu_choose_full_board(self, full_board, cpu_hand, basic_rules):
@@ -110,7 +108,6 @@ class TestAI:
             empty_board, cpu_hand, basic_rules, empty_positions
         )
 
-        # The chosen move should capture at least 1 card
         chosen_card = cpu_hand[card_idx]
         score = simulate_capture(empty_board, position, chosen_card, "CPU", basic_rules)
         assert score >= 1

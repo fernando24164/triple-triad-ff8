@@ -49,8 +49,6 @@ class TestNextEmptyInDirection:
         assert next_empty_in_direction(empty_board, 5, "KEY_RIGHT") == 3
 
     def test_skip_occupied_snaps_in_line(self, empty_board, sample_card):
-        # Top-middle (0,1) taken: UP from center snaps to the nearest empty
-        # in the top row — both corners are 1 step away, ties go to the
         # lower cell index (top-left).
         empty_board.place(1, sample_card)
         assert next_empty_in_direction(empty_board, 4, "KEY_UP") == 0
@@ -58,15 +56,11 @@ class TestNextEmptyInDirection:
     def test_full_column_snaps_in_line(self, empty_board, sample_card):
         for pos in (1, 4, 7):
             empty_board.place(pos, sample_card)
-        # Column 1 fully blocked: UP wraps to the bottom row, both ends are
-        # 1 step away from (0,1) — ties go to the lower cell index.
         assert next_empty_in_direction(empty_board, 1, "KEY_UP") == 6
 
     def test_full_row_snaps_in_line(self, empty_board, sample_card):
         for pos in (3, 4, 5):
             empty_board.place(pos, sample_card)
-        # Row 1 fully blocked: LEFT wraps to column 0, both ends are 1 row
-        # away from (1,1) — ties go to the lower cell index.
         assert next_empty_in_direction(empty_board, 4, "KEY_LEFT") == 0
 
     def test_never_returns_current_cell(self, empty_board):
@@ -98,8 +92,6 @@ class TestNextEmptyInDirection:
         assert next_empty_in_direction(empty_board, 0, "KEY_DOWN") == 4
 
     def test_straight_line_preferred_when_free(self, empty_board, sample_card):
-        # Free cells: (0,0), (0,1), (2,2). RIGHT from (0,0) must take the
-        # straight-line (0,1) instead of fanning out to (2,2).
         for pos in range(9):
             if pos not in (0, 1, 8):
                 empty_board.place(pos, sample_card)

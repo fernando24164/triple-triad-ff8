@@ -5,13 +5,11 @@ class Color:
     """ANSI color codes for terminal rendering."""
 
     RESET = "\033[0m"
-    # Card ownership
-    P_FG = "\033[92m"  # bright green  — player
-    CPU_FG = "\033[91m"  # bright red    — CPU
-    # Board structure
-    BORDER = "\033[90m"  # dark grey     — grid lines
-    EMPTY_POS = "\033[33m"  # yellow        — empty cell number
-    HIGHLIGHT = "\033[93m"  # bright yellow — selected cell border
+    P_FG = "\033[92m"
+    CPU_FG = "\033[91m"
+    BORDER = "\033[90m"
+    EMPTY_POS = "\033[33m"
+    HIGHLIGHT = "\033[93m"
 
     @staticmethod
     def player(text: str) -> str:

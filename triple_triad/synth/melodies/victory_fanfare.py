@@ -2,11 +2,11 @@
 #  Key: C major   |   Tempo: 150 BPM   |   ~6s triumphant "You Win!" sting
 # ═════════════════════════════════════════════════════════════════════════
 
-_BEAT = 60.0 / 150.0  # quarter note
-_H = _BEAT * 2  # half note
-_Q = _BEAT  # quarter
-_E = _BEAT / 2  # eighth
-_W = _BEAT * 4  # whole note — the final held note
+_BEAT = 60.0 / 150.0
+_H = _BEAT * 2
+_Q = _BEAT
+_E = _BEAT / 2
+_W = _BEAT * 4
 
 # ── MELODY (Pulse 1) ────────────────────────────────────────────────────
 # Call (ascending triad stab) -> descending flourish -> finale (held tonic)

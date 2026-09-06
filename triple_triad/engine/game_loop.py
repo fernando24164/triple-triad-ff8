@@ -45,7 +45,6 @@ from .scoring import calculate_final_scores, calculate_scores
 
 
 def _get_terminal() -> Terminal | None:
-    """Return the shared blessed Terminal instance."""
     return term
 
 
@@ -54,7 +53,8 @@ def _boogie_during_match(music_player: ChiptunePlayer | None) -> Iterator[None]:
     """Swap the main menu music for the gameplay 'boogie' theme while cards
     are being played, then swap back to the menu theme — however the block
     exits (normal return, early return, or exception). A no-op when
-    there's no shared player (headless mode, tests)."""
+    there's no shared player (headless mode, tests).
+    """
     if music_player is None:
         yield
         return
@@ -92,7 +92,7 @@ def run_game(
             choose_extra = (
                 hand_block_lines(len(player_hand)) + hand_block_lines(len(cpu_hand))
                 if turn == Player.PLAYER
-                else 2  # "\n  CPU is thinking..."
+                else 2
             )
             render_turn_screen(
                 term,
@@ -133,10 +133,6 @@ def run_game(
             else:
                 print("\n  CPU is thinking...")
                 if use_screen:
-                    # The AI move is computed instantly, so without this
-                    # pause the "CPU TURN" screen would flash off again
-                    # before it's even visible — this also gives the
-                    # "thinking" message a moment to actually be read.
                     time.sleep(0.5)
                 ci, cpu_pos = cpu_choose(
                     board, cpu_hand, rules, mode=ai_mode, randomness=ai_randomness
@@ -150,8 +146,6 @@ def run_game(
 
             captures, events = resolve_captures(board, pos, card, rules)
 
-            # Redraw cleanly with the placed card visible (pre-capture) —
-            # this becomes the animation's anchor.
             cursor_row, col_offset = render_turn_screen(
                 term,
                 use_screen,
@@ -169,7 +163,6 @@ def run_game(
                     animate_captures(
                         term, cursor_row, captures, card.owner, col_offset, events
                     )
-                    # Wipe the "CAPTURED!" banner left behind by the animation.
                     render_turn_screen(
                         term,
                         use_screen,
@@ -184,8 +177,6 @@ def run_game(
                     apply_captures(captures, card.owner)
                 play_capture_win() if card.owner == Player.PLAYER else play_capture_lose()
             if not use_screen:
-                # In screen mode this is already announced by the ASCII
-                # rule banner(s) animate_captures just showed.
                 for evt in events:
                     print(f"  *** {evt.upper()}! ***")
             attacker_label = "You" if card.owner == Player.PLAYER else "CPU"
@@ -223,9 +214,6 @@ def run_game(
             term, use_screen, board, p_final, c_final, result_text, outcome
         )
         return outcome
-
-
-# ── P2P Game Loop ────────────────────────────────────────────────────────────
 
 
 def run_p2p_game(
@@ -397,7 +385,6 @@ def run_p2p_game(
                         animate_captures(
                             term, cursor_row, captures, card.owner, col_offset, events
                         )
-                        # Wipe the "CAPTURED!" banner left behind by the animation.
                         render_turn_screen(
                             term,
                             use_screen,
@@ -414,8 +401,6 @@ def run_p2p_game(
                         apply_captures(captures, card.owner)
                     play_capture_win() if card.owner == Player.PLAYER else play_capture_lose()
                 if not use_screen:
-                    # In screen mode this is already announced by the ASCII
-                    # rule banner(s) animate_captures just showed.
                     for evt in events:
                         print(f"  *** {evt.upper()}! ***")
                 attacker_label = "You" if card.owner == Player.PLAYER else "Opponent"
@@ -511,9 +496,6 @@ def _wait_for_move(
 
     conn.send(make_disconnect("Timeout"))
     return None
-
-
-# ── Headless Autoplay P2P Game ───────────────────────────────────────────────
 
 
 def run_headless_p2p_game(

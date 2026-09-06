@@ -20,7 +20,6 @@ class TestDeck:
         deck = build_starter_deck()
         assert len(deck) == 5
         assert all(isinstance(card, Card) for card in deck)
-        # All cards should be level 3 or lower
         assert all(card.level <= 3 for card in deck)
 
     def test_build_starter_deck_unique(self):
@@ -34,7 +33,6 @@ class TestDeck:
         deck = build_cpu_deck("easy")
         assert len(deck) == 5
         assert all(isinstance(card, Card) for card in deck)
-        # Easy difficulty: CPU uses cards level 1-3
         assert all(1 <= card.level <= 3 for card in deck)
 
     def test_build_cpu_deck_medium(self):
@@ -42,7 +40,6 @@ class TestDeck:
         deck = build_cpu_deck("medium")
         assert len(deck) == 5
         assert all(isinstance(card, Card) for card in deck)
-        # Medium difficulty: CPU uses cards level 4-6
         assert all(4 <= card.level <= 6 for card in deck)
 
     def test_build_cpu_deck_hard(self):
@@ -50,14 +47,12 @@ class TestDeck:
         deck = build_cpu_deck("hard")
         assert len(deck) == 5
         assert all(isinstance(card, Card) for card in deck)
-        # Hard difficulty: CPU uses cards level 7-10
         assert all(7 <= card.level <= 10 for card in deck)
 
     def test_build_cpu_deck_invalid_difficulty(self):
         """Test building CPU deck with invalid difficulty defaults to medium."""
         deck = build_cpu_deck("invalid")
         assert len(deck) == 5
-        # Should default to medium difficulty (level 4-6)
         assert all(4 <= card.level <= 6 for card in deck)
 
     def test_build_cpu_deck_unique(self):
@@ -184,7 +179,6 @@ class TestDeck:
             deck = build_preset_deck(preset_name)
             assert len(deck) == 5
             assert all(isinstance(card, Card) for card in deck)
-            # All cards should be unique
             names = [c.name for c in deck]
             assert len(names) == len(set(names))
 

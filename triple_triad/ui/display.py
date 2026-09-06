@@ -42,7 +42,6 @@ def _card_box(
     Returns list of 6 strings (already coloured).
     """
     w = CELL_W
-    # Border / side colour
     if is_highlight:
         top = Color.highlight("┌" + "─" * w + "┐")
         bot = Color.highlight("└" + "─" * w + "┘")
@@ -58,7 +57,6 @@ def _card_box(
         r3 = render_row3(card)
         r4 = render_row4(card)
     else:
-        # Hidden / empty placeholder — no card colours, just centred ???
         r1 = " " * w
         r2 = " " * w
         plain = f"{'???':^{w}}"
@@ -76,8 +74,6 @@ def _card_box(
 
     if is_highlight and term is not None and hasattr(term, "bold_black_on_cyan"):
         with contextlib.suppress(Exception):
-            # Wrap each line with the inverted style so tests can detect
-            # highlight via term.bold_black_on_cyan mock.
             lines = [term.bold_black_on_cyan(line) for line in lines]
     return lines
 
@@ -112,33 +108,25 @@ def display_hand(
     gap = 1
 
     header = f"  {label}'s Hand:"
-    # Build per-card boxes
     boxes: list[list[str]] = []
     for idx, card in enumerate(hand):
         is_hl = highlight is not None and idx == highlight
-        # For show=False we pass None to get hidden placeholder but keep box count
         c: Card | None = card if show else None
-        # When show=False we still want the placeholder box (not empty)
-        # _card_box handles show flag
         boxes.append(_card_box(c, show, is_hl, term))
 
-    # Assemble final lines list for printing / centering
     lines: list[str] = []
     lines.append(header)
 
     if not hand:
-        # Empty hand — just header + separators
         sep = "  " + "─" * 60
         lines.append(sep)
         lines.append(sep)
     else:
         n = len(hand)
         block_w = n * box_w + (n - 1) * gap
-        # Top separator matching block width (visible)
         top_sep = "  " + "─" * block_w
         lines.append(top_sep)
 
-        # Index row: [1]  [2]  ...
         index_parts: list[str] = []
         for idx in range(n):
             is_hl = highlight is not None and idx == highlight
@@ -151,13 +139,11 @@ def display_hand(
         index_line = "  " + (" " * gap).join(index_parts)
         lines.append(index_line)
 
-        # Box rows: 6 rows per box, combined horizontally
         for row in range(6):
             parts = [boxes[col][row] for col in range(n)]
             combined = (" " * gap).join(parts)
             lines.append("  " + combined)
 
-        # Level row below boxes
         lvl_parts: list[str] = []
         for _idx, card in enumerate(hand):
             txt = f"Lv:{card.level}" if show else "???"
@@ -169,17 +155,13 @@ def display_hand(
         bot_sep = "  " + "─" * block_w
         lines.append(bot_sep)
 
-    # Centering: compute max visible length
     visible_max = max(_visible_len(ln) for ln in lines) if lines else 0
     pad = 0
     if term is not None and term.does_styling:
         pad = max(0, (term.width - visible_max) // 2)
 
-    # Print with blank line before (like before) and per-line pad.
-    # For highlight handling we already wrapped box lines; header/sep never highlighted.
     print()
     for line in lines:
-        # Use vis len for pad? we already computed pad globally, apply uniformly
         out = " " * pad + line
         print(out)
 
@@ -190,7 +172,7 @@ def print_banner() -> None:
  ║          TRIPLE TRIAD  —  Final Fantasy VIII             ║
  ║                       Text Edition  🃏                   ║
  ╚══════════════════════════════════════════════════════════╝
-  """)
+   """)
 
 
 def print_help() -> None:

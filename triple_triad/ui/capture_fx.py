@@ -14,17 +14,14 @@ from .render import CELL_W, render_row1, render_row2, render_row3, render_row4
 if TYPE_CHECKING:
     from blessed import Terminal
 
-_FLASH = "\033[97;1m"  # bold bright white
-_GREEN = "\033[92;1m"  # bold bright green — player capture / win
-_RED = "\033[91;1m"  # bold bright red — CPU/opponent capture / loss
-_YELLOW = "\033[93;1m"  # bold bright yellow — draw
+_FLASH = "\033[97;1m"
+_GREEN = "\033[92;1m"
+_RED = "\033[91;1m"
+_YELLOW = "\033[93;1m"
 _RESET = "\033[0m"
 
 _BANNER_WORD = "CAPTURED!"
 
-# 5-row block-letter font. '#' marks a filled cell; swapping it for a
-# lighter shade character at render time is what drives the materialize
-# and dissolve effects without needing a separate glyph set.
 _FONT: dict[str, tuple[str, str, str, str, str]] = {
     "C": (" ####", "#    ", "#    ", "#    ", " ####"),
     "A": (" ### ", "#   #", "#####", "#   #", "#   #"),
@@ -61,7 +58,7 @@ def _cell_origin(pos: int) -> tuple[int, int]:
     """First content-row index and column of a board cell within the text
     produced by ``render_board()`` (top border is row 0)."""
     row, col = divmod(pos, GRID_SIZE)
-    row_start = 1 + row * 5  # 4 content rows + 1 separator per grid row
+    row_start = 1 + row * 5
     col_start = 1 + col * (CELL_W + 1)
     return row_start, col_start
 
@@ -135,18 +132,14 @@ def _show_banner(term: Terminal, word: str, color: str) -> None:
     col = max(0, (term.width - width) // 2)
     row = max(0, min(term.height - 5, term.height // 2 - 2))
 
-    # Materialize: faint dust condenses into the full shape, white easing
-    # into the banner's color.
     for shade, c in (("░", _FLASH), ("▒", _FLASH), ("▓", color)):
         _paint_art(term, row, col, _build_art(word, shade), c)
         time.sleep(0.07)
 
-    # Pop: a couple of bright/color flickers on the fully-formed banner.
     for c in (_FLASH, color, _FLASH, color):
         _paint_art(term, row, col, solid, c)
         time.sleep(0.11)
 
-    # Dissolve: the shape thins back down to nothing.
     for shade in ("▓", "▒", "░", " "):
         _paint_art(term, row, col, _build_art(word, shade), color)
         time.sleep(0.07)
@@ -161,33 +154,21 @@ def _flash_banner(term: Terminal, new_owner: str | None) -> None:
 
 
 def show_victory_banner(term: Terminal | None) -> None:
-    """ASCII-art 'YOU WIN!' banner for a player match win: materializes and
-    dissolves center-screen the same way the capture banner does. No-op
-    when no interactive terminal is available. The caller should redraw
-    the game-over screen afterward to clear any leftover banner artifacts.
-    """
+    """ASCII-art 'YOU WIN!' banner for a player match win."""
     if term is None or not term.does_styling:
         return
     _show_banner(term, "YOU WIN!", _GREEN)
 
 
 def show_lose_banner(term: Terminal | None) -> None:
-    """ASCII-art 'YOU LOSE!' banner for a match loss: materializes and
-    dissolves center-screen the same way the capture banner does. No-op
-    when no interactive terminal is available. The caller should redraw
-    the game-over screen afterward to clear any leftover banner artifacts.
-    """
+    """ASCII-art 'YOU LOSE!' banner for a match loss."""
     if term is None or not term.does_styling:
         return
     _show_banner(term, "YOU LOSE!", _RED)
 
 
 def show_draw_banner(term: Terminal | None) -> None:
-    """ASCII-art 'DRAW!' banner for a tied match: materializes and
-    dissolves center-screen the same way the capture banner does. No-op
-    when no interactive terminal is available. The caller should redraw
-    the game-over screen afterward to clear any leftover banner artifacts.
-    """
+    """ASCII-art 'DRAW!' banner for a tied match."""
     if term is None or not term.does_styling:
         return
     _show_banner(term, "DRAW!", _YELLOW)
@@ -195,10 +176,7 @@ def show_draw_banner(term: Terminal | None) -> None:
 
 def show_rule_banner(term: Terminal | None, rule_name: str, owner: str | None) -> None:
     """ASCII-art banner announcing a special capture rule (Same, Plus,
-    Combo, ...) that triggered beyond the basic value comparison:
-    materializes and dissolves center-screen the same way the capture
-    banner does, in the capturing side's color. No-op when no interactive
-    terminal is available."""
+    Combo, ...) that triggered beyond the basic value comparison."""
     if term is None or not term.does_styling:
         return
     color = _GREEN if owner == Player.PLAYER else _RED
@@ -217,25 +195,6 @@ def animate_captures(
     the ownership change and pop up a center-screen ASCII-art "CAPTURED!"
     banner. Falls back to a silent ownership swap when no interactive
     terminal is available.
-
-    Staged over four visually distinct beats (~1.5s total) so the flip and
-    banner read clearly instead of flickering past unnoticed. The banner
-    materializes and dissolves on its own, so nothing is left on screen
-    when this returns — the caller's redraw afterward is just a safety net.
-
-    Args:
-        term: Active blessed Terminal, or None.
-        cursor_row: Lines from the board's top border down to the current
-            (blank) cursor position — i.e. how far up to travel to reach
-            board row 0.
-        captures: (pos, card) pairs being captured this turn.
-        new_owner: Owner the captured cards are flipping to.
-        col_offset: Columns the board was shifted right for horizontal
-            centering — added to every cell's column so the flip lands on
-            the actual on-screen board instead of column 0.
-        events: Special rule names that triggered this capture (e.g.
-            ["Same", "Combo"]), beyond the basic value comparison. Each
-            gets its own banner, shown before the "CAPTURED!" banner.
     """
     if term is None or not term.does_styling or not captures:
         for _, ncard in captures:
@@ -245,34 +204,24 @@ def animate_captures(
     squeeze = _FLASH + f"{'▐▌':^{CELL_W}}" + _RESET
     thin = _FLASH + f"{'│':^{CELL_W}}" + _RESET
 
-    # Beat 1: card shrinks edge-on (flip in profile), flashed bright white.
     _paint(term, cursor_row, col_offset, captures, lambda _card, _r: squeeze)
     time.sleep(0.22)
 
-    # Beat 2: card thins to a sliver — the card is now edge-on to the viewer.
     _paint(term, cursor_row, col_offset, captures, lambda _card, _r: thin)
     time.sleep(0.18)
 
     for _, ncard in captures:
         ncard.owner = new_owner
 
-    # Beat 3: reveal the card in its new owner's color (the flip's payoff).
     _paint(
         term, cursor_row, col_offset, captures, lambda card, r: _ROW_RENDERERS[r](card)
     )
     time.sleep(0.2)
 
-    # Beat 3.25: green particle burst when the player captures.
-    # The burst overlays the board and self-clears before banners show.
     if new_owner == Player.PLAYER:
         show_capture_particles(term, cursor_row, captures, col_offset)
 
-    # Beat 3.5: announce each special rule that triggered this capture
-    # (Same, Plus, Combo, ...), one banner per rule, before the generic
-    # "CAPTURED!" banner.
     for rule_name in events or ():
         show_rule_banner(term, rule_name, new_owner)
 
-    # Beat 4: an ASCII-art "CAPTURED!" banner materializes, flickers, and
-    # dissolves center-screen.
     _flash_banner(term, new_owner)

@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from blessed import Terminal
 
-
 from ..data.cards import CARDS, Element
 from ..deck.builder import build_random_deck
 from ..models.card import Card
@@ -62,16 +61,12 @@ def _draw_frame(term: Terminal, title: str, subtitle: str = "") -> None:
         print(term.move_yx(3, _center_x(term, subtitle)) + term.dim + subtitle)
 
 
-# ── Host Game Screen ─────────────────────────────────────────────────────────
-
-
 def host_game_ui() -> tuple[P2PConnection, dict[str, Any]] | None:
     """Display host lobby screen, wait for a guest to connect.
 
     Returns (connection, handshake_payload) on success, None on cancel.
     """
     conn = P2PConnection(player_name="Host")
-
     port = DEFAULT_PORT
     hosting_started = False
     spinner = [" ", "/", "-", "\\"]
@@ -80,7 +75,6 @@ def host_game_ui() -> tuple[P2PConnection, dict[str, Any]] | None:
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
         while True:
             _draw_frame(term, "HOST GAME", f"Port: {port}")
-
             ip = _local_ip()
             info_lines = [
                 f"Your IP: {ip}",
@@ -90,7 +84,6 @@ def host_game_ui() -> tuple[P2PConnection, dict[str, Any]] | None:
                 "",
                 f"  [{spinner[spin_idx]}] Listening...",
             ]
-
             y = term.height // 2 - len(info_lines) // 2
             for i, line in enumerate(info_lines):
                 print(term.move_yx(y + i, _center_x(term, line)) + term.white(line))
@@ -142,26 +135,21 @@ def host_game_ui() -> tuple[P2PConnection, dict[str, Any]] | None:
     return None
 
 
-# ── Join Game Screen ─────────────────────────────────────────────────────────
-
-
 def join_game_ui() -> tuple[P2PConnection, dict[str, Any]] | None:
     """Display join lobby screen, prompt for host IP/port and connect.
 
     Returns (connection, handshake_payload) on success, None on cancel.
     """
     conn = P2PConnection(player_name="Guest")
-
     host_ip = ""
     port_str = str(DEFAULT_PORT)
-    phase = "ip"  # ip -> port -> connecting -> handshake
+    phase = "ip"
     error_msg = ""
     timeout_start = 0.0
 
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
         while True:
             _draw_frame(term, "JOIN GAME", "Connect to a host")
-
             y = term.height // 2 - 4
 
             if phase == "ip":
@@ -301,9 +289,6 @@ def join_game_ui() -> tuple[P2PConnection, dict[str, Any]] | None:
     return None
 
 
-# ── Lobby Sync ───────────────────────────────────────────────────────────────
-
-
 def _expect_packet(
     conn: P2PConnection,
     expected: set[str],
@@ -314,7 +299,6 @@ def _expect_packet(
 ) -> tuple[str, dict[str, Any]] | None:
     """Wait for a packet of one of *expected* types.
 
-    Logs and reports (unless headless) on timeout or unexpected type.
     Returns ``(msg_type, payload)`` on success, ``None`` on failure.
     """
     packet = conn.queue_get_filtered(
@@ -345,18 +329,12 @@ def _exchange_decks(
 ) -> list[Card] | None:
     """Send our deck, receive and validate the peer's deck.
 
-    The received cards get ``owner=Player.CPU``. Returns the opponent's
-    hand, or ``None`` on any protocol/validation failure.
+    Returns the opponent's hand, or ``None`` on any protocol/validation failure.
     """
     conn.send(make_deck_share([c.name for c in player_hand]))
 
     result = _expect_packet(
-        conn,
-        {MessageType.DECK_SHARE},
-        role,
-        "DECK_SHARE",
-        headless,
-        timeout,
+        conn, {MessageType.DECK_SHARE}, role, "DECK_SHARE", headless, timeout
     )
     if result is None:
         return None
@@ -439,7 +417,6 @@ def lobby_sync_ui(
         if opponent_hand is None:
             return None
     else:
-        # Guest: receive sync_setup
         result = _expect_packet(
             conn, {MessageType.SYNC_SETUP}, role, "SYNC_SETUP", headless, sync_timeout
         )
@@ -487,9 +464,6 @@ def lobby_sync_ui(
         "first_turn": first_turn,
     }
 
-    # ── GAME_START two-way handshake ──────────────────────────────────────
-    # Both sides send GAME_START and wait for the peer's GAME_START,
-    # then exchange GAME_START_ACK to confirm readiness.
     logger.debug("Lobby: sending GAME_START")
     conn.send(make_game_start())
 
@@ -518,7 +492,6 @@ def lobby_sync_ui(
         if result is None:
             return None
 
-    # msg_type == GAME_START_ACK — peer already processed our GAME_START
     return sync_ctx
 
 

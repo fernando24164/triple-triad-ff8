@@ -14,8 +14,7 @@ def cpu_choose(
     mode: str = "greedy",
     randomness: float = 0.0,
 ) -> tuple[int, int | None]:
-    """
-    Choose a card and position for the CPU.
+    """Choose a card and position for the CPU.
 
     Modes
     -----

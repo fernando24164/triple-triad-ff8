@@ -6,7 +6,6 @@ from .melodies.background_music import BASS, CHORDS, MELODY, PERC
 
 
 def _square(frequency: float, duration: float, duty: float = 0.5) -> np.ndarray:
-    """pulse channel (square wave)."""
     if frequency == 0:
         return np.zeros(int(duration * SAMPLE_RATE))
     t = np.linspace(0, duration, int(duration * SAMPLE_RATE), endpoint=False)
@@ -14,7 +13,6 @@ def _square(frequency: float, duration: float, duty: float = 0.5) -> np.ndarray:
 
 
 def _triangle(frequency: float, duration: float) -> np.ndarray:
-    """triangle channel (bass)."""
     if frequency == 0:
         return np.zeros(int(duration * SAMPLE_RATE))
     t = np.linspace(0, duration, int(duration * SAMPLE_RATE), endpoint=False)
@@ -22,7 +20,6 @@ def _triangle(frequency: float, duration: float) -> np.ndarray:
 
 
 def _noise(duration: float) -> np.ndarray:
-    """noise channel (percussion)."""
     return np.random.uniform(-1, 1, int(duration * SAMPLE_RATE))
 
 

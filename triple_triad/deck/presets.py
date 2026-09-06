@@ -2,39 +2,39 @@ from ..models.card import Card
 
 DECK_PRESETS: dict[str, list[str]] = {
     "Balanced": [
-        "Mesmerize",  # Lv2, no element, balanced stats
-        "Cactuar",  # Lv3, no element
-        "Bomb",  # Lv4, Fire
-        "Iron Giant",  # Lv5, no element, strong
-        "Shiva",  # Lv8, Ice, high stats
+        "Mesmerize",
+        "Cactuar",
+        "Bomb",
+        "Iron Giant",
+        "Shiva",
     ],
     "Fire Power": [
-        "SAM08G",  # Lv3, Fire
-        "Bomb",  # Lv4, Fire
-        "Hexadragon",  # Lv4, Fire
-        "Ruby Dragon",  # Lv5, Fire
-        "Ifrit",  # Lv8, Fire
+        "SAM08G",
+        "Bomb",
+        "Hexadragon",
+        "Ruby Dragon",
+        "Ifrit",
     ],
     "Ice Wall": [
-        "Glacial Eye",  # Lv2, Ice
-        "Snow Lion",  # Lv3, Ice
-        "Shiva",  # Lv8, Ice
-        "Chimera",  # Lv5, Water (cold theme)
-        "Leviathan",  # Lv9, Water (cold theme)
+        "Glacial Eye",
+        "Snow Lion",
+        "Shiva",
+        "Chimera",
+        "Leviathan",
     ],
     "Rush": [
-        "Gayla",  # Lv1, no element, fast low-level
-        "Thrustaevis",  # Lv2, Wind
-        "Elvoret",  # Lv6, Wind
-        "Pandemona",  # Lv9, Wind
-        "Angelo",  # Lv8, no element
+        "Gayla",
+        "Thrustaevis",
+        "Elvoret",
+        "Pandemona",
+        "Angelo",
     ],
     "Poison Squad": [
-        "Anacondaur",  # Lv2, Poison
-        "Tri-Face",  # Lv3, Poison
-        "Blue Dragon",  # Lv4, Poison
-        "Gerogero",  # Lv6, Poison
-        "Doomtrain",  # Lv9, Poison
+        "Anacondaur",
+        "Tri-Face",
+        "Blue Dragon",
+        "Gerogero",
+        "Doomtrain",
     ],
 }
 

@@ -9,8 +9,8 @@ class Board:
     cells: list[Card | None]
     elements: list[Element | None]
 
-    def __init__(self, elements: list[Element | None] | None = None):
-        self.cells = [None] * BOARD_CELLS  # Card or None
+    def __init__(self, elements: list[Element | None] | None = None) -> None:
+        self.cells = [None] * BOARD_CELLS
         self.elements = elements if elements is not None else [None] * BOARD_CELLS
 
     def place(self, pos: int, card: Card) -> None:

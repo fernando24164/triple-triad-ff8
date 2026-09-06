@@ -18,16 +18,13 @@ from .tutorial_text import RULE_TOPIC_STEPS, SPEAKER, STEPS
 def run_tutorial() -> None:
     """Run the full Queen of Cards tutorial."""
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
-        # Show welcome step
         ok = show_dialog(STEPS[0]["lines"], speaker=SPEAKER)
         if not ok:
             return
 
-        # Rule selection loop
         if not _show_rule_selection():
             return
 
-        # Remaining tutorial steps (goal, card stats, etc.)
         for step in STEPS[1:]:
             print(term.clear)
             ok = show_dialog(step["lines"], speaker=SPEAKER)
@@ -72,9 +69,6 @@ def _show_rule_selection() -> bool:
                 return False
 
 
-# ── Rule selection menu ──────────────────────────────────────────────
-
-
 def _selector_menu(title: str, items: list[str]) -> int | None:
     """Display a navigable selector menu (no fullscreen — outer context handles it).
 
@@ -83,12 +77,8 @@ def _selector_menu(title: str, items: list[str]) -> int | None:
     return selector_embedded(title, items)
 
 
-# ── Deep-dive interactive demos ──────────────────────────────────────
-
-
 def _demo_same() -> bool:
     """Demonstrate the Same rule."""
-    # Mesmerize (bottom=3) at pos 1, Thrustaevis (right=3) at pos 3
     cpu1 = Card("Mesmerize")
     cpu1.owner = Player.CPU
     cpu2 = Card("Thrustaevis")
@@ -102,14 +92,11 @@ def _demo_same() -> bool:
 
     _draw_demo_frame("Same Rule")
     _draw_board_demo(board)
-    _draw_demo_text(
-        "Mesmerize bottom=3 — Thrustaevis right=3",
-        y=4,
-    )
+    _draw_demo_text("Mesmerize bottom=3 — Thrustaevis right=3", y=4)
     _draw_demo_text("Place Same card with top=3 & left=3 at pos 5!", y=5)
     _draw_demo_text("Press 5 to place Belhelmel at the center!", y=7)
 
-    key = _wait_for_specific_key(4, board)  # pos 5 = index 4
+    key = _wait_for_specific_key(4, board)
     if key is None:
         return False
 
@@ -122,10 +109,7 @@ def _demo_same() -> bool:
     _draw_board_demo(board)
 
     if "Same" in events:
-        _draw_demo_text(
-            f"Same triggered! {len(captures)} cards captured!",
-            y=5,
-        )
+        _draw_demo_text(f"Same triggered! {len(captures)} cards captured!", y=5)
     else:
         _draw_demo_text("Same did not trigger. Check values.", y=5)
 
@@ -156,7 +140,7 @@ def _demo_same_wall() -> bool:
     _draw_demo_text("And bottom=2 matches Gayla top=2 — that's 2 matches.", y=6)
     _draw_demo_text("Press 2 to place Bahamut at the top edge!", y=8)
 
-    key = _wait_for_specific_key(1, board)  # pos 2 = index 1
+    key = _wait_for_specific_key(1, board)
     if key is None:
         return False
 
@@ -170,8 +154,7 @@ def _demo_same_wall() -> bool:
 
     if "Same" in events:
         _draw_demo_text(
-            f"Same Wall triggered via edge + match! {len(captures)} captured!",
-            y=5,
+            f"Same Wall triggered via edge + match! {len(captures)} captured!", y=5
         )
     else:
         _draw_demo_text("Same did not trigger.", y=5)
@@ -203,14 +186,8 @@ def _demo_plus() -> bool:
     _draw_demo_frame("Plus Rule")
     _draw_board_demo(board)
     _draw_demo_text("Gayla  [T:2  R:1  B:4  L:4]", y=4)
-    _draw_demo_text(
-        "Top(2) + Grat bottom(3) = 5",
-        y=5,
-    )
-    _draw_demo_text(
-        "Left(4) + Red Bat right(1) = 5",
-        y=6,
-    )
+    _draw_demo_text("Top(2) + Grat bottom(3) = 5", y=5)
+    _draw_demo_text("Left(4) + Red Bat right(1) = 5", y=6)
     _draw_demo_text("Equal sums on 2 sides → Plus triggers!", y=7)
     _draw_demo_text("Press 5 to place Gayla at the center!", y=9)
 
@@ -227,10 +204,7 @@ def _demo_plus() -> bool:
     _draw_board_demo(board)
 
     if "Plus" in events:
-        _draw_demo_text(
-            f"Plus triggered! {len(captures)} cards captured!",
-            y=5,
-        )
+        _draw_demo_text(f"Plus triggered! {len(captures)} cards captured!", y=5)
     else:
         _draw_demo_text("Plus did not trigger. Check sums.", y=5)
 
@@ -265,14 +239,8 @@ def _demo_combo() -> bool:
 
     _draw_demo_frame("Combo Rule")
     _draw_board_demo(board)
-    _draw_demo_text(
-        "Belhelmel top=3 matches Mesmerize bottom=3",
-        y=4,
-    )
-    _draw_demo_text(
-        "Belhelmel left=3 matches Thrustaevis right=3",
-        y=5,
-    )
+    _draw_demo_text("Belhelmel top=3 matches Mesmerize bottom=3", y=4)
+    _draw_demo_text("Belhelmel left=3 matches Thrustaevis right=3", y=5)
     _draw_demo_text("Same triggers — then Combo chain-captures!", y=6)
     _draw_demo_text("Press 5 to place Belhelmel at center!", y=8)
 
@@ -290,10 +258,7 @@ def _demo_combo() -> bool:
 
     combo_label = "Combo" in events
     if cap := (len(captures) if combo_label else 0):
-        _draw_demo_text(
-            f"Same + Combo! {cap} cards captured in chain!",
-            y=5,
-        )
+        _draw_demo_text(f"Same + Combo! {cap} cards captured in chain!", y=5)
     else:
         _draw_demo_text("Same triggered but no chain reaction.", y=5)
 
@@ -327,9 +292,6 @@ def _show_goodbye() -> None:
     term.inkey(timeout=None)
 
 
-# ── Interactive demo handlers ────────────────────────────────────────────────
-
-
 def _demo_place_card() -> bool:
     """Let the player place a card on an empty board."""
     board = Board()
@@ -361,7 +323,6 @@ def _demo_place_card() -> bool:
                 break
 
     pos = cur
-
     board.place(pos, card)
 
     print(term.clear)
@@ -498,9 +459,6 @@ _INTERACTIVE: dict[str, Any] = {
     "plus_demo": _demo_plus,
     "combo_demo": _demo_combo,
 }
-
-
-# ── Drawing helpers ──────────────────────────────────────────────────────────
 
 
 def _draw_demo_frame(title: str) -> None:

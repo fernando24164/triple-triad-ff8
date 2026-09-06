@@ -8,14 +8,15 @@ from ..models.player import Player
 
 OPPOSITE = {"top": "bottom", "bottom": "top", "left": "right", "right": "left"}
 DIRECTIONS = ("top", "bottom", "left", "right")
-WALL_RANK = 10  # Same Wall: board edges count as rank A for the Same rule
+WALL_RANK = 10
 
 
 def _elemental_bonus(
     card: Card, pos: int, board_elements: list[Element | None] | None
 ) -> int:
-    """+1 if the card's element matches its cell, -1 if the cell has an
-    element and it doesn't match (including elementless cards), else 0."""
+    """Return +1 if the card's element matches its cell, -1 if the cell has an
+    element and it doesn't match (including elementless cards), else 0.
+    """
     if not board_elements or pos >= len(board_elements):
         return 0
     cell_element = board_elements[pos]
@@ -78,8 +79,6 @@ def _evaluate_captures(
         if "Plus" in rules:
             plus_candidates.append((npos, ncard, atk + dfn))
 
-    # Same Wall: board edges count as rank A (10) toward the Same rule's
-    # 2+ match requirement, but a wall has no card to capture.
     wall_matches = 0
     if "Same" in rules and "Same Wall" in rules:
         missing_directions = set(DIRECTIONS) - set(neighbors.keys())
@@ -91,12 +90,10 @@ def _evaluate_captures(
     plus: list[tuple[int, Card]] = []
     events: list[str] = []
 
-    # Same rule: if 2+ neighbors (plus matching walls) have equal values
     if "Same" in rules and same_candidates and len(same_candidates) + wall_matches >= 2:
         events.append("Same")
         same = list(same_candidates)
 
-    # Plus rule: if 2+ neighbors share the same sum
     if "Plus" in rules and len(plus_candidates) >= 2:
         sums = [x[2] for x in plus_candidates]
         for s in set(sums):
@@ -116,7 +113,8 @@ def _cascade_combo(
 ) -> list[tuple[int, Card]]:
     """Combo rule: cards flipped by Same/Plus (or Same Wall) chain-react
     against their own neighbors using the basic (higher-value-wins) rule
-    only — Same/Plus are not re-evaluated during the chain."""
+    only — Same/Plus are not re-evaluated during the chain.
+    """
     captured_positions = {p for p, _ in seeds}
     queue = list(seeds)
     extra: list[tuple[int, Card]] = []
@@ -146,7 +144,8 @@ def resolve_captures(
 
     Returns:
         tuple: (captures, events) where captures is a list of (pos, card)
-               tuples and events is a list of triggered rule names (e.g. "Same", "Plus").
+               tuples and events is a list of triggered rule names
+               (e.g. "Same", "Plus").
     """
     result = _evaluate_captures(board, pos, placed_card, placed_card.owner, rules)
 
@@ -160,8 +159,6 @@ def resolve_captures(
 
     events: list[str] = list(result["events"])
 
-    # Combo: automatic side effect of Same/Plus — every card flipped this
-    # turn can chain-capture further neighbors via the basic rule.
     if events:
         board_elements = getattr(board, "elements", None)
         extra = _cascade_combo(board, captures, placed_card.owner, board_elements)
@@ -176,8 +173,7 @@ def resolve_captures(
 def apply_captures(captures: list[tuple[int, Card]], attacker: Player | None) -> None:
     """Transfer ownership of captured cards to ``attacker``.
 
-    Callers no longer need to remember to flip ownership themselves —
-    this is the single place where a capture mutates state.
+    This is the single place where a capture mutates state.
     """
     for _, card in captures:
         card.owner = attacker
@@ -186,21 +182,21 @@ def apply_captures(captures: list[tuple[int, Card]], attacker: Player | None) ->
 def simulate_capture(
     board: Board, pos: int, card: Card, owner: Player | None, rules: Collection[str]
 ) -> int:
-    """
-    Calculate captures for a hypothetical move without modifying state.
+    """Calculate captures for a hypothetical move without modifying state.
 
     This is a stateless simulation used by the AI to evaluate moves
     without the overhead of deepcopying board and card objects.
 
     Args:
-        board: The current Board object (read-only)
-        pos: Position to simulate placing at (0..BOARD_CELLS-1)
-        card: Card object with top/right/bottom/left attributes
-        owner: The owner of the placed card (Player member or None for simulation)
-        rules: List of active rules
+        board: The current Board object (read-only).
+        pos: Position to simulate placing at (0..BOARD_CELLS-1).
+        card: Card object with top/right/bottom/left attributes.
+        owner: The owner of the placed card
+               (Player member or None for simulation).
+        rules: List of active rules.
 
     Returns:
-        int: Number of cards that would be captured
+        Number of cards that would be captured.
     """
     result = _evaluate_captures(board, pos, card, owner, rules)
 

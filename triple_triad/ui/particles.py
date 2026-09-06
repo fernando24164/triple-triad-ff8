@@ -78,17 +78,7 @@ def show_capture_particles(
     """Burst green particles outward from each captured cell.
 
     No-op when no interactive terminal is available or there are no
-    captures.  Particles are drawn via relative cursor moves (same
-    technique as ``capture_fx._paint``) so they overlay the board
-    without needing the absolute screen origin.
-
-    Args:
-        term: Active blessed Terminal, or None.
-        cursor_row: Lines from board top border to cursor (as returned
-            by ``render_turn_screen``).
-        captures: (pos, card) pairs being captured this turn.
-        col_offset: Horizontal board centering offset.
-        color_shades: Optional override for particle colors.
+    captures.
     """
     if term is None or not term.does_styling or not captures:
         return
@@ -98,7 +88,7 @@ def show_capture_particles(
     particles: list[_Particle] = []
     for pos, _ in captures:
         cell_r, cell_c = _cell_origin(pos)
-        centre_r = float(cell_r + 1)  # vertical centre (between the 4 rows)
+        centre_r = float(cell_r + 1)
         centre_c = float(cell_c + CELL_W // 2)
         for _ in range(_PARTICLES_PER_CELL):
             angle = random.uniform(0, 2 * math.pi)

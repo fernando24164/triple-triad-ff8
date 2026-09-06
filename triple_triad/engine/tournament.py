@@ -26,8 +26,7 @@ def run_tournament(
     ai_randomness: float = 0.0,
     music_player: ChiptunePlayer | None = None,
 ) -> tuple[int, int, int] | None:
-    """
-    Run a 3-round single-elimination tournament with random rules per round.
+    """Run a 3-round single-elimination tournament with random rules per round.
 
     The bracket is ROUND 1 → ROUND 2 → FINAL. A single loss eliminates
     the player immediately — the tournament ends early instead of playing
@@ -88,7 +87,6 @@ def run_tournament(
         show_round_result(matches, round_index, result)
         reset_card_owners(player_hand, cpu_hand)
 
-        # Single-elimination: a loss eliminates the player immediately.
         if result == "L":
             print(
                 f"\n  💀  ELIMINATED in {matches[round_index].label} vs {matches[round_index].opponent}!"
@@ -101,8 +99,6 @@ def run_tournament(
     print("  TOURNAMENT RESULTS")
     print("═" * 62)
     print(f"\n  Final Record — W:{wins} L:{losses} D:{draws}")
-    # Single-elimination: any loss means the whole tournament is lost,
-    # even if win-count would otherwise be favorable (e.g. 2-1).
     if losses > 0:
         print("\n  💀  TOURNAMENT LOST!")
     elif wins > losses:

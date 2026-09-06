@@ -7,18 +7,12 @@ from ..models.card import Card, stat_display
 from ..models.player import Player
 from .color import Color
 
-CELL_W = 18  # inner width of each cell (visible characters only)
+CELL_W = 18
 
 
 def board_total_width() -> int:
     """Visible width (chars) of one line from ``render_board``."""
     return GRID_SIZE * (CELL_W + 1) + 1
-
-
-# ── Per-cell row renderers ───────────────────────────────────────────────────
-# Each function returns a string of exactly CELL_W *visible* characters.
-# ANSI codes are injected AFTER the plain-text layout is built, so
-# padding/alignment is always calculated on raw strings first.
 
 
 def render_row1(card: Card | None) -> str:
@@ -28,8 +22,8 @@ def render_row1(card: Card | None) -> str:
         return " " * w
     sym = "■" if card.owner == Player.PLAYER else "□"
     label = f"{sym}{card.name}"
-    label = label[: w - 1]  # truncate to visible width
-    plain = f" {label:<{w - 1}}"  # exactly CELL_W visible chars
+    label = label[: w - 1]
+    plain = f" {label:<{w - 1}}"
     return Color.card(plain, card.owner)
 
 
@@ -53,20 +47,16 @@ def render_row3(card: Card | None) -> str:
     left_str = f"◀ {stat_display(card.left)}"
     right_str = f"{stat_display(card.right)} ▶"
 
-    # 1. Build a plain CELL_W-char canvas filled with spaces
     chars = [" "] * w
 
-    # 2. Write the element centred  (occupies positions  1 .. w-2)
-    inner = w - 2  # 16 visible chars
-    el_padded = f"{el:^{inner}}"  # e.g. "      Ice      "
+    inner = w - 2
+    el_padded = f"{el:^{inner}}"
     for i, ch in enumerate(el_padded):
         chars[1 + i] = ch
 
-    # 3. Overlay left value at position 1 (overwrites element if needed)
     for i, ch in enumerate(left_str):
         chars[1 + i] = ch
 
-    # 4. Overlay right value ending at position w-1
     start_r = w - 1 - len(right_str)
     for i, ch in enumerate(right_str):
         chars[start_r + i] = ch
@@ -96,9 +86,6 @@ def _render_empty(pos: int, element: Element | None = None) -> str:
     return Color.empty(plain)
 
 
-# ── Border helpers ───────────────────────────────────────────────────────────
-
-
 def _hline(
     left: str,
     mid: str,
@@ -110,8 +97,6 @@ def _hline(
     line = left + (mid.join([segment] * GRID_SIZE)) + right
     if highlight_col is None or not 0 <= highlight_col < GRID_SIZE:
         return Color.border(line)
-    # Span covering the segment of the highlighted column plus the
-    # junction chars on both of its ends.
     span_start = highlight_col * (CELL_W + 1)
     span_end = span_start + CELL_W + 1
     return (
@@ -127,9 +112,6 @@ _ROW_RENDERERS: tuple[Callable[[Card | None], str], ...] = (
     render_row3,
     render_row4,
 )
-
-
-# ── Main renderer ────────────────────────────────────────────────────────────
 
 
 def render_board(board: Board, highlight: int | None = None) -> str:
@@ -152,7 +134,6 @@ def render_board(board: Board, highlight: int | None = None) -> str:
             for col, card in enumerate(cells):
                 pos = row * GRID_SIZE + col
                 if card is None:
-                    # Show position number only on the middle row
                     if render_idx == 2:
                         element = board.elements[pos]
                         parts.append(_render_empty(pos, element))
@@ -179,7 +160,6 @@ def render_board(board: Board, highlight: int | None = None) -> str:
                 )
 
         if row < GRID_SIZE - 1:
-            # Mid line borders rows ``row`` (below) and ``row + 1`` (above).
             hl = hc if (row == hr or row + 1 == hr) else None
             lines.append(_hline("├", "┼", "┤", "─", highlight_col=hl))
 
