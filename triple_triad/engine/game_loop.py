@@ -28,14 +28,14 @@ from ..network.protocol import (
 from ..synth.sfx import play_cancel, play_capture_lose, play_capture_win
 from ..synth.wave_generators import generate_boogie_buffer, generate_music_buffer
 from ..ui.capture_fx import animate_captures
-from ..ui.display import display_hand
+from ..ui.cli import pause_message
 from ..ui.match_controller import TurnContext, get_local_move
 from ..ui.match_view import (
     decide_first,
-    draw_key_hints,
     hand_block_lines,
     render_game_over_screen,
     render_turn_screen,
+    reveal_first,
     show_match_outcome,
 )
 from ..ui.position_selector import QuitGameError
@@ -253,17 +253,27 @@ def run_p2p_game(
 
     screen = term.fullscreen() if (use_screen and term is not None) else nullcontext()
     with screen, _boogie_during_match(music_player if not headless else None):
+        if not headless and use_screen and term is not None:
+            local_first = (first_turn == Player.PLAYER) != (local_role == Role.P2)
+            reveal_first(
+                term,
+                Player.PLAYER if local_first else Player.CPU,
+                labels=("  YOU  ", "OPPONENT"),
+                result_texts=("You go first!", "Opponent goes first!"),
+            )
+
         while any(board.is_empty(i) for i in range(BOARD_CELLS)):
             p_score, c_score = calculate_scores(board, player_hand, opponent_hand)
-            turn_label = "YOUR TURN" if turn == "P" else "OPPONENT TURN"
-
             is_local_turn = (turn == Player.PLAYER and local_role == Role.P1) or (
                 turn == Player.CPU and local_role == Role.P2
             )
-            hands_extra = hand_block_lines(len(player_hand)) + hand_block_lines(
-                len(opponent_hand)
+            turn_label = "YOUR TURN" if is_local_turn else "OPPONENT TURN"
+            choose_extra = (
+                hand_block_lines(len(player_hand))
+                + hand_block_lines(len(opponent_hand))
+                if is_local_turn
+                else 2
             )
-            choose_extra = hands_extra if is_local_turn else hands_extra + 2
 
             if not headless and term:
                 render_turn_screen(
@@ -275,7 +285,6 @@ def run_p2p_game(
                     p_score,
                     c_score,
                     score_labels=score_labels,
-                    sep="=",
                     extra_lines=choose_extra,
                 )
 
@@ -308,7 +317,6 @@ def run_p2p_game(
                                 p_score=p_score,
                                 c_score=c_score,
                                 score_labels=score_labels,
-                                sep="=",
                             )
                         )
                     except QuitGameError:
@@ -323,15 +331,13 @@ def run_p2p_game(
                 move_note = f"You placed [{card.name}] at position {pos + 1}"
             else:
                 if not headless and term:
-                    print("\n  Opponent is thinking...")
-                    display_hand(player_hand, "Your", show="Open" in rules, term=term)
-                    display_hand(opponent_hand, "Opponent", show=True, term=term)
-                    draw_key_hints(term, use_screen)
+                    print("\n  Opponent is thinking...", end="", flush=True)
 
                 packet = _wait_for_move(conn, term, headless)
                 if packet is None:
                     if not headless and term:
                         print("\n  Opponent took too long!")
+                        pause_message()
                     return _win_by_opponent_error(local_role)
 
                 msg_type, payload = parse_packet(packet)
@@ -339,11 +345,13 @@ def run_p2p_game(
                     if not headless and term:
                         reason = payload.get("reason", "")
                         print(f"\n  Opponent forfeited! {reason}")
+                        pause_message()
                     return _win_by_opponent_error(local_role)
 
                 if msg_type in (MessageType.DISCONNECT, MessageType.CONNECTION_LOST):
                     if not headless and term:
                         print("\n  Opponent disconnected!")
+                        pause_message()
                     return _win_by_opponent_error(local_role)
 
                 opp_ci = payload["card_idx"]
@@ -376,7 +384,6 @@ def run_p2p_game(
                     p_score,
                     c_score,
                     score_labels=score_labels,
-                    sep="=",
                     note=move_note,
                 )
                 if captures:
@@ -394,7 +401,6 @@ def run_p2p_game(
                             p_score,
                             c_score,
                             score_labels=score_labels,
-                            sep="=",
                             note=move_note,
                         )
                     else:
@@ -408,8 +414,8 @@ def run_p2p_game(
                     old_owner = old_owners[cap_pos]
                     defender_label = "Opponent" if old_owner == Player.CPU else "You"
                     print(
-                        f"  [{card.name}] captured [{ncard.name}]! "
-                        f"({defender_label} -> {attacker_label})"
+                        f"  ⚔  [{card.name}] captured [{ncard.name}]! "
+                        f"({defender_label} → {attacker_label})"
                     )
                 apply_captures(captures, card.owner)
                 if use_screen:
@@ -424,13 +430,16 @@ def run_p2p_game(
 
         if p_final > c_final:
             result = MatchResult.P1_WIN if local_role == Role.P1 else MatchResult.P2_WIN
-            label = "YOU WIN!"
+            local_outcome = MatchResult.P1_WIN
+            result_text = "🏆  YOU WIN!  Congratulations!"
         elif c_final > p_final:
             result = MatchResult.P2_WIN if local_role == Role.P1 else MatchResult.P1_WIN
-            label = "You lost. Better luck next time!"
+            local_outcome = MatchResult.P2_WIN
+            result_text = "💀  OPPONENT WINS!  Better luck next time!"
         else:
             result = MatchResult.DRAW
-            label = "It's a draw!"
+            local_outcome = MatchResult.DRAW
+            result_text = "🤝  IT'S A DRAW!"
 
         if not headless and term:
             render_game_over_screen(
@@ -439,8 +448,8 @@ def run_p2p_game(
                 board,
                 p_final,
                 c_final,
-                score_labels=("You", "Opponent"),
-                result_text=label,
+                score_labels=score_labels,
+                result_text=result_text,
             )
             show_match_outcome(
                 term,
@@ -448,9 +457,9 @@ def run_p2p_game(
                 board,
                 p_final,
                 c_final,
-                label,
-                result,
-                score_labels=("You", "Opponent"),
+                result_text,
+                local_outcome,
+                score_labels=score_labels,
             )
         return result
 
@@ -468,7 +477,9 @@ def _wait_for_move(
     """Block waiting for a MOVE packet from the network, with heartbeat handling.
 
     Uses queue_get_filtered so non-matching packets (e.g. heartbeats) are
-    buffered in ``_pending`` instead of silently discarded.
+    buffered in ``_pending`` instead of silently discarded. The spinner
+    overwrites the caller's "Opponent is thinking..." line in place, so the
+    waiting message costs no extra rows and the centered board stays put.
     """
     start = time.monotonic()
     spinner = [" ", "/", "-", "\\"]
@@ -487,11 +498,8 @@ def _wait_for_move(
 
         if not headless and term:
             elapsed = time.monotonic() - start
-            print(
-                f"\r  Waiting for opponent... [{spinner[spin_idx]}] ({elapsed:.0f}s)",
-                end="",
-                flush=True,
-            )
+            line = f"  Waiting for opponent... [{spinner[spin_idx]}] ({elapsed:.0f}s)"
+            print("\r" + line.ljust(44), end="", flush=True)
             spin_idx = (spin_idx + 1) % len(spinner)
 
     conn.send(make_disconnect("Timeout"))

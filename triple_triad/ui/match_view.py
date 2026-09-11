@@ -25,14 +25,16 @@ if TYPE_CHECKING:
     from blessed import Terminal
 
 
-def decide_first(term: Terminal | None) -> Player:
-    """Animate a bouncing selector between YOU and CPU, then reveal who goes
-    first. Draws within the caller's already-active fullscreen session
-    (pass None to skip the animation and just pick randomly).
+def reveal_first(
+    term: Terminal,
+    first: Player,
+    labels: tuple[str, str] = ("  YOU  ", "  CPU  "),
+    result_texts: tuple[str, str] = ("You go first!", "CPU goes first!"),
+) -> None:
+    """Animate a bouncing selector between the two labels, settling on the
+    already-decided winner. Draws within the caller's already-active
+    fullscreen session.
     """
-    if term is None:
-        return random.choice([Player.PLAYER, Player.CPU])
-    first = random.choice([Player.PLAYER, Player.CPU])
     winner = 0 if first == Player.PLAYER else 1
 
     cur = random.randint(0, 1)
@@ -42,13 +44,11 @@ def decide_first(term: Terminal | None) -> Player:
         cur = 1 - cur
     seq.append(winner)
 
-    labels = ["  YOU  ", "  CPU  "]
     gap = 8
     total_w = len(labels[0]) + gap + len(labels[1])
     base_x = max(0, (term.width - total_w) // 2)
-    cpu_x = base_x + len(labels[0]) + gap
-    arrow_offset = len(labels[0]) // 2
-    positions = (base_x, cpu_x)
+    positions = (base_x, base_x + len(labels[0]) + gap)
+    arrow_offsets = (len(labels[0]) // 2, len(labels[1]) // 2)
 
     with term.cbreak(), term.hidden_cursor():
         print(term.clear + term.normal, end="")
@@ -70,7 +70,7 @@ def decide_first(term: Terminal | None) -> Player:
             out = []
             for idx, x in enumerate(positions):
                 glyph = term.yellow("▲") if idx == sel else " "
-                out.append(term.move_yx(9, x + arrow_offset) + glyph)
+                out.append(term.move_yx(9, x + arrow_offsets[idx]) + glyph)
 
             print("".join(out), end="", flush=True)
             time.sleep(delay)
@@ -82,7 +82,7 @@ def decide_first(term: Terminal | None) -> Player:
             flush=True,
         )
 
-        result = "You go first!" if first == Player.PLAYER else "CPU goes first!"
+        result = result_texts[winner]
         print(
             term.move_yx(11, max(0, (term.width - len(result)) // 2))
             + term.bold_yellow(result),
@@ -91,6 +91,14 @@ def decide_first(term: Terminal | None) -> Player:
         )
         time.sleep(1)
 
+
+def decide_first(term: Terminal | None) -> Player:
+    """Pick who goes first at random, revealing it with the bouncing-selector
+    animation (pass None to skip the animation and just pick).
+    """
+    first = random.choice([Player.PLAYER, Player.CPU])
+    if term is not None:
+        reveal_first(term, first)
     return first
 
 
